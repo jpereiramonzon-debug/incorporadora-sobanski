@@ -162,3 +162,6 @@ legend{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(-
 .clock,.scroll-cue{z-index:2}
 .building{z-index:1}
 .cream .eyebrow{color:var(--gold-deep)}
+.scene::before,.scene::after{z-index:1}
+.building{z-index:2}
+.clock,.scroll-cue{z-index:3}
