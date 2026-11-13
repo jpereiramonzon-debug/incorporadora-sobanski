@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Edifício Santa Ana | Sobanski Incorporadora</title>
-<meta name="description" content="Edifício Santa Ana, em Mallet - PR. Elevador, forro de gesso, infraestrutura para ar-condicionado, piso aquecido e personalização durante a obra. Um empreendimento Sobanski Incorporadora.">
+<meta name="description" content="Gire o Edifício Santa Ana em 360°, clique em um andar e conheça os apartamentos. Um empreendimento Sobanski Incorporadora em Mallet - PR.">
 <meta property="og:title" content="Edifício Santa Ana | Sobanski Incorporadora">
 <meta property="og:description" content="Transformando sonhos, construindo o seu lar.">
 <meta property="og:image" content="assets/fachada.jpg">
@@ -19,127 +19,43 @@
 <header class="nav" id="nav">
   <a class="brand" href="#topo" aria-label="Sobanski Incorporadora, início">SOBANSKI</a>
   <nav aria-label="Seções">
-    <a href="#andares">Andares</a>
-    <a href="#detalhes">Diferenciais</a>
-    <a href="#ambientes">Ambientes</a>
+    <a href="#topo">O edifício</a>
     <a href="#investimento">Investimento</a>
     <a href="#local">Localização</a>
   </nav>
   <a class="btn btn-sm" href="#contato">Tenho interesse</a>
 </header>
 
-<main id="topo">
+<main>
 
-  <!-- 1. Do fim de tarde à noite: a fachada acende conforme a rolagem -->
-  <section class="scene-wrap" id="cena" aria-label="Edifício Santa Ana ao entardecer">
-    <div class="scene">
-      <div class="sky sky-day"></div>
-      <div class="sky sky-night"></div>
-      <div class="stars"></div>
-      <div class="sun"></div>
+  <!-- O prédio em 360°: gire, clique em um andar e escolha o modelo -->
+  <section class="hero" id="topo" aria-label="Edifício Santa Ana em 360 graus">
+    <div class="viewer" id="viewer"></div>
 
-      <div class="scene-copy copy-a">
-        <p class="eyebrow">Sobanski Incorporadora apresenta</p>
-        <h1>Edifício <em>Santa Ana</em></h1>
-        <p class="lede">Transformando sonhos, construindo o seu lar.</p>
-      </div>
-      <div class="scene-copy copy-b" aria-hidden="true">
-        <p class="eyebrow">Iluminação ao entardecer</p>
-        <p class="h1">Quando o dia termina,<br><em>o Santa Ana acende.</em></p>
-      </div>
-
-      <div class="building" id="building" role="img" aria-label="Ilustração da fachada do Edifício Santa Ana, com três pavimentos de apartamentos sobre o térreo"></div>
-
-      <div class="clock" aria-hidden="true"><span id="clock">16:30</span><i></i><small>Mallet · PR</small></div>
-      <a class="scroll-cue" href="#andares" aria-label="Rolar para escolher um andar"><span>Role para ver anoitecer</span><i></i></a>
+    <div class="hero-copy">
+      <p class="eyebrow">Sobanski Incorporadora apresenta</p>
+      <h1>Edifício <em>Santa Ana</em></h1>
     </div>
+
+    <div class="floors" id="floors" role="group" aria-label="Escolha um andar"></div>
+
+    <div class="hint" id="hint">
+      <button type="button" id="rotL" aria-label="Girar para a esquerda">&#8249;</button>
+      <span><b>Arraste</b> para girar 360°<i> &nbsp;·&nbsp; <b>clique em um andar</b> para entrar</i></span>
+      <button type="button" id="rotR" aria-label="Girar para a direita">&#8250;</button>
+    </div>
+    <div class="tip" id="tip" aria-hidden="true"></div>
+
+    <aside class="panel" id="panel" aria-label="Detalhes do andar" aria-live="polite" hidden>
+      <div class="panel-bar">
+        <button type="button" class="panel-back" id="panelBack"></button>
+        <button type="button" class="panel-close" id="panelClose" aria-label="Fechar e voltar ao prédio">&times;</button>
+      </div>
+      <div class="panel-body" id="panelBody"></div>
+    </aside>
   </section>
 
-  <!-- 2. Visita por andar: clique no andar e entre no apartamento -->
-  <section class="sec dark explore" id="andares">
-    <div class="wrap">
-      <p class="eyebrow reveal">Visite o edifício</p>
-      <h2 class="reveal">Clique em um andar e <em>entre no apartamento</em></h2>
-      <div class="explorer reveal">
-        <div class="ex-building"><div class="ex-zoom" id="exZoom"></div></div>
-        <div class="lift" id="lift" aria-label="Andares do edifício"></div>
-      </div>
-    </div>
-  </section>
-
-  <dialog class="apt" id="apt" aria-labelledby="aptTitle">
-    <button class="apt-close" id="aptClose" aria-label="Fechar e voltar ao edifício">&times;</button>
-    <div class="apt-grid">
-      <div class="apt-view" id="aptView"></div>
-      <div class="apt-info">
-        <p class="eyebrow" id="aptFloor"></p>
-        <h3 id="aptTitle"></h3>
-        <p id="aptText"></p>
-        <ul class="apt-tags" id="aptTags"></ul>
-        <p class="apt-tip" id="aptTip" aria-live="polite"></p>
-        <div class="actions">
-          <button class="btn" type="button" id="aptCta">Quero conhecer</button>
-          <button class="btn btn-ghost" type="button" id="aptUp" aria-label="Subir um andar">&#9650; Subir</button>
-          <button class="btn btn-ghost" type="button" id="aptDown" aria-label="Descer um andar">&#9660; Descer</button>
-        </div>
-        <small>Ilustração meramente ilustrativa. Peça as plantas e fotos reais à equipe Sobanski.</small>
-      </div>
-    </div>
-  </dialog>
-
-  <!-- 2. Diferenciais -->
-  <section class="sec cream" id="detalhes">
-    <div class="wrap">
-      <p class="eyebrow reveal">No Santa Ana você encontra</p>
-      <h2 class="reveal">5 detalhes que fazem o Edifício Santa Ana ser <em>diferente</em></h2>
-
-      <div class="details reveal">
-        <ul class="detail-list" id="detailList" role="tablist" aria-label="Diferenciais"></ul>
-        <div class="detail-stage" id="detailStage" aria-live="polite">
-          <span class="stage-num" id="stageNum">01</span>
-          <div class="stage-icon" id="stageIcon"></div>
-          <h3 id="stageTitle"></h3>
-          <p id="stageText"></p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 3. Ambientes -->
-  <section class="sec dark" id="ambientes">
-    <div class="wrap">
-      <p class="eyebrow reveal">Conheça por dentro e por fora</p>
-      <h2 class="reveal">Cada ambiente pensado para <em>o seu dia a dia</em></h2>
-
-      <div class="gallery">
-        <figure class="shot shot-wide reveal">
-          <img src="assets/fachada.jpg" alt="Fachada do Edifício Santa Ana ao entardecer, com muro iluminado e letreiro" loading="lazy" width="580" height="526">
-          <figcaption>Fachada</figcaption>
-        </figure>
-        <figure class="shot reveal">
-          <img src="assets/entardecer.jpg" alt="Vista lateral do Edifício Santa Ana com as linhas de luz acesas" loading="lazy" width="470" height="526">
-          <figcaption>Iluminação ao entardecer</figcaption>
-        </figure>
-      </div>
-
-      <div class="rooms">
-        <a class="room reveal" href="https://www.instagram.com/sobanski.incorporadora/" target="_blank" rel="noopener">
-          <span class="room-k">01</span><h3>Áreas Sociais</h3>
-          <p>Os espaços de convivência do edifício.</p><span class="link">Ver nos destaques</span>
-        </a>
-        <a class="room reveal" href="https://www.instagram.com/sobanski.incorporadora/" target="_blank" rel="noopener">
-          <span class="room-k">02</span><h3>Apartamento Tipo 02</h3>
-          <p>Conheça os ambientes desta planta.</p><span class="link">Ver nos destaques</span>
-        </a>
-        <a class="room reveal" href="https://www.instagram.com/sobanski.incorporadora/" target="_blank" rel="noopener">
-          <span class="room-k">03</span><h3>Apartamento Tipo 03</h3>
-          <p>Conheça os ambientes desta planta.</p><span class="link">Ver nos destaques</span>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- 4. Investimento -->
+  <!-- Investimento -->
   <section class="sec cream" id="investimento">
     <div class="wrap two">
       <div>
@@ -163,7 +79,7 @@
     </div>
   </section>
 
-  <!-- 5. Contato guiado -->
+  <!-- Contato guiado -->
   <section class="sec dark" id="contato">
     <div class="wrap two">
       <div>
@@ -178,7 +94,6 @@
         </fieldset>
         <fieldset><legend>Quero conhecer</legend>
           <label><input type="radio" name="tipo" value="todas as plantas disponíveis" checked><span>Todas as plantas</span></label>
-          <label><input type="radio" name="tipo" value="o Apartamento Tipo 01"><span>Ap Tipo 01</span></label>
           <label><input type="radio" name="tipo" value="o Apartamento Tipo 02"><span>Ap Tipo 02</span></label>
           <label><input type="radio" name="tipo" value="o Apartamento Tipo 03"><span>Ap Tipo 03</span></label>
           <label><input type="radio" name="tipo" value="as áreas sociais"><span>Áreas sociais</span></label>
@@ -195,12 +110,12 @@
           <button class="btn" type="button" id="send">Copiar e abrir o Instagram</button>
           <a class="btn btn-ghost" href="https://linktr.ee/sobanski.incorporadora" target="_blank" rel="noopener">Outros contatos</a>
         </div>
-        <p class="hint" id="hint" role="status"></p>
+        <p class="form-hint" id="hint2" role="status"></p>
       </form>
     </div>
   </section>
 
-  <!-- 6. Localização -->
+  <!-- Localização -->
   <section class="sec cream local" id="local">
     <div class="wrap two">
       <div>
@@ -225,6 +140,9 @@
   <small>Imagens e ilustrações meramente ilustrativas. © <span id="year"></span> Sobanski Incorporadora.</small>
 </footer>
 
-<script src="script.js"></script>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
