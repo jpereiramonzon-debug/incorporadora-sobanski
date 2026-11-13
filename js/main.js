@@ -27,8 +27,20 @@ const MODELS = {
     name: 'Apartamento Tipo 03',
     short: 'Tipo 03',
     form: 'o Apartamento Tipo 03',
-    summary: 'Planta e imagens com a equipe',
-    tagline: 'Peça a planta e as imagens deste modelo à equipe Sobanski.',
+    summary: '57,00 m² · 2 quartos · 1 vaga',
+    tagline: 'Conforto e funcionalidade em cada detalhe.',
+    specs: [['57,00 m²', 'área total'], ['71,56 m²', 'área equivalente'], ['2', 'quartos'], ['1', 'banheiro'], ['1', 'vaga de garagem']],
+    features: ['1 quarto com sacada privativa', 'Área de serviço integrada na cozinha', 'Piso aquecido no banheiro'],
+    media: [
+      ['assets/tipo03-planta.jpg', 'Planta', 'Planta do Apartamento Tipo 03'],
+      ['assets/tipo03-sala-cozinha.jpg', 'Estar e cozinha', 'Sala de estar integrada à cozinha com bancada'],
+      ['assets/tipo03-cozinha.jpg', 'Cozinha', 'Cozinha com área de serviço integrada'],
+      ['assets/tipo03-sala-tv.jpg', 'Sala de TV', 'Sala de TV com bancada de refeições'],
+      ['assets/tipo03-quarto1-a.jpg', 'Quarto 1', 'Quarto 1 com painel de madeira e janela'],
+      ['assets/tipo03-quarto1-b.jpg', 'Quarto 1', 'Quarto 1 com armário e cabeceira estofada'],
+      ['assets/tipo03-quarto2-a.jpg', 'Quarto 2', 'Quarto 2 infantil com acesso à sacada'],
+      ['assets/tipo03-quarto2-b.jpg', 'Quarto 2', 'Quarto 2 infantil com armários'],
+    ],
   },
 };
 
@@ -55,7 +67,7 @@ const viewFloor = (f) => `
   <div class="models">${f.models.map((id) => {
     const m = MODELS[id];
     return `<button type="button" class="model" data-model="${id}">
-      ${m.media ? `<img src="${m.media[0][0]}" alt="">` : '<span class="model-ph" aria-hidden="true">03</span>'}
+      <img src="${m.media[0][0]}" alt="">
       <span><b>${m.name}</b><small>${m.summary}</small></span><i aria-hidden="true">&rarr;</i>
     </button>`;
   }).join('')}</div>`;
@@ -73,14 +85,38 @@ const viewModel = (f, m) => `
   <h2>${m.name}</h2>
   <p class="lead">${m.tagline}</p>
   ${m.media ? `
-  <figure class="media" id="media"><img src="${m.media[0][0]}" alt="${m.media[0][2]}"><figcaption>${m.media[0][1]}</figcaption></figure>
-  <div class="thumbs" role="group" aria-label="Planta e fotos">${m.media.map(([src, cap], i) =>
-    `<button type="button" data-i="${i}" aria-label="${cap}" aria-pressed="${i === 0}"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div>
+  <figure class="media" id="media"></figure>
+  <div class="thumbs" role="group" aria-label="Planta em 3D, planta e fotos">
+    <button type="button" data-i="3d" aria-label="Planta em 3D" aria-pressed="true"><b>3D</b></button>${m.media.map(([src, cap], i) =>
+    `<button type="button" data-i="${i}" aria-label="${cap}" aria-pressed="false"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div>
   <dl class="specs">${m.specs.map(([v, l]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>
   <h3>Neste apartamento</h3><ul class="feats">${m.features.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}
   <h3>No edifício</h3>${chips(BUILDING_FEATURES)}
   <div class="actions"><button type="button" class="btn" data-cta>Tenho interesse no ${m.short}</button></div>
-  ${m.media ? '<small class="muted">Imagens ilustrativas. Medidas conforme material de divulgação.</small>' : ''}`;
+  <small class="muted">Imagens e planta 3D ilustrativas. Medidas conforme material de divulgação.</small>`;
+
+// área de mídia do modelo: planta giratória em 3D, planta e fotos
+let plan3d = null;
+const showMedia = async (i) => {
+  const fig = $('media');
+  plan3d?.dispose(); plan3d = null;
+  if (!fig) return;
+  fig.parentElement.querySelectorAll('.thumbs button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.i === String(i)));
+  const media = MODELS[state.model].media;
+  const image = ([src, cap, alt]) => { fig.className = 'media'; fig.innerHTML = `<img src="${src}" alt="${alt}"><figcaption>${cap}</figcaption>`; };
+  if (i !== '3d') return image(media[+i]);
+  const id = state.model;
+  try {
+    const { createPlan, PLANS } = await import('./plan3d.js');
+    if (state.model !== id || !fig.isConnected) return;
+    fig.className = 'media is3d';
+    fig.innerHTML = '<figcaption>Planta em 3D · arraste para girar</figcaption>';
+    plan3d = createPlan(fig, PLANS[id]);
+  } catch (err) {
+    console.warn('Planta 3D indisponível:', err);
+    image(media[0]);
+  }
+};
 
 const render = () => {
   const f = floorOf(state.floor);
@@ -89,6 +125,7 @@ const render = () => {
   panel.hidden = !open;
   viewer?.setPanel(open);
   viewer?.select(state.floor);
+  plan3d?.dispose(); plan3d = null;
   document.querySelectorAll('#floors button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.k === state.floor));
   if (!open) return;
   const m = MODELS[state.model];
@@ -97,6 +134,7 @@ const render = () => {
   body.innerHTML = m ? viewModel(f, m) : f.models.length ? viewFloor(f) : viewGround(f);
   body.scrollTop = 0;
   body.classList.remove('enter'); void body.offsetWidth; body.classList.add('enter');
+  if (m?.media) showMedia('3d');
 };
 const openFloor = (k) => { state.floor = k; state.model = null; render(); };
 const closePanel = () => { state.floor = state.model = null; render(); };
@@ -105,11 +143,7 @@ body.addEventListener('click', (e) => {
   const model = e.target.closest('[data-model]');
   const thumb = e.target.closest('.thumbs button');
   if (model) { state.model = model.dataset.model; render(); }
-  else if (thumb) {
-    const [src, cap, alt] = MODELS[state.model].media[+thumb.dataset.i];
-    $('media').innerHTML = `<img src="${src}" alt="${alt}"><figcaption>${cap}</figcaption>`;
-    thumb.parentElement.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b === thumb));
-  } else if (e.target.closest('[data-cta]')) {
+  else if (thumb) showMedia(thumb.dataset.i); else if (e.target.closest('[data-cta]')) {
     chosen = { floor: floorOf(state.floor), model: MODELS[state.model] };
     const value = chosen.model?.form ?? 'todas as plantas disponíveis';
     const radio = [...form.elements.tipo].find((r) => r.value === value);

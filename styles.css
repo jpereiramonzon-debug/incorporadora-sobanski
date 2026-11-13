@@ -84,16 +84,20 @@ small.muted{font-size:.74rem}
 .models{display:grid;gap:10px}
 .model{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:16px;padding:12px;border:1px solid var(--line);border-radius:4px;background:var(--coal);transition:border-color .25s,transform .25s}
 .model:hover,.model:focus-visible{border-color:var(--gold);transform:translateX(4px)}
-.model img,.model-ph{flex:none;width:64px;height:84px;object-fit:cover;object-position:top;border-radius:2px;background:#efe6d8}
-.model-ph{display:grid;place-items:center;background:#22252c;font:400 1.6rem var(--serif);color:var(--gold)}
-.model span:not(.model-ph){display:grid;gap:2px}
+.model img{flex:none;width:64px;height:84px;object-fit:cover;object-position:top;border-radius:2px;background:#efe6d8}
+.model span{display:grid;gap:2px}
 .model b{font:500 1.4rem var(--serif)}
 .model small{color:#a9a396;font-size:.88rem}
 .model i{margin-left:auto;font-style:normal;color:var(--gold)}
 .media{position:relative;background:#efe6d8;border-radius:4px;overflow:hidden;height:clamp(220px,38vh,340px)}
 .media img{width:100%;height:100%;object-fit:contain;animation:rise .4s}
 .media figcaption{position:absolute;left:10px;bottom:10px;background:rgba(14,16,20,.75);color:#fff;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;padding:5px 10px;border-radius:999px}
-.thumbs{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.media.is3d{background:radial-gradient(circle at 50% 40%,#f7f0e4,#e2d5c0);height:clamp(280px,46vh,400px)}
+.media.is3d canvas{display:block;width:100%;height:100%;touch-action:pan-y;cursor:grab}
+.media.is3d canvas.dragging{cursor:grabbing}
+.plan-label{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;font:500 .58rem var(--sans);letter-spacing:.12em;text-transform:uppercase;color:#2b2722;background:rgba(255,252,246,.86);padding:3px 7px;border-radius:999px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:6px}
+.thumbs b{display:grid;place-items:center;width:100%;height:100%;background:var(--ink);color:var(--gold-soft);font:500 1rem var(--serif);letter-spacing:.06em}
 .thumbs button{padding:0;border:1px solid transparent;border-radius:3px;overflow:hidden;cursor:pointer;background:#efe6d8;aspect-ratio:1;opacity:.6;transition:opacity .2s,border-color .2s}
 .thumbs button:hover,.thumbs button[aria-pressed=true]{opacity:1;border-color:var(--gold)}
 .thumbs img{width:100%;height:100%;object-fit:cover}
