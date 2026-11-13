@@ -21,6 +21,7 @@ const MODELS = {
   t02: {
     name: 'Apartamento Tipo 02',
     short: 'Tipo 02',
+    tour: 't02-jantar',
     form: 'o Apartamento Tipo 02',
     summary: '60,94 m² · 2 quartos · 1 vaga',
     tagline: 'Conforto e funcionalidade em cada detalhe.',
@@ -38,6 +39,7 @@ const MODELS = {
   t03: {
     name: 'Apartamento Tipo 03',
     short: 'Tipo 03',
+    tour: 't03-sala',
     form: 'o Apartamento Tipo 03',
     summary: '57,00 m² · 2 quartos · 1 vaga',
     tagline: 'Conforto e funcionalidade em cada detalhe.',
@@ -95,7 +97,8 @@ const viewGround = (f) => `
   <div class="areas">${SOCIAL_AREAS.map((a) => `<button type="button" data-area="${a}">${a}</button>`).join('')}</div>
   <h3>No edifício</h3>${chips(BUILDING_FEATURES)}
   <p class="muted">No térreo também ficam o acesso e as vagas de garagem.</p>
-  <div class="actions"><button type="button" class="btn" data-cta>Quero conhecer as áreas sociais</button></div>
+  <div class="actions"><button type="button" class="btn" data-cta>Quero conhecer as áreas sociais</button>
+    <a class="btn btn-ghost" href="tour.html#salao-a">Visitar em 3D</a></div>
   <small class="muted">Imagens ilustrativas.</small>`;
 
 const viewModel = (f, m) => `
@@ -110,7 +113,8 @@ const viewModel = (f, m) => `
   <dl class="specs">${m.specs.map(([v, l]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>
   <h3>Neste apartamento</h3><ul class="feats">${m.features.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}
   <h3>No edifício</h3>${chips(BUILDING_FEATURES)}
-  <div class="actions"><button type="button" class="btn" data-cta>Tenho interesse no ${m.short}</button></div>
+  <div class="actions"><button type="button" class="btn" data-cta>Tenho interesse no ${m.short}</button>
+    <a class="btn btn-ghost" href="tour.html#${m.tour}">Visitar em 3D</a></div>
   <small class="muted">Imagens e planta 3D ilustrativas. Medidas conforme material de divulgação.</small>`;
 
 // área de mídia do modelo: planta giratória em 3D, planta e fotos

@@ -1,0 +1,79 @@
+/* Tour 3D em primeira pessoa */
+body.tour{height:100vh;height:100dvh;overflow:hidden;display:grid;grid-template-columns:330px minmax(0,1fr);grid-template-rows:auto 1fr;background:var(--ink);color:#e9e4da}
+.t-top{grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:10px clamp(12px,2vw,24px);border-bottom:1px solid var(--line);background:var(--ink);z-index:5}
+.t-back{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-size:1.3rem}
+.t-back .brand{font-size:.95rem}
+.t-now{display:grid;line-height:1.15;margin-left:clamp(8px,4vw,64px);min-width:0}
+.t-now small{font-size:.64rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+.t-now b{font:500 1.3rem var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.t-btn{font:400 .72rem var(--sans);letter-spacing:.16em;text-transform:uppercase;color:#fff;background:transparent;border:1px solid #3a3d45;border-radius:999px;padding:9px 16px;cursor:pointer;display:none}
+
+.t-menu{overflow-y:auto;overscroll-behavior:contain;border-right:1px solid var(--line);background:var(--ink);padding:22px 14px 28px;display:flex;flex-direction:column;gap:18px}
+.t-menu-head{padding:0 8px}
+.t-menu-head h1{font-size:1.9rem;line-height:1.05;margin-bottom:8px}
+.t-menu-head p:not(.eyebrow){font-size:.9rem;color:#a9a396}
+.t-menu section{display:grid;gap:4px}
+.t-menu h2{font:400 .66rem var(--sans);letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin:6px 8px 4px;max-width:none}
+.shot{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:12px;align-items:center;padding:7px 8px;border-radius:6px;border:1px solid transparent;transition:background .2s,border-color .2s}
+.shot:hover{background:var(--coal)}
+.shot:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.shot[aria-current=true]{background:var(--coal);border-color:var(--gold)}
+.shot img{flex:none;width:84px;height:56px;object-fit:cover;border-radius:3px;background:#22252c}
+.shot span{display:grid;gap:2px;min-width:0}
+.shot b{font:500 1.08rem var(--serif);color:#f1ebdf;line-height:1.15}
+.shot small{font-size:.76rem;color:#9a958b;line-height:1.3}
+.t-note{font-size:.72rem;color:#7d786f;padding:0 8px}
+
+.t-stage{position:relative;overflow:hidden;min-height:0;background:#15161a}
+.t-stage canvas{display:block;width:100%;height:100%;cursor:grab;outline:none;touch-action:none}
+.t-stage canvas.dragging{cursor:grabbing}
+.t-overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none;transition:opacity .4s;z-index:1}
+.t-pois{position:absolute;inset:0;pointer-events:none;z-index:2}
+.poi{all:unset;box-sizing:border-box;position:absolute;left:0;top:0;pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:8px;margin:-17px 0 0 -17px;transition:opacity .25s}
+.poi.off{opacity:0;pointer-events:none}
+.poi i{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:500 1.15rem var(--sans);font-style:normal;color:#17130a;background:var(--gold);box-shadow:0 0 0 0 rgba(201,164,92,.6);animation:poiPulse 2.4s infinite}
+.poi.is-go i{background:#fff}
+.poi span{font-size:.74rem;letter-spacing:.06em;color:#fff;background:rgba(14,16,20,.72);backdrop-filter:blur(6px);padding:6px 11px;border-radius:999px;white-space:nowrap;opacity:0;transform:translateX(-6px);transition:opacity .2s,transform .2s}
+.poi:hover span,.poi:focus-visible span{opacity:1;transform:none}
+.poi:focus-visible i{outline:2px solid #fff;outline-offset:3px}
+@keyframes poiPulse{70%{box-shadow:0 0 0 12px rgba(201,164,92,0)}100%{box-shadow:0 0 0 0 rgba(201,164,92,0)}}
+
+.t-help{position:absolute;left:50%;top:16px;transform:translateX(-50%);z-index:3;background:rgba(14,16,20,.72);backdrop-filter:blur(8px);border-radius:999px;padding:9px 18px;font-size:.8rem;color:#e9e4da;white-space:nowrap;transition:opacity .6s;pointer-events:none}
+.t-help.gone{opacity:0}
+.t-help [hidden]{display:none}
+kbd{font:500 .7rem var(--sans);display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 4px;margin-right:2px;border:1px solid rgba(255,255,255,.4);border-radius:4px}
+
+.t-ref{position:absolute;right:16px;bottom:16px;z-index:3;width:min(240px,34%);background:rgba(14,16,20,.82);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.t-ref img{display:block;width:100%;aspect-ratio:3/2;object-fit:cover}
+.t-ref figcaption{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#a9a396}
+.t-ref button{font:500 .64rem var(--sans);letter-spacing:.12em;text-transform:uppercase;color:#17130a;background:var(--gold);border:0;border-radius:999px;padding:6px 10px;cursor:pointer}
+
+.t-card{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:4;width:min(420px,calc(100% - 32px));background:rgba(14,16,20,.92);backdrop-filter:blur(10px);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:6px;padding:16px 44px 16px 18px;animation:rise .35s cubic-bezier(.2,.7,.2,1)}
+.t-card b{display:block;font:500 1.35rem var(--serif);margin-bottom:4px}
+.t-card p{font-size:.92rem;color:#cfc8ba}
+.t-card button{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:1px solid #3a3d45;background:transparent;color:#fff;font-size:1.1rem;cursor:pointer}
+
+.t-joy{position:absolute;left:20px;bottom:24px;z-index:3;width:112px;height:112px;border-radius:50%;background:rgba(14,16,20,.45);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(6px);touch-action:none;display:grid;place-items:center}
+.t-joy[hidden]{display:none}
+.t-joy i{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.85);transition:transform .08s}
+
+.t-loading{position:absolute;inset:0;z-index:6;display:grid;place-items:center;background:var(--ink);opacity:0;pointer-events:none;transition:opacity .26s}
+.t-loading.on{opacity:1}
+.t-loading span{font:italic 400 1.4rem var(--serif);color:var(--gold-soft)}
+.t-noscript{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
+
+@media (max-width:900px){
+  body.tour{grid-template-columns:minmax(0,1fr)}
+  .t-back .brand{display:none}
+  .t-top{gap:10px}
+  .t-btn{display:inline-block}
+  .t-top .btn{display:none}
+  .t-now{margin-left:4px}
+  .t-menu{position:fixed;z-index:8;top:0;left:0;bottom:0;width:min(340px,88vw);transform:translateX(-102%);transition:transform .35s cubic-bezier(.2,.7,.2,1);box-shadow:0 0 40px rgba(0,0,0,.5)}
+  .t-menu.open{transform:none}
+  .t-help{font-size:.72rem;max-width:calc(100% - 24px);white-space:normal;text-align:center;border-radius:14px}
+  .t-ref{width:132px;right:10px;bottom:12px}
+  .t-ref figcaption span{display:none}
+}
+@media (prefers-reduced-motion:reduce){.poi i,.t-card{animation:none}.t-menu{transition:none}}
