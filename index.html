@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edifício Santa Ana | Sobanski Incorporadora</title>
+<meta name="description" content="Edifício Santa Ana, em Mallet - PR. Elevador, forro de gesso, infraestrutura para ar-condicionado, piso aquecido e personalização durante a obra. Um empreendimento Sobanski Incorporadora.">
+<meta property="og:title" content="Edifício Santa Ana | Sobanski Incorporadora">
+<meta property="og:description" content="Transformando sonhos, construindo o seu lar.">
+<meta property="og:image" content="assets/fachada.jpg">
+<meta name="theme-color" content="#0e1014">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <a class="brand" href="#topo" aria-label="Sobanski Incorporadora, início">SOBANSKI</a>
+  <nav aria-label="Seções">
+    <a href="#detalhes">Diferenciais</a>
+    <a href="#ambientes">Ambientes</a>
+    <a href="#investimento">Investimento</a>
+    <a href="#local">Localização</a>
+  </nav>
+  <a class="btn btn-sm" href="#contato">Tenho interesse</a>
+</header>
+
+<main id="topo">
+
+  <!-- 1. Do fim de tarde à noite: a fachada acende conforme a rolagem -->
+  <section class="scene-wrap" id="cena" aria-label="Edifício Santa Ana ao entardecer">
+    <div class="scene">
+      <div class="sky sky-day"></div>
+      <div class="sky sky-night"></div>
+      <div class="stars"></div>
+      <div class="sun"></div>
+
+      <div class="scene-copy copy-a">
+        <p class="eyebrow">Sobanski Incorporadora apresenta</p>
+        <h1>Edifício <em>Santa Ana</em></h1>
+        <p class="lede">Transformando sonhos, construindo o seu lar.</p>
+      </div>
+      <div class="scene-copy copy-b" aria-hidden="true">
+        <p class="eyebrow">Iluminação ao entardecer</p>
+        <p class="h1">Quando o dia termina,<br><em>o Santa Ana acende.</em></p>
+      </div>
+
+      <div class="building" id="building" role="img" aria-label="Ilustração da fachada do Edifício Santa Ana, com três pavimentos de apartamentos sobre o térreo"></div>
+
+      <div class="clock" aria-hidden="true"><span id="clock">16:30</span><i></i><small>Mallet · PR</small></div>
+      <a class="scroll-cue" href="#detalhes" aria-label="Rolar para os diferenciais"><span>Role para ver anoitecer</span><i></i></a>
+    </div>
+  </section>
+
+  <!-- 2. Diferenciais -->
+  <section class="sec cream" id="detalhes">
+    <div class="wrap">
+      <p class="eyebrow reveal">No Santa Ana você encontra</p>
+      <h2 class="reveal">5 detalhes que fazem o Edifício Santa Ana ser <em>diferente</em></h2>
+
+      <div class="details reveal">
+        <ul class="detail-list" id="detailList" role="tablist" aria-label="Diferenciais"></ul>
+        <div class="detail-stage" id="detailStage" aria-live="polite">
+          <span class="stage-num" id="stageNum">01</span>
+          <div class="stage-icon" id="stageIcon"></div>
+          <h3 id="stageTitle"></h3>
+          <p id="stageText"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Ambientes -->
+  <section class="sec dark" id="ambientes">
+    <div class="wrap">
+      <p class="eyebrow reveal">Conheça por dentro e por fora</p>
+      <h2 class="reveal">Cada ambiente pensado para <em>o seu dia a dia</em></h2>
+
+      <div class="gallery">
+        <figure class="shot shot-wide reveal">
+          <img src="assets/fachada.jpg" alt="Fachada do Edifício Santa Ana ao entardecer, com muro iluminado e letreiro" loading="lazy" width="580" height="526">
+          <figcaption>Fachada</figcaption>
+        </figure>
+        <figure class="shot reveal">
+          <img src="assets/entardecer.jpg" alt="Vista lateral do Edifício Santa Ana com as linhas de luz acesas" loading="lazy" width="470" height="526">
+          <figcaption>Iluminação ao entardecer</figcaption>
+        </figure>
+      </div>
+
+      <div class="rooms">
+        <a class="room reveal" href="https://www.instagram.com/sobanski.incorporadora/" target="_blank" rel="noopener">
+          <span class="room-k">01</span><h3>Áreas Sociais</h3>
+          <p>Os espaços de convivência do edifício.</p><span class="link">Ver nos destaques</span>
+        </a>
+        <a class="room reveal" href="https://www.instagram.com/sobanski.incorporadora/" target="_blank" rel="noopener">
+          <span class="room-k">02</span><h3>Apartamento Tipo 02</h3>
+          <p>Conheça os ambientes desta planta.</p><span class="link">Ver nos destaques</span>
+        </a>
+        <a class="room reveal" href="https://www.instagram.com/sobanski.incorporadora/" target="_blank" rel="noopener">
+          <span class="room-k">03</span><h3>Apartamento Tipo 03</h3>
+          <p>Conheça os ambientes desta planta.</p><span class="link">Ver nos destaques</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Investimento -->
+  <section class="sec cream" id="investimento">
+    <div class="wrap two">
+      <div>
+        <p class="eyebrow reveal">Por que comprar na planta</p>
+        <h2 class="reveal">O tempo também faz parte do <em>investimento</em>.</h2>
+        <p class="body reveal">À medida que a obra avança, o empreendimento ganha forma, as unidades disponíveis diminuem e os valores podem ser atualizados.</p>
+        <p class="body reveal">Por isso, quem decide no início pode ter:</p>
+        <ul class="perks">
+          <li class="reveal"><b>Maior poder de escolha</b><span>Mais unidades disponíveis para decidir com calma.</span></li>
+          <li class="reveal"><b>Mais tempo para planejar o pagamento</b><span>O cronograma da obra joga a seu favor.</span></li>
+          <li class="reveal"><b>Potencial de valorização até a entrega</b><span>O imóvel ganha forma, e valor, ao longo do caminho.</span></li>
+        </ul>
+      </div>
+      <div class="timeline" id="timeline" aria-label="Etapas do empreendimento">
+        <div class="tl-line"><i></i></div>
+        <div class="tl-step"><span>Hoje</span><h3>Na planta</h3><p>Mais opções de unidades e a chance de personalizar o apartamento durante a obra.</p></div>
+        <div class="tl-step"><span>Durante</span><h3>Obra em andamento</h3><p>O edifício ganha forma e as unidades disponíveis diminuem.</p></div>
+        <div class="tl-step"><span>Depois</span><h3>Entrega</h3><p>Seu apartamento pronto, com a sua cara.</p></div>
+        <p class="quote">Comprar na planta não é apenas pensar no imóvel pronto. <em>É avaliar o potencial dele desde o começo.</em></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Contato guiado -->
+  <section class="sec dark" id="contato">
+    <div class="wrap two">
+      <div>
+        <p class="eyebrow reveal">Vamos conversar</p>
+        <h2 class="reveal">Conte o que você procura. <em>A gente prepara a conversa.</em></h2>
+        <p class="body reveal">Escolha as opções ao lado e sua mensagem fica pronta para enviar à equipe da Sobanski.</p>
+      </div>
+      <form class="builder reveal" id="builder" onsubmit="return false">
+        <fieldset><legend>Meu objetivo</legend>
+          <label><input type="radio" name="obj" value="morar" checked><span>Morar</span></label>
+          <label><input type="radio" name="obj" value="investir"><span>Investir</span></label>
+        </fieldset>
+        <fieldset><legend>Quero conhecer</legend>
+          <label><input type="radio" name="tipo" value="todas as plantas disponíveis" checked><span>Todas as plantas</span></label>
+          <label><input type="radio" name="tipo" value="o Apartamento Tipo 02"><span>Ap Tipo 02</span></label>
+          <label><input type="radio" name="tipo" value="o Apartamento Tipo 03"><span>Ap Tipo 03</span></label>
+          <label><input type="radio" name="tipo" value="as áreas sociais"><span>Áreas sociais</span></label>
+        </fieldset>
+        <fieldset><legend>O que mais valorizo</legend>
+          <label><input type="checkbox" name="val" value="elevador"><span>Elevador</span></label>
+          <label><input type="checkbox" name="val" value="forro de gesso"><span>Forro de gesso</span></label>
+          <label><input type="checkbox" name="val" value="infraestrutura para ar-condicionado"><span>Ar-condicionado</span></label>
+          <label><input type="checkbox" name="val" value="piso aquecido nos banheiros"><span>Piso aquecido</span></label>
+          <label><input type="checkbox" name="val" value="personalização durante a obra"><span>Personalização</span></label>
+        </fieldset>
+        <p class="msg" id="msg"></p>
+        <div class="actions">
+          <button class="btn" type="button" id="send">Copiar e abrir o Instagram</button>
+          <a class="btn btn-ghost" href="https://linktr.ee/sobanski.incorporadora" target="_blank" rel="noopener">Outros contatos</a>
+        </div>
+        <p class="hint" id="hint" role="status"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- 6. Localização -->
+  <section class="sec cream local" id="local">
+    <div class="wrap two">
+      <div>
+        <p class="eyebrow reveal">Onde estamos</p>
+        <h2 class="reveal">Mallet, <em>Paraná</em></h2>
+        <p class="body reveal">Fale com a Sobanski Incorporadora para conhecer a localização do Edifício Santa Ana e agendar uma conversa.</p>
+      </div>
+      <address class="card reveal">
+        <span class="brand">SOBANSKI</span>
+        <p>Construtora e incorporadora</p>
+        <p>Avenida João Pessoa, 1480<br>Mallet · Paraná · 84570-000</p>
+        <a class="link" href="https://www.google.com/maps/search/?api=1&query=Avenida+Jo%C3%A3o+Pessoa+1480+Mallet+PR" target="_blank" rel="noopener">Abrir no mapa</a>
+        <a class="link" href="https://www.instagram.com/sobanski.incorporadora/" target="_blank" rel="noopener">@sobanski.incorporadora</a>
+      </address>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span class="brand">SOBANSKI</span>
+  <p>Transformando sonhos, construindo o seu lar.</p>
+  <small>Imagens e ilustrações meramente ilustrativas. © <span id="year"></span> Sobanski Incorporadora.</small>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
