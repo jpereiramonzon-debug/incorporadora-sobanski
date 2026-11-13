@@ -354,7 +354,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     if (!W || !H) return;
     renderer.setSize(W, H); composer.setSize(W, H);
     camera.aspect = W / H;
-    baseRad = 46 / Math.min(1, Math.max(0.5, (W / H) * 1.25));
+    baseRad = 46 / Math.min(1, Math.max(0.5, (W / H) * 1.08));
     frame();
   };
   new ResizeObserver(resize).observe(container);
