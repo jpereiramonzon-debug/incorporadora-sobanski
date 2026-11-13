@@ -35,7 +35,7 @@
   let blocks = '';
   for (let y = 112; y < 380; y += 9) blocks += `M244 ${y}h16`;
 
-  document.getElementById('building').innerHTML = `
+  const buildingSVG = `
 <svg viewBox="0 0 600 520" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <defs>
     <linearGradient id="warm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0c9"/><stop offset="1" stop-color="#f0a850"/></linearGradient>
@@ -82,6 +82,7 @@
   </g>
   ${railings}
 </svg>`;
+  document.getElementById('building').innerHTML = buildingSVG;
 
   /* ---------- Rolagem: entardecer, menu e linha do tempo ---------- */
   const wrap = document.getElementById('cena');
@@ -182,6 +183,135 @@
       hint.textContent = 'Copie a mensagem acima e cole na conversa do Instagram.';
     }
     window.open('https://ig.me/m/sobanski.incorporadora', '_blank', 'noopener');
+  });
+
+
+  /* ---------- Visita por andar ---------- */
+  // Edite aqui o que aparece em cada andar (título, texto e opção do formulário).
+  const levels = [
+    { k: '3', floor: '3º andar', title: 'Apartamento Tipo 03', tipo: 'o Apartamento Tipo 03', box: [142, 100, 316, 95],
+      text: 'No último andar, com a vista mais aberta do edifício e a luz do entardecer entrando pela sala.' },
+    { k: '2', floor: '2º andar', title: 'Apartamento Tipo 02', tipo: 'o Apartamento Tipo 02', box: [142, 195, 316, 95],
+      text: 'No meio do edifício, com acesso pelo elevador e todo o conforto dos acabamentos do Santa Ana.' },
+    { k: '1', floor: '1º andar', title: 'Apartamento Tipo 01', tipo: 'o Apartamento Tipo 01', box: [142, 290, 316, 106],
+      text: 'Logo acima do térreo, pertinho da copa das árvores e a poucos passos da rua.' },
+    { k: 'T', floor: 'Térreo', title: 'Acesso e áreas sociais', tipo: 'as áreas sociais', box: [40, 396, 520, 76],
+      text: 'A chegada ao Edifício Santa Ana: fachada iluminada, portões de acesso e os espaços de convivência.' },
+  ];
+  const spots = [
+    [50, 9, 'Forro de gesso', 'Acabamento moderno e ambientes ainda mais valorizados.'],
+    [30.5, 25.5, 'Infraestrutura para ar-condicionado', 'Mais praticidade para o seu dia.'],
+    [33, 41, 'Personalização durante a obra', 'Mais liberdade para deixar o seu apartamento com a sua cara.'],
+  ];
+  const interior = (n) => {
+    const tree = 330 + n * 34; // quanto mais alto o andar, mais céu na janela
+    let planks = '', rail = '';
+    for (let i = 1; i < 9; i++) planks += `M${140 + i * 58} 410L${i * 89} 600`;
+    for (let x = 408; x < 600; x += 12) rail += `M${x} 352v58`;
+    return `<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustração da sala do apartamento">
+  <defs>
+    <linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#31406f"/><stop offset=".6" stop-color="#b98a8f"/><stop offset="1" stop-color="#f3bd8b"/></linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9c7650"/><stop offset="1" stop-color="#bd9468"/></linearGradient>
+    <filter id="led" x="-10%" y="-60%" width="120%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>
+    <clipPath id="door"><rect x="404" y="164" width="192" height="246"/></clipPath>
+  </defs>
+  <path d="M0 0H800L660 110H140z" fill="#e9e2d5"/>
+  <path d="M0 0L140 110V410L0 600z" fill="#c6bcab"/><path d="M800 0L660 110V410L800 600z" fill="#cdc3b3"/>
+  <rect x="140" y="110" width="520" height="300" fill="#dad1c2"/>
+  <path d="M0 600L140 410H660L800 600z" fill="url(#wood)"/><path d="${planks}" stroke="#8a6644" stroke-width="1.5"/>
+  <path d="M112 24H688L612 92H188z" fill="none" stroke="#ffd596" stroke-width="12" opacity=".8" filter="url(#led)"/>
+  <path d="M112 24H688L612 92H188z" fill="#f7f2e8" stroke="#ffe3b3" stroke-width="2.5"/>
+  <circle cx="300" cy="58" r="5" fill="#fff3d6"/><circle cx="400" cy="58" r="5" fill="#fff3d6"/><circle cx="500" cy="58" r="5" fill="#fff3d6"/>
+  <g clip-path="url(#door)">
+    <rect x="404" y="164" width="192" height="246" fill="url(#dusk)"/>
+    <ellipse cx="440" cy="${tree + 60}" rx="70" ry="80" fill="#22352a"/><ellipse cx="560" cy="${tree + 80}" rx="80" ry="84" fill="#2c4433"/>
+    <path d="M404 352h192${rail}" stroke="#141416" stroke-width="2.5" fill="none"/>
+  </g>
+  <rect x="404" y="164" width="192" height="246" fill="none" stroke="#1b1b1e" stroke-width="7"/><path d="M500 164v246" stroke="#1b1b1e" stroke-width="5"/>
+  <rect x="372" y="150" width="26" height="262" fill="#f1e9da"/><rect x="602" y="150" width="26" height="262" fill="#f1e9da"/>
+  <rect x="180" y="134" width="132" height="36" rx="7" fill="#fbfaf6" stroke="#cfc8ba"/><path d="M192 160h108" stroke="#b9b2a4" stroke-width="2"/>
+  <rect x="196" y="212" width="58" height="72" fill="#f6f0e4" stroke="#8f6f2f" stroke-width="3"/><rect x="270" y="212" width="58" height="72" fill="#f6f0e4" stroke="#8f6f2f" stroke-width="3"/>
+  <path d="M206 268l14-22 12 14 8-8 6 16z" fill="#c9a45c"/><circle cx="299" cy="246" r="14" fill="none" stroke="#c9a45c" stroke-width="3"/>
+  <ellipse cx="400" cy="510" rx="250" ry="52" fill="#ebe2d2"/>
+  <rect x="166" y="312" width="200" height="76" rx="12" fill="#66736a"/><rect x="154" y="358" width="224" height="50" rx="10" fill="#75837a"/>
+  <rect x="150" y="344" width="26" height="66" rx="9" fill="#5c6960"/><rect x="356" y="344" width="26" height="66" rx="9" fill="#5c6960"/>
+  <rect x="196" y="330" width="52" height="40" rx="8" fill="#d9b877"/><rect x="286" y="330" width="52" height="40" rx="8" fill="#efe7d8"/>
+  <rect x="300" y="452" width="170" height="14" rx="4" fill="#5b432c"/><path d="M316 466v40M454 466v40" stroke="#5b432c" stroke-width="6"/>
+  <path d="M640 420h44l-6 52h-32z" fill="#8a6a4a"/><path d="M662 420q-34-50-22-104M662 420q6-66 34-96M662 420q-4-70-2-124M662 420q30-34 52-40" stroke="#3f6a3d" stroke-width="7" fill="none" stroke-linecap="round"/>
+</svg>`;
+  };
+
+  const exZoom = document.getElementById('exZoom');
+  const lift = document.getElementById('lift');
+  const apt = document.getElementById('apt');
+  const aptView = document.getElementById('aptView');
+  const aptTip = document.getElementById('aptTip');
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const pct = (v, total) => `${(v / total * 100).toFixed(2)}%`;
+
+  exZoom.innerHTML = buildingSVG + levels.map((l) => {
+    const [x, y, w, h] = l.box;
+    return `<button class="floor-hit" data-k="${l.k}" style="left:${pct(x, 600)};top:${pct(y, 520)};width:${pct(w, 600)};height:${pct(h, 520)}" aria-label="${l.floor}: ver ${l.title}"><span>${l.floor} · entrar</span></button>`;
+  }).join('');
+  lift.innerHTML = levels.map((l) =>
+    `<button data-k="${l.k}"><b>${l.k}</b><span><small>${l.floor}</small>${l.title}</span><i aria-hidden="true">&rarr;</i></button>`).join('');
+
+  const triggers = [...document.querySelectorAll('#exZoom .floor-hit, #lift button')];
+  const hot = (k) => triggers.forEach((t) => t.classList.toggle('is-hot', t.dataset.k === k));
+  let level = 0;
+
+  const render = (i) => {
+    level = i;
+    const l = levels[i];
+    document.getElementById('aptFloor').textContent = l.floor;
+    document.getElementById('aptTitle').textContent = l.title;
+    document.getElementById('aptText').textContent = l.text;
+    document.getElementById('aptCta').textContent = l.k === 'T' ? 'Quero conhecer as áreas sociais' : `Quero conhecer o ${l.title.replace('Apartamento', 'Ap')}`;
+    document.getElementById('aptUp').disabled = i === 0;
+    document.getElementById('aptDown').disabled = i === levels.length - 1;
+    aptTip.textContent = l.k === 'T' ? '' : 'Toque nos pontos dourados para ver os detalhes.';
+    document.getElementById('aptTags').innerHTML = (l.k === 'T'
+      ? ['Fachada iluminada', 'Elevador', 'Áreas sociais']
+      : ['Elevador', 'Forro de gesso', 'Infraestrutura para ar-condicionado', 'Piso aquecido nos banheiros', 'Personalização durante a obra']
+    ).map((t) => `<li>${t}</li>`).join('');
+    aptView.innerHTML = l.k === 'T'
+      ? '<img src="assets/fachada.jpg" alt="Fachada e acesso do Edifício Santa Ana">'
+      : interior(+l.k) + spots.map(([x, y, t], j) => `<button class="spot" data-j="${j}" style="left:${x}%;top:${y}%" aria-label="${t}"></button>`).join('');
+    aptView.classList.remove('enter'); void aptView.offsetWidth; aptView.classList.add('enter');
+    hot(l.k);
+  };
+  aptView.addEventListener('click', (e) => {
+    const s = e.target.closest('.spot');
+    if (!s) return;
+    aptView.querySelectorAll('.spot').forEach((b) => b.classList.toggle('on', b === s));
+    const [, , t, d] = spots[+s.dataset.j];
+    aptTip.innerHTML = `<b>${t}.</b> ${d}`;
+  });
+
+  const enter = (i) => {
+    const [x, y, w, h] = levels[i].box;
+    render(i);
+    exZoom.style.transformOrigin = `${pct(x + w / 2, 600)} ${pct(y + h / 2, 520)}`;
+    exZoom.classList.add('zoom');
+    setTimeout(() => apt.showModal(), calm ? 0 : 520);
+  };
+  triggers.forEach((t) => {
+    const i = levels.findIndex((l) => l.k === t.dataset.k);
+    t.addEventListener('click', () => enter(i));
+    t.addEventListener('mouseenter', () => hot(t.dataset.k));
+    t.addEventListener('focus', () => hot(t.dataset.k));
+    t.addEventListener('mouseleave', () => hot(null));
+  });
+  apt.addEventListener('close', () => { exZoom.classList.remove('zoom'); hot(null); });
+  apt.addEventListener('click', (e) => { if (e.target === apt) apt.close(); });
+  document.getElementById('aptClose').addEventListener('click', () => apt.close());
+  document.getElementById('aptUp').addEventListener('click', () => render(level - 1));
+  document.getElementById('aptDown').addEventListener('click', () => render(level + 1));
+  document.getElementById('aptCta').addEventListener('click', () => {
+    const r = [...form.elements.tipo].find((el) => el.value === levels[level].tipo);
+    if (r) { r.checked = true; compose(); }
+    apt.close();
+    document.getElementById('contato').scrollIntoView({ behavior: calm ? 'auto' : 'smooth' });
   });
 
   document.getElementById('year').textContent = new Date().getFullYear();
