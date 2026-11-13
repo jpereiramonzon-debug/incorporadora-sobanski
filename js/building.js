@@ -120,8 +120,11 @@ const signTex = () => {
 
 /* ---------- cena ---------- */
 export function createViewer(container, { onHover = () => {}, onSelect = () => {} } = {}) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  // qualidade adaptada ao aparelho: celular e máquinas modestas usam menos pixels e efeitos
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  const modest = coarse || (navigator.hardwareConcurrency || 8) <= 4;
+  const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, modest ? 1.5 : 1.75));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false; // a cena é estática: sombras calculadas uma vez
@@ -298,7 +301,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const rt = rng(3);
   const trees = [[-15, -1, 1.1], [-16.5, -12, 1.3], [15.5, -3, 1.2], [16, -14, 1.05], [-7, -23, 1.3], [6, -24, 1.15], [0, -29, 1.4], [-24, 9, 1], [24, 8, 1.1], [-28, -22, 1.5], [29, -24, 1.4]];
   const BLOBS = 90;
-  const leaves = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 2), M(0xffffff, { roughness: 1 }), trees.length * BLOBS + 60);
+  const leaves = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), M(0xffffff, { roughness: 1 }), trees.length * BLOBS + 60);
   const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.24, 1, 8), M(0x2c211a), trees.length);
   const o = new THREE.Object3D(); const col = new THREE.Color(); let n = 0;
   trees.forEach(([x, z, s], i) => {
@@ -337,10 +340,11 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   });
 
   /* ---------- pós-processamento ---------- */
-  const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
+  const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: modest ? 2 : 4 });
   const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.3, 0.35, 1.0);
+  bloom.enabled = !coarse;
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
@@ -348,13 +352,14 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const cur = { az: -0.72, pol: 1.5, rad: 60, ty: HOME_Y, shift: 0 };
   const goal = { ...cur };
   let baseRad = 50, W = 1, H = 1, hovered = null, selected = null, panelOpen = false;
-  let lastTouch = 0, visible = true, raf = 0, prev = performance.now();
+  let lastTouch = 0, visible = true, raf = 0, prev = performance.now(), dirty = true, lastDraw = 0;
+  const perf = { n: 0, sum: 0, done: false };
 
-  const paint = () => hits.forEach((m) => {
+  const paint = () => { dirty = true; hits.forEach((m) => {
     const sel = m.userData.k === selected, hov = m.userData.k === hovered;
     m.material.opacity = sel ? 0.2 : hov ? 0.13 : 0;
     m.children[0].visible = sel || hov;
-  });
+  }); };
   const frame = () => {
     goal.rad = baseRad * (selected ? 0.86 : 1);
     goal.ty = selected ? FLOOR_Y[selected] * 0.5 + HOME_Y * 0.5 : HOME_Y;
@@ -363,7 +368,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const resize = () => {
     W = container.clientWidth; H = container.clientHeight;
     if (!W || !H) return;
-    renderer.setSize(W, H); composer.setSize(W, H);
+    renderer.setSize(W, H); composer.setSize(W, H); dirty = true;
     camera.aspect = W / H;
     baseRad = 46 / Math.min(1, Math.max(0.5, (W / H) * 1.08));
     frame();
@@ -416,7 +421,13 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const tick = (now) => {
     raf = requestAnimationFrame(tick);
     const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
-    if (!calm && !drag && !selected && now - lastTouch > 5000) goal.az += dt * 0.07;
+    const spinning = !calm && !drag && !selected && now - lastTouch > 5000;
+    if (spinning) goal.az += dt * 0.07;
+    // desenha só quando algo muda; o giro automático roda a ~30 quadros por segundo
+    let moving = dirty || Math.abs(fade - (selected ? 1 : 0)) > 0.002;
+    for (const p in cur) if (Math.abs(goal[p] - cur[p]) > 1e-4) moving = true;
+    const settling = moving && !(spinning && !dirty);
+    if (!moving || (!settling && now - lastDraw < 32)) return;
     const k = 1 - Math.exp(-dt * 5.5);
     for (const p in cur) cur[p] += (goal[p] - cur[p]) * k;
     fade += ((selected ? 1 : 0) - fade) * k;
@@ -431,11 +442,20 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     const oy = wide ? 0 : H * 0.27 * cur.shift;
     camera.setViewOffset(W, H, ox, oy, W, H);
     composer.render();
+    const gap = now - lastDraw;
+    dirty = false; lastDraw = now;
+    if (!perf.done && settling && ++perf.n > 5) { // aparelho lento: reduz resolução e brilho
+      perf.sum += Math.min(gap, 100);
+      if (perf.n === 65) {
+        perf.done = true;
+        if (perf.sum / 60 > 30) { renderer.setPixelRatio(1); bloom.enabled = false; composer.setPixelRatio?.(1); resize(); }
+      }
+    }
   };
   new IntersectionObserver(([e]) => {
     visible = e.isIntersecting;
     cancelAnimationFrame(raf);
-    if (visible) { prev = performance.now(); raf = requestAnimationFrame(tick); }
+    if (visible) { prev = performance.now(); dirty = true; raf = requestAnimationFrame(tick); }
   }).observe(container);
 
   return {

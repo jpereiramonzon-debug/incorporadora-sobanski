@@ -231,24 +231,39 @@ const io = new IntersectionObserver((entries) => entries.forEach((e) => {
 document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = `${(i % 4) * 70}ms`; io.observe(el); });
 
 /* ---------- Mensagem guiada ---------- */
-const form = $('builder'), msg = $('msg'), hint = $('hint2');
+// Número de WhatsApp da Sobanski com DDI e DDD, só dígitos (ex.: '5542999999999').
+// Enquanto estiver vazio, o WhatsApp abre com a mensagem pronta para escolher o contato.
+const WHATSAPP = '';
+const form = $('builder'), hint = $('hint2');
+let message = '';
 function compose() {
   const f = new FormData(form);
   const vals = f.getAll('val');
   const where = chosen?.floor && chosen.model && f.get('tipo') === chosen.model.form ? ` no ${chosen.floor.name}` : '';
   const liked = vals.length ? ` O que mais valorizo: ${vals.length > 1 ? `${vals.slice(0, -1).join(', ')} e ${vals.at(-1)}` : vals[0]}.` : '';
-  msg.textContent = `Olá! Conheci o Edifício Santa Ana pelo site. Tenho interesse em ${f.get('obj')} e gostaria de conhecer ${f.get('tipo')}${where}.${liked} Podem me enviar mais informações?`;
+  message = `Olá! Conheci o Edifício Santa Ana pelo site. Tenho interesse em ${f.get('obj')} e gostaria de conhecer ${f.get('tipo')}${where}.${liked} Podem me enviar mais informações?`;
 }
 form.addEventListener('change', compose);
 compose();
-$('send').addEventListener('click', async () => {
-  try {
-    await navigator.clipboard.writeText(msg.textContent);
-    hint.textContent = 'Mensagem copiada. É só colar na conversa do Instagram.';
-  } catch {
-    hint.textContent = 'Copie a mensagem acima e cole na conversa do Instagram.';
-  }
-  window.open('https://ig.me/m/sobanski.incorporadora', '_blank', 'noopener');
+$('send').addEventListener('click', () => {
+  compose();
+  const text = encodeURIComponent(message);
+  const url = WHATSAPP ? `https://wa.me/${WHATSAPP}?text=${text}` : `https://api.whatsapp.com/send?text=${text}`;
+  window.open(url, '_blank', 'noopener');
+  hint.textContent = 'Abrindo o WhatsApp com a sua mensagem…';
 });
+
+/* ---------- Menu ---------- */
+const navMenu = $('navMenu'), navShade = $('navShade'), navToggle = $('navToggle');
+const setNav = (open) => {
+  navMenu.hidden = navShade.hidden = !open;
+  navToggle.setAttribute('aria-expanded', open);
+  if (open) navMenu.querySelector('a')?.focus(); else navToggle.focus({ preventScroll: true });
+};
+navToggle.addEventListener('click', () => setNav(true));
+$('navClose').addEventListener('click', () => setNav(false));
+navShade.addEventListener('click', () => setNav(false));
+navMenu.addEventListener('click', (e) => { if (e.target.closest('a')) setNav(false); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && !navMenu.hidden) setNav(false); });
 
 $('year').textContent = new Date().getFullYear();

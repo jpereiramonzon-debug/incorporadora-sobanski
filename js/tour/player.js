@@ -1,9 +1,5 @@
 // Player 3D em primeira pessoa dos ambientes do Edifício Santa Ana.
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { ENVS, SHOTS } from './scenes.js';
@@ -17,8 +13,9 @@ const coarse = matchMedia('(pointer: coarse)').matches;
 /* ---------------- render ---------------- */
 RectAreaLightUniformsLib.init();
 const stage = $('stage');
-const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const modest = coarse || (navigator.hardwareConcurrency || 8) <= 4;
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, modest ? 1.25 : 1.5));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate = false; // ambientes estáticos: sombra calculada ao entrar
@@ -41,16 +38,12 @@ sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
 scene.add(hemi, sun, sun.target);
 const sky = TX.sky();
 
-const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
-const composer = new EffectComposer(renderer, target);
-composer.addPass(new RenderPass(scene, camera));
-composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.22, 0.35, 1.0));
-composer.addPass(new OutputPass());
+let dirty = true; // só desenha quando algo muda na tela
 
 const resize = () => {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return;
-  renderer.setSize(w, h); composer.setSize(w, h);
+  renderer.setSize(w, h); dirty = true;
   camera.aspect = w / h;
   camera.fov = w / h < 1 ? 74 : 62;
   camera.updateProjectionMatrix();
@@ -93,6 +86,7 @@ function loadEnv(id) {
   Object.assign(sun.shadow.camera, { left: -span, right: span, top: span, bottom: -span, near: 0.5, far: 40 });
   sun.shadow.camera.updateProjectionMatrix();
   renderer.shadowMap.needsUpdate = true;
+  dirty = true;
 
   // obstáculos (móveis) e piso clicável
   colliders = []; floors = [];
@@ -266,20 +260,8 @@ function updateUI() {
   $('nowTitle').textContent = shot.title;
   $('refImg').src = shot.photo;
   $('refImg').alt = `Foto de referência: ${shot.title}`;
-  $('overlay').src = shot.photo;
   document.title = `${shot.title} · Tour 3D · Edifício Santa Ana`;
 }
-
-const overlay = $('overlay'), cmp = $('cmp');
-const levels = [0, 0.5, 1], labels = ['Comparar', 'Foto 50%', 'Só a foto'];
-let lvl = 0;
-cmp.addEventListener('click', () => {
-  lvl = (lvl + 1) % levels.length;
-  overlay.style.opacity = levels[lvl];
-  cmp.textContent = labels[lvl];
-  cmp.setAttribute('aria-pressed', lvl > 0);
-  if (lvl && shot) goShot(shot.id); // volta ao ponto de vista da foto para comparar
-});
 
 const menu = $('menu');
 function setMenu(open) { menu.classList.toggle('open', open); $('menuBtn').setAttribute('aria-expanded', open); }
@@ -292,6 +274,7 @@ $('help').querySelector('.fine').hidden = coarse;
 
 /* ---------------- laço ---------------- */
 const v = new THREE.Vector3();
+const last = { p: new THREE.Vector3(NaN), yaw: 0, pitch: 0, ring: new THREE.Vector3(), rv: false };
 let prev = performance.now();
 function tick(now) {
   requestAnimationFrame(tick);
@@ -322,6 +305,9 @@ function tick(now) {
     }
     pos.y += (clamp(pos.y, 1.25, 1.65) - pos.y) * Math.min(1, dt * 2);
   }
+  if (!dirty && pos.equals(last.p) && yaw === last.yaw && pitch === last.pitch && ring.position.equals(last.ring) && ring.visible === last.rv) return;
+  last.p.copy(pos); last.yaw = yaw; last.pitch = pitch; last.ring.copy(ring.position); last.rv = ring.visible;
+  dirty = false;
   camera.position.copy(pos);
   camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
@@ -334,12 +320,26 @@ function tick(now) {
     p.el.classList.toggle('off', !vis);
     if (vis) p.el.style.transform = `translate(${((v.x + 1) / 2 * W).toFixed(1)}px, ${((1 - v.y) / 2 * H).toFixed(1)}px)`;
   }
-  composer.render();
+  renderer.render(scene, camera);
 }
 
 /* ---------------- início ---------------- */
 const start = decodeURIComponent(location.hash.slice(1));
-goShot(SHOTS.some((s) => s.id === start) ? start : SHOTS[0].id, true);
+const known = SHOTS.some((s) => s.id === start);
+goShot(known ? start : SHOTS[0].id, true);
+// sem ambiente no endereço: pergunta por onde começar
+const welcome = $('welcome');
+if (!known) {
+  welcome.hidden = false;
+  welcome.querySelector('button')?.focus();
+  welcome.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-go]');
+    if (!b) return;
+    welcome.hidden = true;
+    goShot(b.dataset.go);
+    canvas.focus();
+  });
+}
 resize();
 requestAnimationFrame((t) => { prev = t; tick(t); setTimeout(() => $('loading').classList.remove('on'), 150); });
 addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id !== shot?.id && SHOTS.some((s) => s.id === id)) goShot(id); });

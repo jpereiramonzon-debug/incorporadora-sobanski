@@ -34,7 +34,6 @@
 </aside>
 
 <main class="t-stage" id="stage">
-  <img class="t-overlay" id="overlay" alt="" aria-hidden="true">
   <div class="t-pois" id="pois"></div>
 
   <div class="t-help" id="help" role="note">
@@ -44,7 +43,7 @@
 
   <figure class="t-ref">
     <img id="refImg" alt="">
-    <figcaption><span>Foto de referência</span><button type="button" id="cmp" aria-pressed="false">Comparar</button></figcaption>
+    <figcaption>Foto de referência</figcaption>
   </figure>
 
   <div class="t-card" id="card" role="dialog" aria-labelledby="cardT" hidden>
@@ -54,6 +53,19 @@
   </div>
 
   <div class="t-joy" id="joy" hidden aria-hidden="true"><i></i></div>
+  <div class="t-welcome" id="welcome" hidden>
+    <div class="t-welcome-box">
+      <p class="eyebrow">Tour 3D</p>
+      <h2>Por onde você quer <em>começar?</em></h2>
+      <div class="t-welcome-grid">
+        <button type="button" data-go="t02-jantar"><img src="assets/tipo02-sala-jantar.jpg" alt=""><span><b>Apartamento Tipo 02</b><small>60,94 m² · 2 quartos</small></span></button>
+        <button type="button" data-go="t03-sala"><img src="assets/tipo03-sala-cozinha.jpg" alt=""><span><b>Apartamento Tipo 03</b><small>57,00 m² · 2 quartos</small></span></button>
+        <button type="button" data-go="salao-a"><img src="assets/social-salao-a.jpg" alt=""><span><b>Áreas sociais</b><small>Salão, hall, pet e kids</small></span></button>
+      </div>
+      <p class="t-welcome-help fine"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> para andar · arraste para olhar · clique nos pontos dourados</p>
+      <p class="t-welcome-help coarse">Arraste para olhar · use o controle para andar · toque nos pontos dourados</p>
+    </div>
+  </div>
   <div class="t-loading on" id="loading"><span>Carregando ambiente</span></div>
   <noscript><p class="t-noscript">Ative o JavaScript para visitar os ambientes em 3D.</p></noscript>
 </main>
