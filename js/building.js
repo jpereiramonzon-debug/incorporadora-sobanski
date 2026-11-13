@@ -43,7 +43,8 @@ const noiseTex = () => {
   return t;
 };
 
-const windowTex = (lit, tall, seed) => tex(160, tall ? 288 : 208, (g, w, h) => {
+const windowTex = (lit, tall, seed) => tex(320, tall ? 576 : 416, (g, W2, H2) => {
+  g.scale(2, 2); const w = W2 / 2, h = H2 / 2;
   const r = rng(seed);
   g.fillStyle = '#121214'; g.fillRect(0, 0, w, h);
   const m = 9;
@@ -69,7 +70,8 @@ const windowTex = (lit, tall, seed) => tex(160, tall ? 288 : 208, (g, w, h) => {
   g.fillRect(0, h * (tall ? 0.2 : 0.3) - 2.5, w, 5);
 });
 
-const railTex = () => tex(512, 160, (g, w, h) => {
+const railTex = () => tex(1024, 320, (g, W2, H2) => {
+  g.scale(2, 2); const w = W2 / 2, h = H2 / 2;
   g.strokeStyle = '#0b0b0c'; g.fillStyle = '#0b0b0c';
   g.fillRect(0, 0, w, 9); g.fillRect(0, 44, w, 5); g.fillRect(0, h - 8, w, 8);
   for (let x = 4; x < w; x += 16) g.fillRect(x, 0, 4, h);
@@ -119,11 +121,13 @@ const signTex = () => {
 /* ---------- cena ---------- */
 export function createViewer(container, { onHover = () => {}, onSelect = () => {} } = {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 860 ? 1.5 : 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.autoUpdate = false; // a cena é estática: sombras calculadas uma vez
+  renderer.shadowMap.needsUpdate = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.0;
   const canvas = renderer.domElement;
   canvas.tabIndex = 0;
   canvas.setAttribute('role', 'img');
@@ -131,7 +135,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   container.appendChild(canvas);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0xb48a86, 0.0062);
+  scene.fog = new THREE.FogExp2(0xb48a86, 0.0026);
   { // cúpula do céu ao entardecer, com brilho do pôr do sol e estrelas
     const g = new THREE.SphereGeometry(480, 48, 32);
     const stops = [[-1, 0xb48a86], [0, 0xb48a86], [0.05, 0xd9a088], [0.13, 0xa87a8c], [0.27, 0x5a5088], [0.5, 0x232a5c], [1, 0x070d28]];
@@ -156,16 +160,18 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
     scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.7 })));
   }
-  const camera = new THREE.PerspectiveCamera(32, 1, 0.5, 600);
+  const camera = new THREE.PerspectiveCamera(32, 1, 2, 700);
 
-  scene.add(new THREE.HemisphereLight(0x8f9bd0, 0x3d3028, 0.95));
+  scene.add(new THREE.HemisphereLight(0x9aa6d8, 0x4a3a30, 1.25));
   const sun = new THREE.DirectionalLight(0xffc09a, 1.5);
   sun.position.set(-34, 17, 26);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 120 });
+  sun.shadow.mapSize.setScalar(innerWidth < 860 ? 2048 : 4096);
+  Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 26, bottom: -26, near: 1, far: 100 });
   sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04;
   scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xd7c3e8, 0.55); // luz de preenchimento do lado oposto ao sol
+  fill.position.set(30, 14, -24); scene.add(fill);
 
   const noise = noiseTex();
   const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.92, ...o });
@@ -195,9 +201,9 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   box(0.3, 9, 0.12, wallDark, -1.25, 7.5, 9.96);
   for (const y of [3, 6, 9]) {
     box(10.18, 0.16, 20.18, trim, 0, y, 0);
-    box(10.24, 0.045, 20.24, led, 0, y - 0.11, 0, false);
+    box(10.24, 0.07, 20.24, led, 0, y - 0.12, 0, false);
   }
-  box(10.24, 0.045, 20.24, led, 0, 11.93, 0, false);
+  box(10.24, 0.07, 20.24, led, 0, 11.92, 0, false);
   box(10.5, 0.5, 20.5, trim, 0, 12.25, 0);
   box(10.8, 0.22, 20.8, trim, 0, 12.6, 0);
   box(10.36, 0.55, 20.36, trim, 0, 12.98, 0);
@@ -205,7 +211,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   // torre de escada e elevador aos fundos
   box(4, 14, 2.6, wallDark, 0, 7, -11.3);
   box(4.3, 0.3, 2.9, trim, 0, 14.15, -11.3);
-  plane(0.55, 8.4, new THREE.MeshBasicMaterial({ map: blockTex() }), 0, 7.6, -12.61, Math.PI);
+  plane(0.55, 8.4, new THREE.MeshBasicMaterial({ map: blockTex() }), 0, 7.6, -12.64, Math.PI);
 
   // térreo: núcleo recuado, pilares e garagem iluminada
   box(8.2, 3, 16, wallDark, 0, 1.5, -1.6);
@@ -241,27 +247,27 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   for (const f of [3, 6, 9]) {
     // fachada: sacada + duas janelas
     addWindow(-3.1, f + 1.33, 8.615, 0, 1.9, 2.3, true, true);
-    plane(3.4, 1.05, rail, -3.1, f + 0.62, 10.02);
+    plane(3.4, 1.05, rail, -3.1, f + 0.62, 10.04);
     const spot = new THREE.Mesh(new THREE.CircleGeometry(0.11, 16), lamp);
     spot.rotation.x = Math.PI / 2; spot.position.set(-3.1, f + 2.9, 9.4); scene.add(spot);
     const pl = new THREE.PointLight(0xffc98f, 5, 5, 1.8); pl.position.set(-3.1, f + 2.5, 9.4); scene.add(pl);
-    addWindow(0.75, f + 1.6, 10.015, 0, 1.3, 1.75);
-    addWindow(3.3, f + 1.6, 10.015, 0, 1.3, 1.75);
+    addWindow(0.75, f + 1.6, 10.035, 0, 1.3, 1.75);
+    addWindow(3.3, f + 1.6, 10.035, 0, 1.3, 1.75);
     // laterais
     [7, 3.6, 0.2, -3.2, -6.6].forEach((z, i) => {
       const small = i === 2;
-      addWindow(5.015, f + (small ? 2.05 : 1.6), z, Math.PI / 2, small ? 0.8 : 1.25, small ? 0.75 : 1.6);
+      addWindow(5.035, f + (small ? 2.05 : 1.6), z, Math.PI / 2, small ? 0.8 : 1.25, small ? 0.75 : 1.6);
     });
     [5.4, 2, -1.4, -4.8, -8.2].forEach((z, i) => {
       const small = i === 3;
-      addWindow(-5.015, f + (small ? 2.05 : 1.6), z, -Math.PI / 2, small ? 0.8 : 1.25, small ? 0.75 : 1.6);
+      addWindow(-5.035, f + (small ? 2.05 : 1.6), z, -Math.PI / 2, small ? 0.8 : 1.25, small ? 0.75 : 1.6);
     });
     // fundos
-    addWindow(-3.5, f + 1.6, -10.015, Math.PI, 1.25, 1.6);
-    addWindow(3.5, f + 1.6, -10.015, Math.PI, 1.25, 1.6);
+    addWindow(-3.5, f + 1.6, -10.035, Math.PI, 1.25, 1.6);
+    addWindow(3.5, f + 1.6, -10.035, Math.PI, 1.25, 1.6);
   }
   // coluna de tijolos de vidro iluminada
-  plane(0.5, 8.6, new THREE.MeshBasicMaterial({ map: blockTex(), color: new THREE.Color(1.5, 1.4, 1.2) }), -0.8, 7.5, 10.02);
+  plane(0.5, 8.6, new THREE.MeshBasicMaterial({ map: blockTex(), color: new THREE.Color(1.5, 1.4, 1.2) }), -0.8, 7.5, 10.04);
 
   // terreno, calçada, rua e muros
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), M(0x1d2618, { roughness: 1 }));
@@ -292,7 +298,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const rt = rng(3);
   const trees = [[-15, -1, 1.1], [-16.5, -12, 1.3], [15.5, -3, 1.2], [16, -14, 1.05], [-7, -23, 1.3], [6, -24, 1.15], [0, -29, 1.4], [-24, 9, 1], [24, 8, 1.1], [-28, -22, 1.5], [29, -24, 1.4]];
   const BLOBS = 90;
-  const leaves = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), M(0xffffff, { roughness: 1, flatShading: true }), trees.length * BLOBS + 60);
+  const leaves = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 2), M(0xffffff, { roughness: 1 }), trees.length * BLOBS + 60);
   const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.24, 1, 8), M(0x2c211a), trees.length);
   const o = new THREE.Object3D(); const col = new THREE.Color(); let n = 0;
   trees.forEach(([x, z, s], i) => {
@@ -315,6 +321,10 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   }
   leaves.castShadow = trunks.castShadow = true; leaves.receiveShadow = true;
   scene.add(leaves, trunks);
+  // ao aproximar um andar, as árvores ficam translúcidas para não esconder o prédio
+  const foliage = [leaves.material, trunks.material];
+  foliage.forEach((m) => { m.transparent = true; });
+  let fade = 0;
 
   // áreas clicáveis dos andares
   const hits = Object.entries(FLOOR_Y).map(([k, y]) => {
@@ -327,9 +337,10 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   });
 
   /* ---------- pós-processamento ---------- */
-  const composer = new EffectComposer(renderer);
+  const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
+  const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.42, 0.75, 0.95);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.3, 0.35, 1.0);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
@@ -408,6 +419,8 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     if (!calm && !drag && !selected && now - lastTouch > 5000) goal.az += dt * 0.07;
     const k = 1 - Math.exp(-dt * 5.5);
     for (const p in cur) cur[p] += (goal[p] - cur[p]) * k;
+    fade += ((selected ? 1 : 0) - fade) * k;
+    foliage.forEach((m) => { m.opacity = 1 - fade * 0.8; m.depthWrite = fade < 0.5; });
     const s = Math.sin(cur.pol);
     camera.position.set(cur.rad * s * Math.sin(cur.az), cur.ty + cur.rad * Math.cos(cur.pol), cur.rad * s * Math.cos(cur.az));
     camera.position.y = Math.max(1.2, camera.position.y);

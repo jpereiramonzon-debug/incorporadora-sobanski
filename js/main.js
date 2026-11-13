@@ -5,6 +5,18 @@ const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* ---------- Conteúdo: edite aqui andares e modelos ---------- */
 const BUILDING_FEATURES = ['Elevador', 'Forro de gesso', 'Infraestrutura para ar-condicionado', 'Piso aquecido', 'Personalização durante a obra'];
 
+const SOCIAL = [
+  ['assets/social-salao-a.jpg', 'Salão de festas', 'Salão de festas com churrasqueira e bancada'],
+  ['assets/social-salao-b.jpg', 'Salão de festas', 'Salão de festas com mesas e churrasqueira ao fundo'],
+  ['assets/social-hall-a.jpg', 'Hall de entrada com elevador', 'Hall de entrada com escada e elevador'],
+  ['assets/social-hall-b.jpg', 'Hall de entrada com elevador', 'Hall de entrada com portas de vidro em arco e elevador'],
+  ['assets/social-pet.jpg', 'Área pet', 'Área pet com gramado e brinquedos'],
+  ['assets/social-pet-banho.jpg', 'Pet banho', 'Espaço pet banho com cuba e ducha'],
+  ['assets/social-kids-a.jpg', 'Área kids', 'Área kids com brinquedos e gira-gira'],
+  ['assets/social-kids-b.jpg', 'Área kids', 'Área kids com jardim vertical'],
+];
+const SOCIAL_AREAS = ['Salão de festas', 'Hall de entrada com elevador', 'Área pet', 'Pet banho', 'Área kids'];
+
 const MODELS = {
   t02: {
     name: 'Apartamento Tipo 02',
@@ -74,11 +86,17 @@ const viewFloor = (f) => `
 
 const viewGround = (f) => `
   <p class="eyebrow">${f.name}</p>
-  <h2>Acesso e garagem</h2>
-  <figure class="media"><img src="assets/fachada.jpg" alt="Fachada do Edifício Santa Ana com muro iluminado e letreiro"></figure>
-  <p>A chegada ao Santa Ana: fachada iluminada ao entardecer, portões de acesso e as vagas de garagem sob o edifício.</p>
+  <h2>Áreas sociais</h2>
+  <p class="lead">Espaços para receber, brincar e cuidar de quem você ama.</p>
+  <figure class="media cover" id="media"></figure>
+  <div class="thumbs" role="group" aria-label="Fotos das áreas sociais">${SOCIAL.map(([src, cap], i) =>
+    `<button type="button" data-i="${i}" aria-label="${cap}" aria-pressed="${i === 0}"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div>
+  <h3>Áreas do edifício</h3>
+  <div class="areas">${SOCIAL_AREAS.map((a) => `<button type="button" data-area="${a}">${a}</button>`).join('')}</div>
   <h3>No edifício</h3>${chips(BUILDING_FEATURES)}
-  <div class="actions"><button type="button" class="btn" data-cta>Quero conhecer o edifício</button></div>`;
+  <p class="muted">No térreo também ficam o acesso e as vagas de garagem.</p>
+  <div class="actions"><button type="button" class="btn" data-cta>Quero conhecer as áreas sociais</button></div>
+  <small class="muted">Imagens ilustrativas.</small>`;
 
 const viewModel = (f, m) => `
   <p class="eyebrow">${f.name}</p>
@@ -102,8 +120,8 @@ const showMedia = async (i) => {
   plan3d?.dispose(); plan3d = null;
   if (!fig) return;
   fig.parentElement.querySelectorAll('.thumbs button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.i === String(i)));
-  const media = MODELS[state.model].media;
-  const image = ([src, cap, alt]) => { fig.className = 'media'; fig.innerHTML = `<img src="${src}" alt="${alt}"><figcaption>${cap}</figcaption>`; };
+  const media = state.model ? MODELS[state.model].media : SOCIAL;
+  const image = ([src, cap, alt]) => { fig.className = state.model ? 'media' : 'media cover'; fig.innerHTML = `<img src="${src}" alt="${alt}"><figcaption>${cap}</figcaption>`; };
   if (i !== '3d') return image(media[+i]);
   const id = state.model;
   try {
@@ -134,7 +152,7 @@ const render = () => {
   body.innerHTML = m ? viewModel(f, m) : f.models.length ? viewFloor(f) : viewGround(f);
   body.scrollTop = 0;
   body.classList.remove('enter'); void body.offsetWidth; body.classList.add('enter');
-  if (m?.media) showMedia('3d');
+  if (m?.media) showMedia('3d'); else if (!m && !f.models.length) showMedia(0);
 };
 const openFloor = (k) => { state.floor = k; state.model = null; render(); };
 const closePanel = () => { state.floor = state.model = null; render(); };
@@ -143,9 +161,13 @@ body.addEventListener('click', (e) => {
   const model = e.target.closest('[data-model]');
   const thumb = e.target.closest('.thumbs button');
   if (model) { state.model = model.dataset.model; render(); }
-  else if (thumb) showMedia(thumb.dataset.i); else if (e.target.closest('[data-cta]')) {
+  else if (thumb) showMedia(thumb.dataset.i);
+  else if (e.target.closest('[data-area]')) {
+    const i = SOCIAL.findIndex(([, cap]) => cap.toLowerCase() === e.target.closest('[data-area]').dataset.area.toLowerCase());
+    if (i >= 0) showMedia(i);
+  } else if (e.target.closest('[data-cta]')) {
     chosen = { floor: floorOf(state.floor), model: MODELS[state.model] };
-    const value = chosen.model?.form ?? 'todas as plantas disponíveis';
+    const value = chosen.model?.form ?? (state.floor === 'T' ? 'as áreas sociais' : 'todas as plantas disponíveis');
     const radio = [...form.elements.tipo].find((r) => r.value === value);
     if (radio) radio.checked = true;
     compose();
