@@ -108,11 +108,11 @@ const signTex = () => {
   const draw = (g, w, h) => {
     g.fillStyle = '#f1e4cb'; g.fillRect(0, 0, w, h);
     g.fillStyle = '#2f2616'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.font = 'italic 500 118px "Cormorant Garamond", Georgia, serif';
+    g.font = '500 78px "Cinzel", Georgia, serif';
     g.fillText('Edifício Santa Ana', w / 2, h / 2 + 6);
   };
   const t = tex(1024, 256, draw);
-  document.fonts?.load('italic 500 118px "Cormorant Garamond"').then(() => {
+  document.fonts?.load('500 78px "Cinzel"').then(() => {
     draw(t.image.getContext('2d'), 1024, 256); t.needsUpdate = true;
   }).catch(() => {});
   return t;
