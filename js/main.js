@@ -207,19 +207,40 @@ import('./building.js').then(({ createViewer }) => {
   hero.classList.add('no3d');
 });
 
-/* ---------- Rolagem: menu e linha do tempo ---------- */
-const nav = $('nav'), timeline = $('timeline');
-const steps = [...timeline.querySelectorAll('.tl-step')];
+/* ---------- Rolagem: menu e etapas do investimento ---------- */
+const nav = $('nav');
+const pillars = $('investimento');
+const plSteps = [...pillars.querySelectorAll('.pl-step')];
+const plDots = [...pillars.querySelectorAll('.pl-dots a')];
+const ease = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
 let ticking = false;
 const update = () => {
   ticking = false;
   const vh = innerHeight;
   nav.classList.toggle('solid', hero.getBoundingClientRect().bottom < 80);
-  const t = timeline.getBoundingClientRect();
-  const tp = clamp((vh * 0.7 - t.top) / (t.height * 0.75));
-  timeline.style.setProperty('--t', tp.toFixed(3));
-  steps.forEach((s, i) => s.classList.toggle('on', tp >= i * 0.42 + 0.02));
+  // cada etapa: a palavra cresce, sobe e preenche; depois o texto aparece
+  let active = -1;
+  plSteps.forEach((el, i) => {
+    const r = el.getBoundingClientRect();
+    const q = clamp(-r.top / Math.max(1, r.height - vh));
+    el.style.setProperty('--g', ease(q / 0.3).toFixed(3));
+    el.style.setProperty('--m', ease((q - 0.3) / 0.28).toFixed(3));
+    el.style.setProperty('--t', ease((q - 0.5) / 0.22).toFixed(3));
+    if (r.top < vh * 0.5 && r.bottom > vh * 0.5) active = i;
+  });
+  const pr = pillars.getBoundingClientRect();
+  pillars.classList.toggle('dots-on', pr.top < vh * 0.4 && pr.bottom > vh * 0.6 && active >= 0);
+  plDots.forEach((d, i) => d.setAttribute('aria-current', i === active ? 'step' : 'false'));
 };
+// atalhos levam ao ponto em que a etapa já está com o texto visível
+pillars.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href^="#"]');
+  const step = a && plSteps.find((s) => `#${s.id}` === a.getAttribute('href'));
+  if (!step) return;
+  e.preventDefault();
+  const top = step.getBoundingClientRect().top + scrollY + (step.offsetHeight - innerHeight) * (calm ? 0 : 0.8);
+  scrollTo({ top: Math.round(top), behavior: calm ? 'auto' : 'smooth' });
+});
 const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } };
 addEventListener('scroll', onScroll, { passive: true });
 addEventListener('resize', onScroll);

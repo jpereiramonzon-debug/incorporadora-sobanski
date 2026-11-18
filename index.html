@@ -63,28 +63,70 @@
     </aside>
   </section>
 
-  <!-- Investimento -->
-  <section class="sec cream" id="investimento">
-    <div class="wrap two">
-      <div>
-        <p class="eyebrow reveal">Por que comprar na planta</p>
-        <h2 class="reveal">O tempo também faz parte do <em>investimento</em>.</h2>
-        <p class="body reveal">À medida que a obra avança, o empreendimento ganha forma, as unidades disponíveis diminuem e os valores podem ser atualizados.</p>
-        <p class="body reveal">Por isso, quem decide no início pode ter:</p>
-        <ul class="perks">
-          <li class="reveal"><b>Maior poder de escolha</b><span>Mais unidades disponíveis para decidir com calma.</span></li>
-          <li class="reveal"><b>Mais tempo para planejar o pagamento</b><span>O cronograma da obra joga a seu favor.</span></li>
-          <li class="reveal"><b>Potencial de valorização até a entrega</b><span>O imóvel ganha forma, e valor, ao longo do caminho.</span></li>
-        </ul>
-      </div>
-      <div class="timeline" id="timeline" aria-label="Etapas do empreendimento">
-        <div class="tl-line"><i></i></div>
-        <div class="tl-step"><span>Hoje</span><h3>Na planta</h3><p>Mais opções de unidades e a chance de personalizar o apartamento durante a obra.</p></div>
-        <div class="tl-step"><span>Durante</span><h3>Obra em andamento</h3><p>O edifício ganha forma e as unidades disponíveis diminuem.</p></div>
-        <div class="tl-step"><span>Depois</span><h3>Entrega</h3><p>Seu apartamento pronto, com a sua cara.</p></div>
+  <!-- Investimento: cada etapa ocupa a tela enquanto a pessoa rola -->
+  <section class="cream pillars" id="investimento" aria-labelledby="inv-titulo">
+    <div class="pl pl-intro">
+      <div class="pl-track"><div class="pl-stage">
+        <div class="pl-intro-copy">
+          <p class="eyebrow">Por que comprar na planta</p>
+          <h2 id="inv-titulo">O tempo também faz parte do <em>investimento</em>.</h2>
+          <p class="body">À medida que a obra avança, o empreendimento ganha forma, as unidades disponíveis diminuem e os valores podem ser atualizados. Por isso, quem decide no início pode ter mais vantagens.</p>
+          <ol class="pl-list">
+            <li><a href="#na-planta"><span>01</span>Na planta</a></li>
+            <li><a href="#obra"><span>02</span>Obra em andamento</a></li>
+            <li><a href="#entrega"><span>03</span>Entrega</a></li>
+          </ol>
+          <p class="pl-hint" aria-hidden="true">Role para percorrer as etapas <i>&darr;</i></p>
+        </div>
+      </div></div>
+    </div>
+    <article class="pl pl-step" id="na-planta" aria-labelledby="na-planta-t">
+      <div class="pl-track"><div class="pl-stage">
+        <p class="pl-word" aria-hidden="true"><span class="pl-outline">Na<br>planta</span><span class="pl-fill">Na<br>planta</span></p>
+        <div class="pl-copy">
+          <p class="pl-kicker"><span>01</span>Hoje</p>
+          <h3 class="sr-only" id="na-planta-t">Na planta</h3>
+          <p class="pl-text">Mais opções de unidades e a chance de personalizar o apartamento durante a obra.</p>
+          <p class="pl-benefit"><b>Maior poder de escolha</b>Mais unidades disponíveis para decidir com calma.</p>
+        </div>
+      </div></div>
+    </article>
+    <article class="pl pl-step" id="obra" aria-labelledby="obra-t">
+      <div class="pl-track"><div class="pl-stage">
+        <p class="pl-word" aria-hidden="true"><span class="pl-outline">Obra em<br>andamento</span><span class="pl-fill">Obra em<br>andamento</span></p>
+        <div class="pl-copy">
+          <p class="pl-kicker"><span>02</span>Durante</p>
+          <h3 class="sr-only" id="obra-t">Obra em andamento</h3>
+          <p class="pl-text">O edifício ganha forma e as unidades disponíveis diminuem.</p>
+          <p class="pl-benefit"><b>Mais tempo para planejar o pagamento</b>O cronograma da obra joga a seu favor.</p>
+        </div>
+      </div></div>
+    </article>
+    <article class="pl pl-step" id="entrega" aria-labelledby="entrega-t">
+      <div class="pl-track"><div class="pl-stage">
+        <p class="pl-word" aria-hidden="true"><span class="pl-outline">Entrega</span><span class="pl-fill">Entrega</span></p>
+        <div class="pl-copy">
+          <p class="pl-kicker"><span>03</span>Depois</p>
+          <h3 class="sr-only" id="entrega-t">Entrega</h3>
+          <p class="pl-text">Seu apartamento pronto, com a sua cara.</p>
+          <p class="pl-benefit"><b>Potencial de valorização até a entrega</b>O imóvel ganha forma, e valor, ao longo do caminho.</p>
+        </div>
+      </div></div>
+    </article>
+    <div class="pl pl-close">
+      <div class="pl-close-copy">
         <p class="quote">Comprar na planta não é apenas pensar no imóvel pronto. <em>É avaliar o potencial dele desde o começo.</em></p>
+        <div class="actions">
+          <a class="btn" href="#contato">Quero conhecer as unidades</a>
+          <a class="btn btn-ghost" href="tour.html">Entrar no tour 3D</a>
+        </div>
       </div>
     </div>
+    <nav class="pl-dots" aria-label="Etapas">
+      <a href="#na-planta" data-i="0"><i></i><span>Na planta</span></a>
+      <a href="#obra" data-i="1"><i></i><span>Obra</span></a>
+      <a href="#entrega" data-i="2"><i></i><span>Entrega</span></a>
+    </nav>
   </section>
 
   <!-- Contato guiado -->
