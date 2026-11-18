@@ -30,8 +30,8 @@ h1 em,h2 em,h3 em,.brand em,.t-welcome h2 em{font-style:normal}
 .nav-drawer .btn{text-align:center}
 .nav-close{position:absolute;top:16px;left:clamp(16px,4vw,48px);width:44px;height:44px;border-radius:50%;border:1px solid #3a3d45;background:transparent;color:#fff;font-size:1.5rem;line-height:1;cursor:pointer}
 @keyframes drawerIn{from{transform:translateX(-40px);opacity:0}}
-.tour-cta{pointer-events:auto;display:inline-flex;align-items:center;gap:12px;margin-top:22px;padding:7px 20px 7px 7px;border-radius:999px;background:rgba(14,16,20,.5);backdrop-filter:blur(8px);border:1px solid var(--gold);color:#fff;text-decoration:none;text-shadow:none;transition:background .25s,transform .25s}
-.tour-cta:hover,.tour-cta:focus-visible{background:rgba(14,16,20,.75);transform:translateY(-2px)}
+.tour-cta{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:3;white-space:nowrap;pointer-events:auto;display:inline-flex;align-items:center;gap:12px;padding:7px 20px 7px 7px;border-radius:999px;background:rgba(14,16,20,.5);backdrop-filter:blur(8px);border:1px solid var(--gold);color:#fff;text-decoration:none;text-shadow:none;transition:background .25s,transform .25s}
+.tour-cta:hover,.tour-cta:focus-visible{background:rgba(14,16,20,.75);transform:translateX(-50%) translateY(-2px)}
 .tour-cta i{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:#17130a;font-style:normal;font-size:.9rem;padding-left:3px;animation:poiPulse 2.4s infinite}
 .tour-cta span{display:grid;line-height:1.2;text-align:left}
 .tour-cta b{font:500 .78rem var(--sans);letter-spacing:.16em;text-transform:uppercase}
@@ -53,7 +53,6 @@ h1 em,h2 em,h3 em,.brand em,.t-welcome h2 em{font-style:normal}
 .viewer canvas:focus-visible{outline:2px solid var(--gold-soft);outline-offset:-4px}
 .hero.ready .viewer canvas{opacity:1}
 .hero.no3d .viewer{background:url(assets/fachada.jpg) center/cover}
-.hero.no3d .hint span{display:none}
 .hero-copy{position:absolute;left:clamp(16px,4vw,48px);top:clamp(78px,12vh,120px);pointer-events:none;text-shadow:0 2px 24px rgba(0,0,0,.45);transition:opacity .4s}
 .eyebrow{font-size:.74rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:14px;font-weight:400}
 .hero .eyebrow{color:var(--gold-soft);margin-bottom:8px}
@@ -64,18 +63,12 @@ h1{font-family:var(--serif);font-weight:400;font-size:clamp(1.7rem,4.2vw,3.4rem)
 .floors{position:absolute;right:clamp(16px,4vw,48px);top:50%;transform:translateY(-50%);display:grid;gap:10px;transition:opacity .3s}
 .floors button{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:row-reverse;align-items:center;gap:12px}
 .floors b{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font:500 1.05rem var(--serif);border:1px solid rgba(255,255,255,.55);background:rgba(14,16,20,.45);backdrop-filter:blur(8px);transition:background .25s,color .25s,border-color .25s}
-.floors span{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;opacity:0;transform:translateX(8px);transition:opacity .25s,transform .25s;text-shadow:0 1px 10px rgba(0,0,0,.6)}
+.floors span{font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;opacity:0;transform:translateX(8px);transition:opacity .25s,transform .25s;text-shadow:0 1px 10px rgba(0,0,0,.6)}
 .floors button:hover span,.floors button:focus-visible span{opacity:1;transform:none}
 .floors button:hover b,.floors button[aria-pressed=true] b{background:var(--gold);border-color:var(--gold);color:#17130a}
 .floors button:focus-visible b{outline:2px solid var(--gold-soft);outline-offset:3px}
 
-.hint{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:6px;border-radius:999px;background:rgba(14,16,20,.55);backdrop-filter:blur(10px);font-size:.8rem;letter-spacing:.04em;white-space:nowrap;transition:opacity .3s}
-.hint span{padding:0 8px}
-.hint b{font-weight:500;color:var(--gold-soft)}
-.hint i{font-style:normal}
-.hint button{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:1.3rem;line-height:1;cursor:pointer;transition:background .2s}
-.hint button:hover{background:rgba(255,255,255,.15)}
-.tip{position:absolute;left:0;top:0;pointer-events:none;background:var(--gold);color:#17130a;font:500 .68rem var(--sans);letter-spacing:.14em;text-transform:uppercase;padding:7px 12px;border-radius:999px;white-space:nowrap;opacity:0;transition:opacity .15s}
+.tip{position:absolute;left:0;top:0;pointer-events:none;background:var(--gold);color:#17130a;font:500 .86rem var(--sans);letter-spacing:.12em;text-transform:uppercase;padding:10px 18px;border-radius:999px;white-space:nowrap;opacity:0;transition:opacity .15s}
 .tip.on{opacity:1}
 
 /* painel do andar e do modelo */
@@ -136,13 +129,14 @@ small.muted{font-size:.74rem}
 .feats li::before{content:"";position:absolute;left:0;top:.62em;width:9px;height:1px;background:var(--gold)}
 .chips{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:6px}
 .chips li{font-size:.8rem;border:1px solid #3a3d45;border-radius:999px;padding:5px 12px;color:#cfc8ba}
-.hero.has-panel .hint,.hero.has-panel .floors span{opacity:0;pointer-events:none}
+.hero.has-panel .tour-cta,.hero.has-panel .floors span{opacity:0;pointer-events:none}
 @media (min-width:861px){.hero.has-panel .floors{right:calc(min(480px,42%) + 20px)}}
 @media (max-width:860px){
   .hero-copy{right:16px;text-align:center}
   .floors{top:auto;bottom:78px;right:auto;left:50%;transform:translateX(-50%);grid-auto-flow:column}
   .floors span{display:none}
-  .hint{font-size:.76rem;bottom:16px}.hint i{display:none}
+  .tour-cta{bottom:16px}
+  .floors{bottom:86px}
   .panel{top:auto;left:0;width:100%;height:60%;border-left:0;border-top:1px solid var(--line);border-radius:14px 14px 0 0}
   @keyframes panelIn{from{transform:translateY(40px);opacity:0}}
   .panel-bar{padding:10px 16px 0}.panel-body{padding:6px 16px 22px}

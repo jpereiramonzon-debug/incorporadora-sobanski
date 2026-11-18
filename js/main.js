@@ -186,8 +186,6 @@ $('floors').innerHTML = FLOORS.map((f) => `<button type="button" data-k="${f.k}"
 $('floors').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) openFloor(b.dataset.k); });
 $('floors').addEventListener('pointerover', (e) => viewer?.highlight(e.target.closest('button')?.dataset.k ?? null));
 $('floors').addEventListener('pointerleave', () => viewer?.highlight(null));
-$('rotL').addEventListener('click', () => viewer?.rotate(-0.6));
-$('rotR').addEventListener('click', () => viewer?.rotate(0.6));
 
 /* ---------- Maquete 3D ---------- */
 import('./building.js').then(({ createViewer }) => {
