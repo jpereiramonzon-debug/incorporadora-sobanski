@@ -178,7 +178,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
 
   const noise = noiseTex();
   const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.92, ...o });
-  const wall = M(0x7d766d, { bumpMap: noise, bumpScale: 1.2 });
+  const wall = M(0xb9b2a8, { bumpMap: noise, bumpScale: 1.2 });
   const wallDark = M(0x4d4944, { bumpMap: noise, bumpScale: 1.2 });
   const trim = M(0x35322f, { roughness: 0.8 });
   const muro = M(0xb5ab9c, { bumpMap: noise, bumpScale: 1 });
@@ -256,6 +256,14 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     const pl = new THREE.PointLight(0xffc98f, 5, 5, 1.8); pl.position.set(-3.1, f + 2.5, 9.4); scene.add(pl);
     addWindow(0.75, f + 1.6, 10.035, 0, 1.3, 1.75);
     addWindow(3.3, f + 1.6, 10.035, 0, 1.3, 1.75);
+    for (const wx of [0.75, 3.3]) { // moldura preta e moldura de reboco, como na fachada de referência
+      const cy = f + 1.6, fw = 1.3, fh = 1.75;
+      box(fw + 0.14, 0.06, 0.07, metal, wx, cy + fh / 2 + 0.03, 10.06, false);
+      box(fw + 0.14, 0.06, 0.07, metal, wx, cy - fh / 2 - 0.03, 10.06, false);
+      box(0.06, fh + 0.12, 0.07, metal, wx - fw / 2 - 0.03, cy, 10.06, false);
+      box(0.06, fh + 0.12, 0.07, metal, wx + fw / 2 + 0.03, cy, 10.06, false);
+      box(fw + 0.36, 0.1, 0.16, muro, wx, cy - fh / 2 - 0.1, 10.1, false); // peitoril de reboco
+    }
     // laterais
     [7, 3.6, 0.2, -3.2, -6.6].forEach((z, i) => {
       const small = i === 2;
