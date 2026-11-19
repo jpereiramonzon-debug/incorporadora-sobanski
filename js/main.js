@@ -252,7 +252,7 @@ document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDel
 /* ---------- Mensagem guiada ---------- */
 // Número de WhatsApp da Sobanski com DDI e DDD, só dígitos (ex.: '5542999999999').
 // Enquanto estiver vazio, o WhatsApp abre com a mensagem pronta para escolher o contato.
-const WHATSAPP = '';
+const WHATSAPP = '5542998063561'; // número do botão 'Quero conhecer' do site oficial da Sobanski
 const form = $('builder'), hint = $('hint2');
 let message = '';
 function compose() {
