@@ -103,7 +103,6 @@ const floorOf = (k) => FLOORS.find((f) => f.k === k);
 const hero = $('topo'), panel = $('panel'), body = $('panelBody'), back = $('panelBack'), tip = $('tip');
 const state = { floor: null, model: null };
 let viewer = null;
-let chosen = null; // { floor, model } levado para a mensagem de contato
 
 const thumb = (src) => src.replace('assets/', 'assets/thumbs/');
 const chips = (list) => `<ul class="chips">${list.map((t) => `<li>${t}</li>`).join('')}</ul>`;
@@ -178,6 +177,7 @@ const render = () => {
   const f = floorOf(state.floor);
   const open = !!f;
   hero.classList.toggle('has-panel', open);
+  document.body.classList.toggle('panel-open', open);
   panel.hidden = !open;
   viewer?.setPanel(open);
   viewer?.select(state.floor);
@@ -204,12 +204,9 @@ body.addEventListener('click', (e) => {
     const i = SOCIAL.findIndex(([, cap]) => cap.toLowerCase() === e.target.closest('[data-area]').dataset.area.toLowerCase());
     if (i >= 0) showMedia(i);
   } else if (e.target.closest('[data-cta]')) {
-    chosen = { floor: floorOf(state.floor), model: MODELS[state.model] };
-    const value = chosen.model?.form ?? (state.floor === 'T' ? 'as áreas sociais' : 'todas as plantas disponíveis');
-    const radio = [...form.elements.tipo].find((r) => r.value === value);
-    if (radio) radio.checked = true;
-    compose();
-    $('contato').scrollIntoView({ behavior: calm ? 'auto' : 'smooth' });
+    // abre o atendimento já com o apartamento e o andar escolhidos
+    const f = floorOf(state.floor);
+    window.SobanskiChat?.open({ interest: state.model || (state.floor === 'T' ? 'social' : 'all'), where: state.model && f ? f.name : '' });
   }
 });
 back.addEventListener('click', () => { state.model = null; render(); });
@@ -325,29 +322,6 @@ const io = new IntersectionObserver((entries) => entries.forEach((e) => {
   if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
 }), { threshold: 0.15 });
 document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDelay = `${(i % 4) * 70}ms`; io.observe(el); });
-
-/* ---------- Mensagem guiada ---------- */
-// Número de WhatsApp da Sobanski com DDI e DDD, só dígitos (ex.: '5542999999999').
-// Enquanto estiver vazio, o WhatsApp abre com a mensagem pronta para escolher o contato.
-const WHATSAPP = '5542998063561'; // número do botão 'Quero conhecer' do site oficial da Sobanski
-const form = $('builder'), hint = $('hint2');
-let message = '';
-function compose() {
-  const f = new FormData(form);
-  const vals = f.getAll('val');
-  const where = chosen?.floor && chosen.model && f.get('tipo') === chosen.model.form ? ` no ${chosen.floor.name}` : '';
-  const liked = vals.length ? ` O que mais valorizo: ${vals.length > 1 ? `${vals.slice(0, -1).join(', ')} e ${vals.at(-1)}` : vals[0]}.` : '';
-  message = `Olá! Conheci o Edifício Santa Ana pelo site. Tenho interesse em ${f.get('obj')} e gostaria de conhecer ${f.get('tipo')}${where}.${liked} Podem me enviar mais informações?`;
-}
-form.addEventListener('change', compose);
-compose();
-$('send').addEventListener('click', () => {
-  compose();
-  const text = encodeURIComponent(message);
-  const url = WHATSAPP ? `https://wa.me/${WHATSAPP}?text=${text}` : `https://api.whatsapp.com/send?text=${text}`;
-  window.open(url, '_blank', 'noopener');
-  hint.textContent = 'Abrindo o WhatsApp com a sua mensagem…';
-});
 
 /* ---------- Menu ---------- */
 const navMenu = $('navMenu'), navShade = $('navShade'), navToggle = $('navToggle');

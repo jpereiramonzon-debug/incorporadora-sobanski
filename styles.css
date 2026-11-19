@@ -218,21 +218,7 @@ h3{font-family:var(--serif);font-weight:500;font-size:1.15rem;line-height:1.25;l
   .pl-hint i{animation:none}
 }
 
-/* contato guiado */
-.builder{background:var(--coal);border:1px solid var(--line);border-radius:4px;padding:clamp(20px,3vw,36px);display:grid;gap:22px}
-fieldset{border:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
-legend{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;padding:0}
-.builder label{cursor:pointer}
-.builder input{position:absolute;opacity:0;pointer-events:none}
-.builder label span{display:block;padding:9px 16px;border:1px solid #3a3d45;border-radius:999px;font-size:.92rem;transition:all .2s}
-.builder label:hover span{border-color:var(--gold)}
-.builder input:checked+span{background:var(--gold);border-color:var(--gold);color:#17130a;font-weight:400}
-.builder input:focus-visible+span{outline:2px solid var(--gold-soft);outline-offset:2px}
-.btn-wa{display:inline-flex;align-items:center;gap:10px;background:#25d366;border-color:#25d366;color:#08240f}
-.btn-wa:hover{background:#3ee07a}
-.btn-wa svg{width:20px;height:20px;fill:currentColor}
 .actions{display:flex;flex-wrap:wrap;gap:10px}
-.form-hint{font-size:.85rem;color:var(--gold-soft);min-height:1.4em}
 
 /* localização e rodapé */
 .card{font-style:normal;background:var(--ink);color:#e9e4da;padding:clamp(26px,4vw,44px);border-radius:4px;display:grid;gap:14px}
@@ -329,3 +315,58 @@ legend{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(-
 .tour-cta{backdrop-filter:none;background:rgba(14,16,20,.7)}
 .panel{backdrop-filter:none;background:rgba(14,16,20,.97)}
 .intro-msg{backdrop-filter:none;background:rgba(10,11,15,.82)}
+
+
+/* ---------- atendimento pelo WhatsApp ---------- */
+.wa{--wa:#25d366;position:fixed;right:clamp(14px,2.4vw,26px);bottom:clamp(14px,2.4vw,26px);z-index:60;font-family:var(--sans)}
+.wa-fab{position:relative;width:58px;height:58px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;background:var(--wa);color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.32);transition:transform .25s,box-shadow .25s}
+.wa-fab:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 12px 30px rgba(0,0,0,.38)}
+.wa-fab:focus-visible{outline:2px solid var(--gold-soft);outline-offset:3px}
+.wa-fab svg{width:30px;height:30px}
+.wa-dot{position:absolute;top:3px;right:3px;width:12px;height:12px;border-radius:50%;background:var(--gold);border:2px solid #fff}
+.wa.open .wa-dot{display:none}
+.intro-on .wa{opacity:0;pointer-events:none}
+.wa-panel{position:absolute;right:0;bottom:72px;width:min(360px,calc(100vw - 28px));height:min(560px,calc(100dvh - 110px));display:flex;flex-direction:column;background:#f4ede1;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.4);transform-origin:bottom right;animation:waIn .28s cubic-bezier(.2,.7,.2,1)}
+.wa-panel[hidden]{display:none}
+@keyframes waIn{from{opacity:0;transform:translateY(12px) scale(.96)}}
+.wa-head{display:flex;align-items:center;gap:12px;padding:14px 14px 14px 16px;background:var(--ink);color:#fff;border-bottom:1px solid rgba(201,164,92,.35)}
+.wa-avatar{flex:none;width:42px;height:42px}
+.wa-avatar svg,.wa-go-logo svg{width:100%;height:100%;display:block}
+.wa-who{display:grid;line-height:1.25;min-width:0}
+.wa-who b{font:500 .95rem var(--serif);letter-spacing:.06em}
+.wa-who small{display:flex;align-items:center;gap:6px;font-size:.74rem;color:#b9b2a6}
+.wa-who small i{width:8px;height:8px;border-radius:50%;background:var(--wa);box-shadow:0 0 0 3px rgba(37,211,102,.2)}
+.wa-close{margin-left:auto;width:34px;height:34px;border-radius:50%;border:1px solid #3a3d45;background:transparent;color:#fff;font-size:1.3rem;line-height:1;cursor:pointer}
+.wa-close:hover{border-color:var(--gold)}
+.wa-log{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:16px 14px;display:flex;flex-direction:column;gap:8px;background:#efe6d6 radial-gradient(rgba(143,111,47,.08) 1px,transparent 1px) 0 0/18px 18px}
+.wa-msg{max-width:84%;padding:9px 12px;border-radius:14px;font-size:.92rem;line-height:1.45;color:#2b2722;animation:waMsg .22s ease;word-wrap:break-word}
+@keyframes waMsg{from{opacity:0;transform:translateY(6px)}}
+.wa-bot{align-self:flex-start;background:#fff;border-top-left-radius:4px;box-shadow:0 1px 1px rgba(0,0,0,.06)}
+.wa-me{align-self:flex-end;background:#dcf3d3;border-top-right-radius:4px}
+.wa-msg b{font-weight:500}
+.wa-typing{display:inline-flex;gap:4px;padding:3px 0}
+.wa-typing i{width:6px;height:6px;border-radius:50%;background:#9c958a;animation:waDot 1s infinite}
+.wa-typing i:nth-child(2){animation-delay:.15s}.wa-typing i:nth-child(3){animation-delay:.3s}
+@keyframes waDot{0%,60%,100%{opacity:.3;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+.wa-foot{padding:10px 12px 12px;background:#f4ede1;border-top:1px solid rgba(43,39,34,.08);display:grid;gap:8px}
+.wa-foot:empty{display:none}
+.wa-quick{display:flex;flex-wrap:wrap;gap:6px}
+.wa-quick button{all:unset;box-sizing:border-box;cursor:pointer;padding:8px 14px;border-radius:999px;border:1px solid var(--gold-deep);color:#5a4524;background:#fff;font-size:.86rem;transition:background .2s,color .2s}
+.wa-quick button:hover,.wa-quick button:focus-visible{background:var(--gold-deep);color:#fff}
+.wa-grid{display:grid;grid-template-columns:1fr 1fr}
+.wa-grid button{border-radius:12px;display:grid;gap:1px;padding:8px 12px}
+.wa-quick small{font-size:.7rem;opacity:.75}
+.wa-input{display:flex;gap:8px}
+.wa-input input{flex:1;min-width:0;border:1px solid rgba(43,39,34,.18);border-radius:999px;padding:10px 14px;font:400 .95rem var(--sans);background:#fff;color:#2b2722}
+.wa-input input:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+.wa-input button{flex:none;width:42px;height:42px;border-radius:50%;border:0;background:var(--gold-deep);color:#fff;font-size:1.05rem;cursor:pointer}
+.wa-go{display:flex;align-items:center;gap:10px;padding:8px 16px 8px 8px;border-radius:999px;background:var(--wa);color:#08240f;text-decoration:none;font:500 .95rem var(--sans);letter-spacing:.01em;white-space:nowrap;box-shadow:0 6px 18px rgba(37,211,102,.35);transition:transform .2s,background .2s}
+.wa-go:hover,.wa-go:focus-visible{background:#3ee07a;transform:translateY(-1px)}
+.wa-go-logo{flex:none;width:34px;height:34px}
+.wa-go svg:last-child{width:20px;height:20px;margin-left:auto}
+.wa-restart{all:unset;cursor:pointer;justify-self:center;font-size:.76rem;color:#6b655b;text-decoration:underline;text-underline-offset:3px}
+@media (max-width:520px){.wa-panel{height:min(560px,calc(100dvh - 96px))}.wa-fab{width:52px;height:52px}.wa-fab svg{width:27px;height:27px}.wa-panel{bottom:64px}.tour-cta{left:16px;transform:none}.tour-cta:hover,.tour-cta:focus-visible{transform:translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){.wa-panel,.wa-msg{animation:none}.wa-typing i{animation:none;opacity:.6}}
+/* no celular, com o painel do apartamento aberto, o botão some (o painel tem o próprio botão de interesse) */
+@media (max-width:860px){.panel-open .wa:not(.open){opacity:0;pointer-events:none}}
+.wa{transition:opacity .3s}

@@ -18,6 +18,7 @@
 </script>
 <!-- baixa o 3D já no começo, em paralelo, enquanto a abertura toca -->
 <link rel="modulepreload" href="js/main.js">
+<link rel="modulepreload" href="js/chat.js">
 <link rel="modulepreload" href="js/building.js">
 <link rel="modulepreload" href="js/merge.js">
 <link rel="modulepreload" href="vendor/three/three.module.min.js">
@@ -184,43 +185,6 @@
     </nav>
   </section>
 
-  <!-- Contato guiado -->
-  <section class="sec dark" id="contato">
-    <div class="wrap two">
-      <div>
-        <p class="eyebrow reveal">Vamos conversar</p>
-        <h2 class="reveal">Conte o que você procura. <em>A gente prepara a conversa.</em></h2>
-        <p class="body reveal">Marque o que você procura. Ao tocar em enviar, o WhatsApp abre com a mensagem pronta, é só confirmar.</p>
-      </div>
-      <form class="builder reveal" id="builder" onsubmit="return false">
-        <fieldset><legend>Meu objetivo</legend>
-          <label><input type="radio" name="obj" value="morar" checked><span>Morar</span></label>
-          <label><input type="radio" name="obj" value="investir"><span>Investir</span></label>
-        </fieldset>
-        <fieldset><legend>Quero conhecer</legend>
-          <label><input type="radio" name="tipo" value="todas as plantas disponíveis" checked><span>Todas as plantas</span></label>
-          <label><input type="radio" name="tipo" value="o Apartamento Tipo 01"><span>Ap Tipo 01</span></label>
-          <label><input type="radio" name="tipo" value="o Apartamento Tipo 02"><span>Ap Tipo 02</span></label>
-          <label><input type="radio" name="tipo" value="o Apartamento Tipo 03 e 05"><span>Ap Tipo 03 e 05</span></label>
-          <label><input type="radio" name="tipo" value="o Apartamento Tipo 04"><span>Ap Tipo 04</span></label>
-          <label><input type="radio" name="tipo" value="as áreas sociais"><span>Áreas sociais</span></label>
-        </fieldset>
-        <fieldset><legend>O que mais valorizo</legend>
-          <label><input type="checkbox" name="val" value="elevador"><span>Elevador</span></label>
-          <label><input type="checkbox" name="val" value="forro de gesso"><span>Forro de gesso</span></label>
-          <label><input type="checkbox" name="val" value="infraestrutura para ar-condicionado"><span>Ar-condicionado</span></label>
-          <label><input type="checkbox" name="val" value="piso aquecido nos banheiros"><span>Piso aquecido</span></label>
-          <label><input type="checkbox" name="val" value="personalização durante a obra"><span>Personalização</span></label>
-        </fieldset>
-        <div class="actions">
-          <button class="btn btn-wa" type="button" id="send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.4.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>Enviar pelo WhatsApp</button>
-          <a class="btn btn-ghost" href="https://linktr.ee/sobanski.incorporadora" target="_blank" rel="noopener">Outros contatos</a>
-        </div>
-        <p class="form-hint" id="hint2" role="status"></p>
-      </form>
-    </div>
-  </section>
-
   <!-- Localização -->
   <section class="sec cream local" id="local">
     <div class="wrap two">
@@ -266,5 +230,6 @@
 </footer>
 
 <script type="module" src="js/main.js"></script>
+<script type="module" src="js/chat.js"></script>
 </body>
 </html>
