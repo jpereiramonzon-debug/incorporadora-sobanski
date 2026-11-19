@@ -224,21 +224,22 @@ $('floors').addEventListener('pointerleave', () => viewer?.highlight(null));
 const intro = $('intro'), introMsg = $('introMsg'), introTitle = $('introTitle');
 let introState = 'off', introTimer = 0, introBuildingReady = false;
 (() => {
-  let seen = false;
-  try { seen = sessionStorage.getItem('sa-intro') === '1'; } catch {}
-  if (calm || seen || location.hash) return;
+  // toca sempre que o site é aberto ou atualizado (exceto para quem pede menos movimento)
+  if (calm) return;
+  if (location.hash) { history.replaceState(null, '', location.pathname + location.search); scrollTo(0, 0); }
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  scrollTo(0, 0);
   introState = 'playing';
   intro.hidden = false;
   document.documentElement.classList.add('intro-on');
   // segura 2 s depois que APRESENTA termina de surgir (com limite de segurança)
-  intro.querySelector('.intro-bar').addEventListener('animationend', () => { clearTimeout(introTimer); introTimer = setTimeout(endIntro, 2000); }, { once: true });
+  intro.querySelector('.intro-pre').addEventListener('animationend', () => { clearTimeout(introTimer); introTimer = setTimeout(endIntro, 2000); }, { once: true });
   introTimer = setTimeout(endIntro, 9000);
 })();
 function introReady() { introBuildingReady = true; if (introState === 'waiting') revealBuilding(); }
 function endIntro(skipped = false) {
   if (introState !== 'playing') return;
   clearTimeout(introTimer);
-  try { sessionStorage.setItem('sa-intro', '1'); } catch {}
   introState = skipped ? 'skipped' : 'waiting';
   intro.classList.add('out');
   setTimeout(() => { intro.hidden = true; }, 900);
