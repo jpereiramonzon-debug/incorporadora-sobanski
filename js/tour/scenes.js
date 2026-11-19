@@ -226,80 +226,134 @@ export const ENVS = {
     ],
   },
 
-  /* ------------------------------------------------ Tipo 02 */
+  /* ------------------------------------------------ Tipo 02 (fotos oficiais: cozinha e sala, sacadas e quarto 01) */
   't02-estar': {
-    name: 'Estar, jantar e cozinha', group: 'Apartamento Tipo 02', h: 2.65,
-    bounds: [-1.75, 1.75, -2.45, 2.45], sun: [-1.5, 5, -6],
+    name: 'Cozinha e sala', group: 'Apartamento Tipo 02', h: 2.6,
+    bounds: [-1.6, 1.4, -1.95, 2.0], sun: [-1, 5, -6],
     build(g) {
-      const W = 4, D = 5.4, H = 2.65;
-      shell(g, { w: W, d: D, h: H, floor: porcelainFloor(W, D), walls: paint(0xeee8de) });
-      windowUnit(g, { x: -1.05, z: -2.7, w: 1.1, h: 1.6, sill: 0.75 });
-      windowUnit(g, { x: 0.45, z: -2.7, w: 1.0, h: 1.6, sill: 0.75 });
-      // cozinha na parede leste
-      ovenTower(g, { x: 1.7, z: -2.39, ry: -Math.PI / 2 });
-      fridge(g, { x: 1.66, z: -1.72, ry: -Math.PI / 2 });
-      kitchenRun(g, { len: 1.85, x: 1.7, z: -0.44, ry: -Math.PI / 2, upper: 'shelves', wood: '#c09060', counter: 0x1c1c1f, sinkAt: 0.45, cooktopAt: -0.45 });
-      // jantar
-      roundTable(g, { x: 0.45, z: -1.55, r: 0.55 });
-      around(0.45, -1.55, 0.78, 4, Math.PI / 4, (o) => boucleChair(g, o));
-      chandelierGlobes(g, { x: 0.45, z: -1.55, y: 1.85, ceil: H });
-      plant(g, { x: 0.3, z: -1.55, y: 0.76, h: 0.18, potR: 0.08, pot: 0xe9e4da, seed: 4 });
-      // estar com parede de TV em madeira
-      box(g, woodM('#a87650', 2, 2.2), 0.04, H, 2.1, -1.98, 0, 0.35, { cast: false });
-      tv(g, { x: -1.95, y: 1.45, z: 0.35, ry: Math.PI / 2, w: 1.3 });
-      rack(g, { x: -1.96, z: 0.35, ry: Math.PI / 2, w: 1.7, wood: '#8f6440' });
-      ac(g, { x: -1.96, z: 0.35, y: 2.22, ry: Math.PI / 2 });
-      lattice(g, { x: -1.6, z: -0.75, w: 0.8, h: H, cell: 0.17 });
-      sofa(g, { x: -0.45, z: 0.35, ry: -Math.PI / 2, len: 1.95 });
-      box(g, woodM('#c09060', 1.4, 0.3), 0.32, 0.72, 1.3, 0.15, 0, 0.35, { solid: true });
-      rug(g, { x: -1.05, z: 0.35, w: 1.7, d: 2.3, color: 0xe2d8c7 });
-      plant(g, { x: -1.7, z: -2.35, h: 1.5, potR: 0.2, seed: 2 });
-      // forro com ripas de madeira sobre o jantar
-      const beams = [];
-      for (let z = -2.65; z <= -0.4; z += 0.13) beams.push([2.6, 0.06, 0.045, 0.6, H - 0.06, z]);
-      boxes(g, woodM('#b88456', 2, 0.2), beams, { cast: false });
-      spots(g, [[-1, -0.5], [-1, 1.2], [0, 1.6], [1.2, 1.6], [-1.2, 2.2]], H);
-      door(g, { x: 1.2, z: 2.69, ry: Math.PI });
-      door(g, { x: -1.3, z: 2.69, ry: Math.PI });
+      const W = 4.2, D = 4.6, H = 2.6;
+      shell(g, { w: W, d: D, h: H, floor: porcelainFloor(W, D, '#d8d5cf'), walls: paint(0xd8cfc3) });
+      // parede norte: janela com cortinas e porta de vidro para a sacada da área de serviço
+      windowUnit(g, { x: -0.75, z: -2.3, w: 1.3, h: 1.55, sill: 0.85, ceil: H, view: 'trees' });
+      windowUnit(g, { x: 0.95, z: -2.3, w: 0.85, h: 2.15, door: true, curtains: false, ceil: H, view: 'field' });
+      // treliça de madeira no forro junto à janela e painel em grade no canto
+      const tre = [];
+      for (let x = -2.08; x <= 0.45; x += 0.1) tre.push([0.025, 0.06, 0.4, x, H - 0.07, -2.08]);
+      for (let z = -2.27; z <= -1.9; z += 0.1) tre.push([2.55, 0.06, 0.025, -0.82, H - 0.07, z]);
+      boxes(g, woodM('#b07c4f', 2, 0.3), tre, { cast: false });
+      lattice(g, { x: -1.98, z: -1.95, w: 0.6, h: H, ry: Math.PI / 2, cell: 0.12 });
+      // parede da TV: painel de madeira, rack branco suspenso e ar-condicionado
+      box(g, woodM('#b5875b', 2, 2.2), 0.04, H, 2.9, -2.08, 0, -0.55, { cast: false });
+      box(g, M(0xeeebe6, { roughness: 0.4 }), 0.36, 0.2, 2.3, -1.9, 0.5, -0.5, { solid: true });
+      tv(g, { x: -2.05, y: 1.35, z: -0.35, ry: Math.PI / 2, w: 1.0 });
+      ac(g, { x: -2.05, z: 0.45, y: 2.2, ry: Math.PI / 2 });
+      // sofá em bouclê voltado para a TV
+      sofa(g, { x: -0.75, z: -0.2, ry: -Math.PI / 2, len: 1.9, color: 0xe2ddd6, pillows: [0xe9d6d0, 0xe2ddd6] });
+      rug(g, { x: -1.35, z: -0.25, w: 1.6, d: 2.4, color: 0xe9e2d6 });
+      plant(g, { x: -0.15, z: -2.0, h: 1.25, potR: 0.18, pot: 0x2f2f30, seed: 91 });
+      // jantar: tampo bege, base de madeira, cadeiras bouclê brancas com estrutura dourada
+      const mesa = solid(grp(g, 0.5, 0, -0.9));
+      cyl(mesa, M(0xe7e0d5, { roughness: 0.35 }), 0.56, 0.56, 0.035, 0, 0.72, 0, { seg: 56 });
+      cyl(mesa, woodM('#c9a77c'), 0.12, 0.33, 0.72, 0, 0, 0, { seg: 40 });
+      around(0.5, -0.9, 0.78, 4, Math.PI / 4, (o) => shellChair(g, { ...o, color: 0xefebe5, legs: 'brass' }));
+      const pend = grp(g, 0.5, 0, -0.9), gl = M(0xf3e6d0, { roughness: 0.08, transparent: true, opacity: 0.5, depthWrite: false, emissive: 0xffd9a8, emissiveIntensity: 0.5 });
+      for (const z of [-0.25, 0.25]) cyl(pend, M(0x111111), 0.003, 0.003, H - 1.85, 0, 1.85, z, { cast: false });
+      box(pend, brass(), 0.02, 0.02, 1.0, 0, 1.84, 0, { cast: false });
+      [[-0.45, 0.1], [-0.25, -0.12], [-0.05, 0.12], [0.15, -0.1], [0.32, 0.1], [0.46, -0.06]].forEach(([z, dy]) => { sph(pend, gl, 0.075, 0, 1.78 + dy, z, { cast: false }); sph(pend, glow(0xffd9a3, 5), 0.02, 0, 1.78 + dy, z, { cast: false }); });
+      const pl = new THREE.PointLight(0xffc98a, 3, 4, 2); pl.position.set(0, 1.6, 0); pend.add(pl);
+      // cozinha na parede leste: pia com granito escuro, nichos de vidro canelado iluminados, geladeira e torre de fornos
+      kitchenRun(g, { len: 1.45, x: 1.8, z: -1.575, ry: -Math.PI / 2, base: 0xa8a49e, counter: 0x1d1d20, upper: 'glass', wood: '#a8784c', backsplash: 'subway', sinkAt: 0.1, h: H, upperFrom: 1.55 });
+      fridge(g, { x: 1.76, z: -0.475, ry: -Math.PI / 2, w: 0.72 });
+      box(g, M(0xa29e98, { roughness: 0.45 }), 0.62, H - 1.88, 0.78, 1.8, 1.88, -0.475);
+      ovenTower(g, { x: 1.8, z: 0.24, ry: -Math.PI / 2, w: 0.68, h: H, color: 0xa29e98 });
+      box(g, glow(0xfff2dc, 3), 0.02, 0.005, 2.0, 0.5, H - 0.006, -0.9, { cast: false });
+      spots(g, [[-1.2, -1.4], [-1.2, 0.8], [0.4, 1.4], [-1.2, 1.8]], H);
+      door(g, { x: 2.09, z: 1.4, ry: -Math.PI / 2 });
+      door(g, { x: -1.3, z: 2.29, ry: Math.PI });
     },
     pois: [
-      { p: [-1.9, 2.22, 0.35], t: 'Ar-condicionado', d: FEAT.ac },
-      { p: [-0.6, 2.6, 1.4], t: 'Forro de gesso', d: FEAT.forro },
-      { p: [1.7, 1.6, -0.45], t: 'Cozinha integrada', d: 'Prateleiras de madeira com iluminação em LED e bancada escura.', go: 't02-cozinha' },
-      { p: [0.45, 1.3, -1.55], t: 'Mesa de jantar', d: 'Jantar integrado à sala e à cozinha.', go: 't02-jantar' },
-      { p: [-1.3, 1.6, 2.6], t: 'Ir para o quarto', d: 'Quarto com closet aberto e painel de madeira.', go: 't02-quarto-1' },
-      { p: [-1.05, 1.9, -2.6], t: 'Sacada com churrasqueira', d: 'Sacada com churrasqueira e área de serviço, como na planta do Tipo 02.' },
+      { p: [-2.0, 2.2, 0.45], t: 'Ar-condicionado', d: FEAT.ac },
+      { p: [-0.8, 2.5, -2.1], t: 'Treliça de madeira', d: 'Treliça no forro e no canto da janela. ' + FEAT.forro },
+      { p: [1.8, 1.8, -1.5], t: 'Cozinha planejada', d: 'Nichos de vidro canelado iluminados, granito escuro, geladeira embutida e torre com dois fornos.', go: 't02-cozinha' },
+      { p: [0.95, 1.6, -2.25], t: 'Ir para a sacada', d: 'Sacada com churrasqueira e área de serviço.', go: 't02-varanda' },
+      { p: [-1.3, 1.6, 2.2], t: 'Ir para o quarto 01', d: 'Quarto com painel de madeira e sacada privativa.', go: 't02-quarto-01' },
     ],
   },
-  't02-quarto': {
-    name: 'Quarto', group: 'Apartamento Tipo 02', h: 2.65,
-    bounds: [-1.35, 1.4, -1.65, 1.7], sun: [6, 4, -1],
+  't02-varanda': {
+    name: 'Sacada com área de serviço', group: 'Apartamento Tipo 02', h: 2.6, outdoor: 'sky',
+    bounds: [-1.25, 1.2, -0.2, 0.75], sun: [-6, 5, 2],
+    // mesma solução do Tipo 01, espelhada como na foto do Tipo 02
+    build(g) { const m = grp(g); m.scale.x = -1; ENVS['t01-varanda'].build(m); },
+    pois: [
+      { p: [-0.32, 1.35, -0.3], t: 'Churrasqueira', d: 'Churrasqueira na sacada, em moldura de granito preto.' },
+      { p: [0.75, 1.05, -0.5], t: 'Área de serviço', d: 'Lavadora, tanque e armários integrados à sacada.' },
+      { p: [-0.85, 1.6, 0.85], t: 'Voltar para a sala', d: 'Cozinha e sala integradas.', go: 't02-sala' },
+    ],
+  },
+  't02-sacada-q1': {
+    name: 'Sacada do quarto 01', group: 'Apartamento Tipo 02', h: 2.6, outdoor: 'sky',
+    bounds: [-0.9, 0.95, -0.55, 0.75], sun: [6, 5, 2],
     build(g) {
-      const W = 3.2, D = 3.8, H = 2.65;
-      shell(g, { w: W, d: D, h: H, floor: woodFloor(W, D), walls: paint(0xefe9df) });
-      // parede da cama: painel de madeira em cima, cabeceira estofada embaixo
-      box(g, woodM('#a97a50', 3.2, 1.4), W, H - 1.1, 0.05, 0, 1.1, -1.875, { cast: false });
-      box(g, glow(0xffd29a, 3), W - 0.1, 0.012, 0.02, 0, H - 0.04, -1.84, { cast: false });
-      headboard(g, { w: 2.5, h: 1.1, x: 0.1, z: -1.83, color: 0xe8e0d3 });
-      box(g, glow(0xffd29a, 2.5), 2.5, 0.012, 0.02, 0.1, 1.1, -1.82, { cast: false });
-      bed(g, { x: 0.1, z: -0.78, w: 1.6, l: 2.0, duvet: 0xb4ada3, throwC: 0xc4a08c });
-      nightstand(g, { x: -1.0, z: -1.6 });
-      nightstand(g, { x: 1.2, z: -1.6 });
-      pendant(g, { x: -1.0, z: -1.55, y: 1.2, style: 'gold', light: 1.5 });
-      pendant(g, { x: 1.2, z: -1.55, y: 1.2, style: 'gold', light: 1.5 });
-      plant(g, { x: 1.2, z: -1.6, y: 0.55, h: 0.25, potR: 0.06, pot: 0xe9e4da, seed: 6 });
-      ac(g, { x: 0.1, z: -1.85, y: 2.24 });
-      openWardrobe(g, { x: -1.3, z: 0.55, ry: Math.PI / 2, w: 1.3 });
-      sconce(g, { x: -1.58, y: 1.55, z: -0.4, ry: Math.PI / 2 });
-      windowUnit(g, { x: 1.6, z: -0.25, ry: -Math.PI / 2, w: 1.3, h: 2.15, door: true, view: 'trees' });
-      rug(g, { x: 0.1, z: -0.45, w: 2.4, d: 2.6, color: 0xd9cfbe });
-      door(g, { x: -0.9, z: 1.89, ry: Math.PI });
+      const W = 2.4, D = 1.9, H = 2.6, wall = paint(0xbcb6ad);
+      shell(g, { w: W, d: D, h: H, floor: porcelainFloor(W, D, '#8f8c87'), walls: { n: wall, s: wall, w: wall, e: null } });
+      // coluna de tijolos de vidro verde
+      box(g, M(0xffffff, { map: rep(TX.glassBlock(), 1, 3.75), roughness: 0.08, metalness: 0.1, emissive: 0x24463a, emissiveIntensity: 0.25 }), 0.75, H - 0.3, 0.08, 0.05, 0, -0.91, { cast: false });
+      box(g, wall, 0.3, H, 0.3, 0.92, 0, -0.8);
+      // guarda-corpo de vidro com perfil preto
+      plane(g, glass({ opacity: 0.28 }), D, 1.05, 1.18, 0.55, 0, { ry: -Math.PI / 2 });
+      box(g, blackMetal(), 0.05, 0.05, D, 1.18, 1.06, 0, { cast: false });
+      box(g, blackMetal(), 0.06, 0.04, D, 1.18, 0, 0, { cast: false });
+      box(g, wall, 0.2, 0.3, D + 0.2, 1.25, H - 0.3, 0, { cast: false });
+      plane(g, new THREE.MeshBasicMaterial({ map: TX.view('field'), color: new THREE.Color(1.05, 1.05, 1.05) }), 30, 12, 9, 3, 0, { ry: -Math.PI / 2 });
+      const sunL = new THREE.RectAreaLight(0xfff1dc, 6, D, 1.6); sunL.position.set(1.15, 1.4, 0); sunL.lookAt(-3, 1.2, 0); g.add(sunL);
+      // poltrona de madeira com almofadas bege
+      const pt = solid(grp(g, -0.7, 0, 0.2, Math.PI / 2)), wd = woodM('#5a3a26', 0.3, 1), cu = fabric(0xd9cdb9, 2);
+      for (const sx of [-0.33, 0.33]) { box(pt, wd, 0.04, 0.04, 0.75, sx, 0.55, 0); for (const sz of [-0.3, 0.3]) { const l = box(pt, wd, 0.04, 0.55, 0.04, sx, 0, sz); l.rotation.x = sz > 0 ? 0.12 : -0.12; } }
+      rbox(pt, cu, 0.6, 0.12, 0.6, 0.04, 0, 0.3, 0.02);
+      const bk = rbox(pt, cu, 0.6, 0.6, 0.12, 0.04, 0, 0.42, -0.3); bk.rotation.x = -0.25;
+      spots(g, [[0, 0]], H);
+      door(g, { x: -1.19, z: 0.1, ry: Math.PI / 2 });
     },
     pois: [
-      { p: [0.1, 2.24, -1.8], t: 'Ar-condicionado', d: FEAT.ac },
-      { p: [1.55, 1.5, -0.25], t: 'Sacada privativa', d: 'Um dos quartos do Tipo 02 tem sacada privativa.' },
-      { p: [-1.3, 1.5, 0.55], t: 'Closet aberto', d: FEAT.person },
-      { p: [-0.9, 1.6, 1.8], t: 'Voltar para a sala', d: 'Estar, jantar e cozinha integrados.', go: 't02-jantar' },
+      { p: [0.05, 1.5, -0.88], t: 'Tijolo de vidro', d: 'Coluna de tijolos de vidro verde que deixa a luz passar.' },
+      { p: [1.15, 1.2, 0], t: 'Guarda-corpo de vidro', d: 'Sacada privativa do quarto 01, com vista aberta.' },
+      { p: [-1.15, 1.6, 0.1], t: 'Voltar para o quarto 01', d: 'Quarto com painel de madeira.', go: 't02-quarto-01' },
+    ],
+  },
+  't02-quarto1': {
+    name: 'Quarto 01', group: 'Apartamento Tipo 02', h: 2.6,
+    bounds: [-0.55, 1.0, -0.2, 1.3], sun: [6, 5, 1],
+    build(g) {
+      const W = 2.6, D = 3.2, H = 2.6;
+      shell(g, { w: W, d: D, h: H, floor: M(0xffffff, { map: rep(TX.carpet(), 3, 3), roughness: 1 }), walls: paint(0xf1ede6) });
+      // parede da cama: painel de madeira em cima e cabeceira estofada canelada em toda a largura
+      box(g, woodM('#9a6a43', 2.6, 1.4), W, H - 1.2, 0.04, 0, 1.2, -1.58, { cast: false });
+      headboard(g, { w: W - 0.02, h: 0.98, x: 0, y: 0.22, z: -1.555, color: 0xeee8dd });
+      ac(g, { x: 0.05, z: -1.56, y: 2.18 });
+      bed(g, { x: 0.05, z: -0.55, w: 1.5, l: 1.95, sheet: 0xd5d6d8, duvet: 0xc7c8ca, throwC: 0xd9b8a2, pillows: [0xc4c6c9, 0xd9b8a2, 0xe9e7e3], wood: '#cfcbc4' });
+      nightstand(g, { x: 1.0, z: -1.35, wood: '#8a5c3a', w: 0.45 });
+      vase(g, { x: 0.95, z: -1.4, y: 0.55, color: 0x6d9a52, h: 0.2 });
+      pendant(g, { x: 1.0, z: -1.25, y: 1.2, style: 'gold', light: 1.4, ceil: H });
+      // parede leste: cortina de voil de ponta a ponta, com a porta da sacada atrás
+      windowUnit(g, { x: 1.3, z: -0.4, ry: -Math.PI / 2, w: 1.6, h: 2.15, door: true, curtains: false, ceil: H, view: 'field' });
+      curtain(g, 3.0, H - 0.05, 1.18, 0, -Math.PI / 2);
+      // closet aberto com portas de vidro e arandela dourada de globos
+      openWardrobe(g, { x: -1.0, z: -0.55, ry: Math.PI / 2, w: 1.5 });
+      plane(g, glass({ opacity: 0.12 }), 1.5, 2.4, -0.7, 1.2, -0.55, { ry: Math.PI / 2 });
+      box(g, woodM('#9a6a43', 0.3, 2), 0.03, 2.4, 0.35, -1.285, 0, 0.95, { cast: false });
+      const sc = grp(g, -1.25, 0, 0.95);
+      box(sc, brass(), 0.02, 1.0, 0.03, 0.02, 1.0, 0.05, { cast: false });
+      for (const [y, dz] of [[1.85, -0.07], [1.85, 0.14], [1.4, -0.07], [1.4, 0.14]]) sph(sc, M(0xfff8ec, { emissive: 0xffe2b5, emissiveIntensity: 1.8 }), 0.06, 0.08, y, dz, { cast: false });
+      const sl = new THREE.PointLight(0xffc98a, 1.3, 3, 2); sl.position.set(0.25, 1.6, 0.05); sc.add(sl);
+      spots(g, [[0, 0.3]], H);
+      door(g, { x: -0.6, z: 1.59, ry: Math.PI });
+    },
+    pois: [
+      { p: [0.05, 1.8, -1.55], t: 'Painel e cabeceira', d: 'Painel de madeira e cabeceira estofada canelada em toda a parede.' },
+      { p: [0.05, 2.18, -1.5], t: 'Ar-condicionado', d: FEAT.ac },
+      { p: [-0.75, 1.5, -0.55], t: 'Closet aberto', d: FEAT.person },
+      { p: [1.15, 1.5, -0.4], t: 'Sacada do quarto', d: 'Este quarto tem sacada privativa.', go: 't02-sacada' },
+      { p: [-0.6, 1.6, 1.5], t: 'Voltar para a sala', d: 'Cozinha e sala integradas.', go: 't02-sala' },
     ],
   },
 
@@ -420,6 +474,75 @@ export const ENVS = {
     ],
   },
 
+  't03-infantil': {
+    name: 'Quarto infantil', group: 'Apartamento Tipo 03', h: 2.6,
+    bounds: [-0.6, 0.85, 0.1, 1.35], sun: [1, 5, -6],
+    build(g) {
+      const W = 3.0, D = 3.2, H = 2.6;
+      shell(g, { w: W, d: D, h: H, floor: woodFloor(W, D, '#c99b62'), walls: paint(0xe6d8b8) });
+      // faixa de papel listrado no alto das paredes
+      const st = M(0xffffff, { map: rep(TX.stripes(), 6, 1), roughness: 0.9 });
+      plane(g, st, W, 0.45, 0, H - 0.225, -1.595);
+      plane(g, st, D, 0.45, -1.495, H - 0.225, 0, { ry: Math.PI / 2 });
+      // painéis estofados de topo arredondado (rosa) nas paredes da cama
+      const pk = fabric(0xd59c86, 2), pn = [];
+      for (let x = -1.38; x < 1.15; x += 0.25) pn.push([x, -1.56, 0]);
+      for (let z = -1.38; z < 0.8; z += 0.25) pn.push([-1.46, z, Math.PI / 2]);
+      for (const [x, z, ry] of pn) {
+        const pg = grp(g, x, 0, z, ry);
+        box(pg, pk, 0.23, 0.98, 0.05, 0, 0, 0, { cast: false });
+        cyl(pg, pk, 0.115, 0.115, 0.05, 0, 0.955, 0, { rx: Math.PI / 2, cast: false }).position.y = 0.98;
+      }
+      windowUnit(g, { x: 0.05, z: -1.6, w: 1.25, h: 1.05, sill: 1.2, curtains: false, ceil: H, view: 'trees' });
+      bed(g, { x: -0.55, z: -1.0, ry: Math.PI / 2, w: 1.15, l: 1.9, sheet: 0xb8c4a8, duvet: 0xb9c2aa, throwC: 0xbfae95, pillows: [0xa9b89a, 0xe8c6a8, 0xf1d36a], wood: '#b9c2aa' });
+      // criado-mudo creme com abajur
+      const cm = solid(grp(g, -1.25, 0, 0.2));
+      box(cm, M(0xf0e8d6, { roughness: 0.5 }), 0.4, 0.55, 0.4, 0, 0, 0);
+      cyl(cm, M(0x8aa37a, { roughness: 0.3 }), 0.06, 0.08, 0.2, 0, 0.55, 0);
+      cyl(cm, M(0xfff1d6, { emissive: 0xffe0b0, emissiveIntensity: 0.9, side: THREE.DoubleSide }), 0.08, 0.13, 0.16, 0, 0.78, 0, { open: true });
+      const lp = new THREE.PointLight(0xffc98a, 1.5, 3, 2); lp.position.set(0, 0.85, 0); cm.add(lp);
+      // mesinha em forma de nuvem e cadeirinhas de orelhas
+      const mt = solid(grp(g, -0.05, 0, 0.45)), wd = woodM('#d1a66d', 0.4, 0.4);
+      for (const [dx, dz, r] of [[0, 0, 0.26], [0.2, 0.08, 0.18], [-0.2, 0.08, 0.18], [0.1, -0.16, 0.16], [-0.12, -0.15, 0.16]]) cyl(mt, wd, r, r, 0.03, dx, 0.5, dz, { seg: 32 });
+      for (const [dx, dz] of [[0.15, 0.15], [-0.15, 0.15], [0.15, -0.12], [-0.15, -0.12]]) cyl(mt, wd, 0.018, 0.018, 0.5, dx, 0, dz);
+      for (const [cx, cz, ry] of [[-0.45, 0.55, Math.PI / 2], [0.38, 0.55, -Math.PI / 2]]) {
+        const ch = grp(g, cx, 0, cz, ry);
+        rbox(ch, wd, 0.3, 0.03, 0.3, 0.01, 0, 0.3, 0);
+        for (const [lx, lz] of [[-0.12, -0.12], [0.12, -0.12], [-0.12, 0.12], [0.12, 0.12]]) cyl(ch, wd, 0.014, 0.014, 0.3, lx, 0, lz);
+        rbox(ch, wd, 0.28, 0.24, 0.03, 0.01, 0, 0.33, -0.14);
+        for (const ex of [-0.07, 0.07]) sph(ch, wd, 0.05, ex, 0.68, -0.14, { s: [0.6, 1.6, 0.4] });
+      }
+      // móbile de balões e nuvens perto da parede
+      const mb = grp(g, -1.25, 0, -0.75);
+      const rg = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.008, 6, 40), brass()); rg.rotation.x = Math.PI / 2; rg.position.y = 2.0; mb.add(rg);
+      [[0xe8774f, 0.15, 0.1, 1.55], [0x9fbf8f, -0.12, 0.12, 1.7], [0xd9a9c9, 0.05, -0.18, 1.45], [0x55585d, -0.15, -0.05, 1.25], [0xe8774f, 0.18, -0.1, 1.3]].forEach(([c, x, z, y]) => {
+        cyl(mb, M(0xffffff), 0.002, 0.002, 2.0 - y, x, y, z, { cast: false });
+        sph(mb, M(c, { roughness: 0.6 }), 0.08, x, y - 0.02, z, { s: [1, 1.3, 1] });
+      });
+      for (const [x, y, z] of [[0.05, 1.85, 0.2], [-0.2, 1.6, -0.2], [0.2, 1.75, -0.15]]) sph(mb, M(0xffffff, { roughness: 0.9 }), 0.07, x, y, z, { s: [1.6, 0.9, 0.6] });
+      // armário com portas em arco de palhinha
+      const ar = solid(grp(g, 1.2, 0, -0.3)), cream = M(0xece3d2, { roughness: 0.5 });
+      box(ar, cream, 0.6, 2.5, 2.6, 0, 0, 0);
+      const cane = M(0xc79a5e, { map: rep(TX.reed(), 3, 1), roughness: 0.8 });
+      for (let i = 0; i < 4; i++) {
+        const dz = -1.3 + 0.65 * (i + 0.5);
+        plane(ar, cane, 0.48, 1.05, -0.302, 1.6, dz, { ry: -Math.PI / 2 });
+        const arc = new THREE.Mesh(new THREE.CircleGeometry(0.24, 32, 0, Math.PI), cane); arc.position.set(-0.302, 2.125, dz); arc.rotation.y = -Math.PI / 2; ar.add(arc);
+        for (const [h, y] of [[0.035, 0.25], [0.035, 0.95]]) box(ar, M(0xd9cfbd), 0.012, h, 0.5, -0.305, y, dz, { cast: false });
+        box(ar, M(0x9b8f7c), 0.012, 2.45, 0.006, -0.305, 0.02, -1.3 + 0.65 * i, { cast: false });
+        sph(ar, brass(), 0.018, -0.33, 1.08, dz + (i % 2 ? -0.26 : 0.26), { cast: false });
+      }
+      // sanca com LED
+      for (const [w, d, x, z] of [[2.3, 0.02, -0.1, -1.2], [0.02, 2.3, -1.1, -0.1], [0.02, 2.3, 0.8, -0.1]]) box(g, glow(0xffe1b0, 3), w, 0.008, d, x, H - 0.01, z, { cast: false });
+      spots(g, [[0, 0.2]], H);
+      door(g, { x: 0.3, z: 1.59, ry: Math.PI });
+    },
+    pois: [
+      { p: [0, 0.9, -1.5], t: 'Painéis estofados', d: 'Cabeceira em painéis de topo arredondado, macia e lúdica.' },
+      { p: [0.9, 1.6, -0.3], t: 'Armário com palhinha', d: 'Portas em arco com palhinha natural. ' + FEAT.person },
+      { p: [-1.25, 1.7, -0.75], t: 'Decoração infantil', d: 'Móbile de balões, mesinha em forma de nuvem e cadeirinhas.' },
+    ],
+  },
   /* ------------------------------------------------ Áreas sociais */
   salao: {
     name: 'Salão de festas', group: 'Áreas sociais', h: 2.85,
@@ -652,14 +775,14 @@ export const ENVS = {
 export const SHOTS = [
   { id: 't01-sala', env: 't01-estar', photo: 'assets/tipo01-sala-cozinha.jpg', title: 'Cozinha e sala', sub: 'Tipo 01 · ambientes integrados', pos: [-0.35, 1.5, 2.15], look: [0.2, 1.15, -2.3] },
   { id: 't01-cozinha', env: 't01-estar', photo: 'assets/tipo01-cozinha.jpg', title: 'Cozinha', sub: 'Tipo 01 · aéreos em madeira e geladeira embutida', pos: [1.55, 1.4, -0.95], look: [-2, 1.25, -0.85] },
-  { id: 't01-varanda', env: 't01-varanda', photo: 'assets/tipo01-varanda.jpg', title: 'Varanda e área de serviço', sub: 'Tipo 01 · churrasqueira e lavanderia', pos: [-1.05, 1.5, 0.6], look: [1.5, 1.2, -0.25] },
+  { id: 't01-varanda', env: 't01-varanda', photo: 'assets/tipo01-varanda.jpg', title: 'Varanda e área de serviço', sub: 'Tipo 01 · churrasqueira e lavanderia', pos: [-1.05, 1.5, 0.6], look: [1.5, 1.2, -0.25], fov: 72 },
   { id: 't01-quarto-1', env: 't01-quarto1', photo: 'assets/tipo01-quarto-1.jpg', title: 'Quarto 01', sub: 'Tipo 01 · marcenaria em nogueira', pos: [-0.15, 1.45, 1.35], look: [-0.15, 1.15, -1.5] },
   { id: 't01-quarto-2', env: 't01-quarto2', photo: 'assets/tipo01-quarto-2.jpg', title: 'Quarto 02', sub: 'Tipo 01 · armário espelhado e boiserie', pos: [0.5, 1.5, 1.6], look: [-0.3, 1.05, -1.8] },
-  { id: 't02-jantar', env: 't02-estar', photo: 'assets/tipo02-sala-jantar.jpg', title: 'Estar e jantar', sub: 'Tipo 02 · sala integrada à cozinha', pos: [0.95, 1.45, 2.4], look: [-0.15, 1.1, -2.7] },
-  { id: 't02-tv', env: 't02-estar', photo: 'assets/tipo02-sala-tv.jpg', title: 'Sala de TV', sub: 'Tipo 02 · painel de madeira e ar-condicionado', pos: [1.2, 1.45, 1.7], look: [-2, 1.15, -0.4] },
-  { id: 't02-cozinha', env: 't02-estar', photo: 'assets/tipo02-cozinha.jpg', title: 'Cozinha', sub: 'Tipo 02 · prateleiras com LED', pos: [-0.75, 1.45, -0.6], look: [2, 1.25, -1.2] },
-  { id: 't02-quarto-1', env: 't02-quarto', photo: 'assets/tipo02-quarto-1.jpg', title: 'Quarto', sub: 'Tipo 02 · closet aberto', pos: [-0.35, 1.5, 1.75], look: [0.35, 1.0, -1.9] },
-  { id: 't02-quarto-2', env: 't02-quarto', photo: 'assets/tipo02-quarto-2.jpg', title: 'Quarto, outro ângulo', sub: 'Tipo 02 · cabeceira estofada', pos: [1.0, 1.4, 1.45], look: [-0.4, 1.0, -1.9] },
+  { id: 't02-sala', env: 't02-estar', photo: 'assets/tipo02-cozinha-sala.jpg', title: 'Cozinha e sala', sub: 'Tipo 02 · treliça e painel de madeira', pos: [0.25, 1.5, 2.05], look: [-0.25, 1.25, -2.3] },
+  { id: 't02-cozinha', env: 't02-estar', photo: 'assets/tipo02-cozinha-v2.jpg', title: 'Cozinha', sub: 'Tipo 02 · vidro canelado e torre de fornos', pos: [-1.0, 1.45, -0.85], look: [2.1, 1.25, -0.75] },
+  { id: 't02-varanda', env: 't02-varanda', photo: 'assets/tipo02-sacadas.jpg', title: 'Sacada com área de serviço', sub: 'Tipo 02 · churrasqueira e lavanderia', pos: [1.05, 1.5, 0.6], look: [-1.5, 1.2, -0.25], fov: 72 },
+  { id: 't02-sacada', env: 't02-sacada-q1', photo: 'assets/tipo02-sacadas.jpg', title: 'Sacada do quarto 01', sub: 'Tipo 02 · tijolo de vidro e guarda-corpo de vidro', pos: [0.75, 1.45, 0.85], look: [-0.4, 1.1, -0.95], fov: 78 },
+  { id: 't02-quarto-01', env: 't02-quarto1', photo: 'assets/tipo02-quarto-01.jpg', title: 'Quarto 01', sub: 'Tipo 02 · painel de madeira e cabeceira estofada', pos: [0.05, 1.45, 1.4], look: [0.05, 1.2, -1.6] },
   { id: 't03-sala', env: 't03-estar', photo: 'assets/tipo03-sala-cozinha.jpg', title: 'Estar e cozinha', sub: 'Tipo 03 · ripado e bancada', pos: [-1.55, 1.55, 2.7], look: [0.7, 1.2, -2.6] },
   { id: 't03-cozinha', env: 't03-estar', photo: 'assets/tipo03-cozinha.jpg', title: 'Cozinha', sub: 'Tipo 03 · área de serviço integrada', pos: [-0.45, 1.6, 0.2], look: [-0.35, 1.05, -3.05] },
   { id: 't03-tv', env: 't03-estar', photo: 'assets/tipo03-sala-tv.jpg', title: 'Sala de TV', sub: 'Tipo 03 · forro com LED', pos: [-1.6, 1.5, -0.55], look: [2.15, 1.1, 1.6] },
@@ -667,6 +790,7 @@ export const SHOTS = [
   { id: 't03-quarto1-b', env: 't03-quarto1', photo: 'assets/tipo03-quarto1-b.jpg', title: 'Quarto 1, armário', sub: 'Tipo 03 · guarda-roupa de 3 portas', pos: [0.95, 1.45, 1.5], look: [-0.7, 1.1, -1.5] },
   { id: 't03-quarto2-a', env: 't03-quarto2', photo: 'assets/tipo03-quarto2-a.jpg', title: 'Quarto 2', sub: 'Tipo 03 · infantil com sacada', pos: [0.95, 1.35, 1.35], look: [-0.9, 0.9, -1.0] },
   { id: 't03-quarto2-b', env: 't03-quarto2', photo: 'assets/tipo03-quarto2-b.jpg', title: 'Quarto 2, mural', sub: 'Tipo 03 · prateleira com LED', pos: [0.3, 1.3, 1.4], look: [0.3, 1.15, -1.7] },
+  { id: 't03-infantil', env: 't03-infantil', photo: 'assets/tipo03-infantil.jpg', title: 'Quarto infantil', sub: 'Tipos 03 e 04 · painéis estofados e armário de palhinha', pos: [0.35, 1.4, 1.35], look: [-0.3, 1.05, -1.6] },
   { id: 'salao-a', env: 'salao', photo: 'assets/social-salao-a.jpg', title: 'Salão de festas', sub: 'Churrasqueira e balcão gourmet', pos: [-0.4, 1.5, 0.9], look: [-1.3, 1.15, -3.5] },
   { id: 'salao-b', env: 'salao', photo: 'assets/social-salao-b.jpg', title: 'Salão, mesas', sub: 'Mesas para receber', pos: [-2.6, 1.5, 3.1], look: [0.3, 1.2, -2.8] },
   { id: 'hall-a', env: 'hall', photo: 'assets/social-hall-a.jpg', title: 'Hall de entrada', sub: 'Escada e elevador', pos: [0.45, 1.55, 1.3], look: [-0.25, 1.3, -2.5] },

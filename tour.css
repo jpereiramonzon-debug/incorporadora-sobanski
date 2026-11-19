@@ -3,7 +3,12 @@ body.tour{height:100vh;height:100dvh;overflow:hidden;display:grid;grid-template-
 .t-top{grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:10px clamp(12px,2vw,24px);border-bottom:1px solid var(--line);background:var(--ink);z-index:5}
 .t-back{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-size:1.3rem}
 .t-back .brand{font-size:.95rem}
-.t-now{display:grid;line-height:1.15;margin-left:clamp(8px,4vw,64px);min-width:0}
+.t-steps{display:flex;align-items:center;gap:10px;margin-left:clamp(8px,4vw,64px);min-width:0}
+.t-step{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid #3a3d45;background:transparent;color:#fff;font-size:1.3rem;line-height:1;cursor:pointer;transition:border-color .2s,background .2s}
+.t-step:hover,.t-step:focus-visible{border-color:var(--gold);background:rgba(201,164,92,.12)}
+.t-now{display:grid;line-height:1.15;min-width:0}
+.poi.is-view i{background:rgba(14,16,20,.75);color:#fff;border:1.5px solid #fff;animation:none;width:38px;height:38px}
+.poi.is-view svg{width:20px;height:20px}
 .t-now small{font-size:.64rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
 .t-now b{font:500 1.05rem var(--serif);letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .t-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
@@ -85,7 +90,8 @@ kbd{font:500 .7rem var(--sans);display:inline-grid;place-items:center;min-width:
   .t-top{gap:10px}
   .t-btn{display:inline-block}
   .t-top .btn{display:none}
-  .t-now{margin-left:4px}
+  .t-steps{margin-left:4px;gap:6px}
+  .t-step{width:30px;height:30px}
   .t-menu{position:fixed;z-index:8;top:0;left:0;bottom:0;width:min(340px,88vw);transform:translateX(-102%);transition:transform .35s cubic-bezier(.2,.7,.2,1);box-shadow:0 0 40px rgba(0,0,0,.5)}
   .t-menu.open{transform:none}
   .t-help{font-size:.72rem;max-width:calc(100% - 24px);white-space:normal;text-align:center;border-radius:14px}

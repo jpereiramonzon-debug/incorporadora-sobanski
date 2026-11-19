@@ -217,6 +217,23 @@ export const TX = {
       for (const s of [-1, 1]) { g.beginPath(); g.arc(x + 32 * s + 32, 40, 14, 0, 7); g.stroke(); }
     }
   }),
+  // tijolo de vidro verde (sacada do quarto 01 do Tipo 02)
+  glassBlock: () => ctex('glassBlock', 256, 256, (g, w, h) => {
+    g.fillStyle = '#56645c'; g.fillRect(0, 0, w, h);
+    const r = rng(77);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+      const x = i * 64 + 3, y = j * 64 + 3;
+      const gr = g.createRadialGradient(x + 29, y + 29, 4, x + 29, y + 29, 40);
+      gr.addColorStop(0, '#b9d6c6'); gr.addColorStop(0.6, '#5f9077'); gr.addColorStop(1, '#2f5c48');
+      g.fillStyle = gr; g.fillRect(x, y, 58, 58);
+      g.strokeStyle = 'rgba(230,245,236,.5)'; g.lineWidth = 2;
+      for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(x + 8 + r() * 40, y + 8 + r() * 40); g.quadraticCurveTo(x + r() * 58, y + r() * 58, x + 8 + r() * 40, y + 8 + r() * 40); g.stroke(); }
+    }
+  }),
+  stripes: () => ctex('stripes', 256, 64, (g, w, h) => {
+    g.fillStyle = '#f2e3bd'; g.fillRect(0, 0, w, h);
+    for (let x = 0; x < w; x += 32) { g.fillStyle = '#e8c98a'; g.fillRect(x, 0, 10, h); g.fillStyle = '#f7eedb'; g.fillRect(x + 16, 0, 6, h); }
+  }),
   carpet: () => ctex('carpet', 256, 256, (g, w, h) => {
     g.fillStyle = '#9c9e99'; g.fillRect(0, 0, w, h);
     const r = rng(52);

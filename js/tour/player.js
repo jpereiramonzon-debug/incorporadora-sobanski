@@ -1,6 +1,10 @@
 // Player 3D em primeira pessoa dos ambientes do Edifício Santa Ana.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { ENVS, SHOTS } from './scenes.js';
 import { TX } from './kit.js';
@@ -15,7 +19,7 @@ RectAreaLightUniformsLib.init();
 const stage = $('stage');
 const modest = coarse || (navigator.hardwareConcurrency || 8) <= 4;
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, modest ? 1.25 : 1.5));
+renderer.setPixelRatio(Math.min(devicePixelRatio, modest ? 1.25 : 1.75));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate = false; // ambientes estáticos: sombra calculada ao entrar
@@ -40,12 +44,23 @@ const sky = TX.sky();
 
 let dirty = true; // só desenha quando algo muda na tela
 
+// quadro refinado: quando a câmera para, o quadro é refeito com oclusão de ambiente (GTAO)
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }));
+composer.addPass(new RenderPass(scene, camera));
+const gtao = new GTAOPass(scene, camera, 1, 1);
+gtao.updateGtaoMaterial({ radius: 0.45, distanceExponent: 1.2, thickness: 1.2, scale: 1.1, samples: modest ? 12 : 16, distanceFallOff: 1 });
+gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+gtao.blendIntensity = 0.85;
+composer.addPass(gtao);
+composer.addPass(new OutputPass());
+let refined = false, stillSince = 0;
+
 const resize = () => {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return;
-  renderer.setSize(w, h); dirty = true;
+  renderer.setSize(w, h); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); dirty = true;
   camera.aspect = w / h;
-  camera.fov = w / h < 1 ? 74 : 62;
+  camera.fov = (shot?.fov ?? 62) + (w / h < 1 ? 12 : 0);
   camera.updateProjectionMatrix();
 };
 new ResizeObserver(resize).observe(stage);
@@ -110,11 +125,23 @@ function loadEnv(id) {
     poiLayer.appendChild(el);
     return { ...p, el, v: new THREE.Vector3(...p.p) };
   });
+  // pontos de onde cada foto foi tirada neste ambiente
+  for (const s of SHOTS.filter((x) => x.env === id)) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'poi is-view';
+    el.innerHTML = `<i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-2h6l2 2h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></i><span>${s.title}</span>`;
+    el.setAttribute('aria-label', `Ir para o ponto da foto: ${s.title}`);
+    el.addEventListener('click', (e) => { e.stopPropagation(); closeCard(); goShot(s.id); });
+    poiLayer.appendChild(el);
+    pois.push({ el, v: new THREE.Vector3(s.pos[0], 0.05, s.pos[2]), view: s.id });
+  }
 }
 
 /* ---------------- câmera em primeira pessoa ---------------- */
 const pos = new THREE.Vector3(0, 1.5, 2);
-let yaw = 0, pitch = 0, tween = null, walkTo = null;
+let yaw = 0, pitch = 0, yawT = 0, pitchT = 0, tween = null, walkTo = null;
+const vel = new THREE.Vector2();
 const lookAngles = (p, l) => {
   const dx = l[0] - p[0], dy = l[1] - p[1], dz = l[2] - p[2];
   return { yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)) };
@@ -128,11 +155,13 @@ function goShot(id, instant = false) {
   const a = lookAngles(s.pos, s.look);
   const apply = () => {
     loadEnv(s.env);
-    if (instant || changing || calm) { pos.set(...s.pos); yaw = a.yaw; pitch = a.pitch; tween = null; }
-    else tween = { t: 0, from: { p: pos.clone(), yaw, pitch }, to: { p: new THREE.Vector3(...s.pos), yaw: shortest(yaw, a.yaw), pitch: a.pitch } };
+    vel.set(0, 0);
+    if (instant || changing || calm) { pos.set(...s.pos); yaw = yawT = a.yaw; pitch = pitchT = a.pitch; tween = null; }
+    else { yaw = yawT; pitch = pitchT; tween = { t: 0, from: { p: pos.clone(), yaw, pitch }, to: { p: new THREE.Vector3(...s.pos), yaw: shortest(yaw, a.yaw), pitch: a.pitch } }; }
   };
   walkTo = null;
   shot = s;
+  resize();
   if (changing && !instant) fade(apply); else apply();
   updateUI();
   history.replaceState(null, '', `#${s.id}`);
@@ -160,9 +189,13 @@ addEventListener('keydown', (e) => {
   if (e.target.closest?.('input, textarea')) return;
   if (MOVE[e.code]) { keys.add(MOVE[e.code]); e.preventDefault(); hideHelp(); }
   if (e.key === 'Shift') keys.add('run');
+  if (e.code === 'KeyQ') keys.add('tl');
+  if (e.code === 'KeyE') keys.add('tr');
+  if (e.code === 'BracketLeft' || e.code === 'PageUp') step(-1);
+  if (e.code === 'BracketRight' || e.code === 'PageDown') step(1);
   if (e.key === 'Escape') { closeCard(); setMenu(false); }
 });
-addEventListener('keyup', (e) => { if (MOVE[e.code]) keys.delete(MOVE[e.code]); if (e.key === 'Shift') keys.delete('run'); });
+addEventListener('keyup', (e) => { if (MOVE[e.code]) keys.delete(MOVE[e.code]); if (e.key === 'Shift') keys.delete('run'); if (e.code === 'KeyQ') keys.delete('tl'); if (e.code === 'KeyE') keys.delete('tr'); });
 addEventListener('blur', () => keys.clear());
 
 /* arrastar para olhar, clicar no chão para ir */
@@ -187,7 +220,7 @@ canvas.addEventListener('pointermove', (e) => {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     drag.moved += Math.abs(dx) + Math.abs(dy); drag.x = e.clientX; drag.y = e.clientY;
     const k = e.pointerType === 'touch' ? 0.005 : 0.0038;
-    yaw += dx * k; pitch = clamp(pitch + dy * k, -1.25, 1.25);
+    yawT += dx * k; pitchT = clamp(pitchT + dy * k, -1.25, 1.25);
     if (drag.moved > 6) { canvas.classList.add('dragging'); ring.visible = false; hideHelp(); }
   } else if (e.pointerType === 'mouse') {
     const p = floorHit(e);
@@ -207,6 +240,13 @@ const endDrag = (e) => {
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
 canvas.addEventListener('pointerleave', () => { ring.visible = false; });
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  tween = null; hideHelp();
+  const d = clamp(-e.deltaY * 0.004, -0.6, 0.6);
+  const base = walkTo || pos;
+  walkTo = new THREE.Vector3(base.x - Math.sin(yaw) * d, pos.y, base.z - Math.cos(yaw) * d);
+}, { passive: false });
 
 /* joystick para celular */
 const joy = $('joy'), stick = { x: 0, y: 0 };
@@ -263,6 +303,13 @@ function updateUI() {
   document.title = `${shot.title} · Tour 3D · Edifício Santa Ana`;
 }
 
+function step(d) {
+  const i = SHOTS.findIndex((s) => s.id === shot.id);
+  closeCard(); goShot(SHOTS[(i + d + SHOTS.length) % SHOTS.length].id);
+}
+$('prevShot').addEventListener('click', () => step(-1));
+$('nextShot').addEventListener('click', () => step(1));
+
 const menu = $('menu');
 function setMenu(open) { menu.classList.toggle('open', open); $('menuBtn').setAttribute('aria-expanded', open); }
 $('menuBtn').addEventListener('click', () => setMenu(!menu.classList.contains('open')));
@@ -287,25 +334,45 @@ function tick(now) {
     pos.lerpVectors(tween.from.p, tween.to.p, e);
     yaw = tween.from.yaw + (tween.to.yaw - tween.from.yaw) * e;
     pitch = tween.from.pitch + (tween.to.pitch - tween.from.pitch) * e;
+    yawT = yaw; pitchT = pitch;
     if (tween.t >= 1) tween = null;
   } else {
+    // olhar com amortecimento
+    yawT += ((keys.has('tr') ? -1 : 0) + (keys.has('tl') ? 1 : 0)) * 1.6 * dt;
+    const kl = 1 - Math.exp(-dt * 16);
+    yaw += (yawT - yaw) * kl; pitch += (pitchT - pitch) * kl;
+    if (Math.abs(yawT - yaw) < 1e-4) yaw = yawT;
+    if (Math.abs(pitchT - pitch) < 1e-4) pitch = pitchT;
     let f = (keys.has('f') ? 1 : 0) - (keys.has('b') ? 1 : 0) - stick.y;
     let s = (keys.has('r') ? 1 : 0) - (keys.has('l') ? 1 : 0) + stick.x;
     const m = Math.hypot(f, s);
+    // caminhada com aceleração e desaceleração suaves
+    const tv = new THREE.Vector2();
     if (m > 0.05) {
       walkTo = null;
       if (m > 1) { f /= m; s /= m; }
-      const sp = (keys.has('run') ? 3.2 : 1.45) * dt;
+      const sp = keys.has('run') ? 3.2 : 1.45;
       const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
-      moveTo(pos.x + (fx * f + rx * s) * sp, pos.z + (fz * f + rz * s) * sp);
+      tv.set((fx * f + rx * s) * sp, (fz * f + rz * s) * sp);
+    }
+    vel.lerp(tv, 1 - Math.exp(-dt * (m > 0.05 ? 7 : 10)));
+    if (vel.lengthSq() < 1e-5) vel.set(0, 0);
+    if (vel.lengthSq() > 0) { if (!moveTo(pos.x + vel.x * dt, pos.z + vel.y * dt)) vel.multiplyScalar(0.5); }
+    if (m > 0.05) {
+      // já tratado acima
     } else if (walkTo) {
       const dx = walkTo.x - pos.x, dz = walkTo.z - pos.z, d = Math.hypot(dx, dz);
-      const st = Math.min(d, 1.8 * dt);
+      const st = Math.min(d, Math.min(1.8, 0.6 + d * 2) * dt);
       if (d < 0.04 || !moveTo(pos.x + (dx / d) * st, pos.z + (dz / d) * st)) walkTo = null;
     }
     pos.y += (clamp(pos.y, 1.25, 1.65) - pos.y) * Math.min(1, dt * 2);
   }
-  if (!dirty && pos.equals(last.p) && yaw === last.yaw && pitch === last.pitch && ring.position.equals(last.ring) && ring.visible === last.rv) return;
+  const same = !dirty && pos.equals(last.p) && yaw === last.yaw && pitch === last.pitch && ring.position.equals(last.ring) && ring.visible === last.rv;
+  if (same) {
+    if (!refined && now - stillSince > 220) { composer.render(); refined = true; }
+    return;
+  }
+  refined = false; stillSince = now;
   last.p.copy(pos); last.yaw = yaw; last.pitch = pitch; last.ring.copy(ring.position); last.rv = ring.visible;
   dirty = false;
   camera.position.copy(pos);
@@ -316,7 +383,7 @@ function tick(now) {
   for (const p of pois) {
     v.copy(p.v).project(camera);
     const dist = p.v.distanceTo(pos);
-    const vis = v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05 && dist < 8.5;
+    const vis = v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05 && dist < 8.5 && (!p.view || (p.view !== shot.id && dist > 0.6));
     p.el.classList.toggle('off', !vis);
     if (vis) p.el.style.transform = `translate(${((v.x + 1) / 2 * W).toFixed(1)}px, ${((1 - v.y) / 2 * H).toFixed(1)}px)`;
   }

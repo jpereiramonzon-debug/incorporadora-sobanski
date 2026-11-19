@@ -39,7 +39,7 @@ const MODELS = {
     plan: true,
     name: 'Apartamento Tipo 02',
     short: 'Tipo 02',
-    tour: 't02-jantar',
+    tour: 't02-sala',
     form: 'o Apartamento Tipo 02',
     summary: '60,94 m² · 2 quartos · 1 vaga',
     tagline: 'Conforto e funcionalidade em cada detalhe.',
@@ -47,11 +47,10 @@ const MODELS = {
     features: ['1 quarto com sacada privativa', 'Sacada com churrasqueira e área de serviço', 'Piso aquecido no banheiro'],
     media: [
       ['assets/tipo02-planta.jpg', 'Planta', 'Planta do Apartamento Tipo 02'],
-      ['assets/tipo02-sala-jantar.jpg', 'Estar e jantar', 'Sala de estar integrada à mesa de jantar e à cozinha'],
-      ['assets/tipo02-sala-tv.jpg', 'Sala de TV', 'Sala com painel de madeira, TV e ar-condicionado'],
-      ['assets/tipo02-cozinha.jpg', 'Cozinha', 'Cozinha com prateleiras iluminadas e mesa redonda'],
-      ['assets/tipo02-quarto-1.jpg', 'Quarto', 'Quarto com cabeceira estofada e closet'],
-      ['assets/tipo02-quarto-2.jpg', 'Quarto', 'Quarto com painel de madeira e ar-condicionado'],
+      ['assets/tipo02-cozinha-sala.jpg', 'Cozinha e sala', 'Cozinha e sala integradas, com treliça de madeira e sofá curvo'],
+      ['assets/tipo02-cozinha-v2.jpg', 'Cozinha', 'Cozinha com nichos de vidro canelado, geladeira inox e dois fornos'],
+      ['assets/tipo02-sacadas.jpg', 'Sacadas', 'Sacada do quarto 01 e sacada com área de serviço e churrasqueira'],
+      ['assets/tipo02-quarto-01.jpg', 'Quarto 01', 'Quarto com painel de madeira e cabeceira estofada'],
     ],
   },
   t03: {
@@ -73,6 +72,7 @@ const MODELS = {
       ['assets/tipo03-quarto1-b.jpg', 'Quarto 1', 'Quarto 1 com armário e cabeceira estofada'],
       ['assets/tipo03-quarto2-a.jpg', 'Quarto 2', 'Quarto 2 infantil com acesso à sacada'],
       ['assets/tipo03-quarto2-b.jpg', 'Quarto 2', 'Quarto 2 infantil com armários'],
+      ['assets/tipo03-infantil.jpg', 'Quarto infantil', 'Quarto infantil com painéis estofados e armário de palhinha (Tipos 03 e 04)'],
     ],
   },
 };
