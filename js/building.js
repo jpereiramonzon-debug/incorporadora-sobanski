@@ -126,7 +126,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const coarse = matchMedia('(pointer: coarse)').matches;
   const modest = coarse || (navigator.hardwareConcurrency || 8) <= 4;
   const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, modest ? 1.5 : 1.75));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, coarse ? 2 : 1.75)); // celular com tela densa: mais pixels para ficar nítido
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false; // a cena é estática: sombras calculadas uma vez
@@ -444,7 +444,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   });
 
   /* ---------- pós-processamento ---------- */
-  const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: modest ? 2 : 4 });
+  const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
   const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.3, 0.35, 1.0);
@@ -457,7 +457,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const goal = { ...cur };
   let baseRad = 50, W = 1, H = 1, hovered = null, selected = null, panelOpen = false;
   let lastTouch = 0, visible = true, raf = 0, prev = performance.now(), dirty = true, lastDraw = 0;
-  const perf = { n: 0, sum: 0, done: false };
+  const perf = { n: 0, sum: 0, done: false, from: performance.now() + 2500 }; // não mede enquanto a página ainda carrega
 
   const paint = () => { dirty = true; hits.forEach((m) => {
     const sel = m.userData.k === selected, hov = m.userData.k === hovered;
@@ -549,11 +549,11 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     composer.render();
     const gap = now - lastDraw;
     dirty = false; lastDraw = now;
-    if (!perf.done && settling && ++perf.n > 5) { // aparelho lento: reduz resolução e brilho
+    if (!perf.done && settling && now > perf.from && ++perf.n > 5) { // aparelho lento: reduz resolução e brilho
       perf.sum += Math.min(gap, 100);
       if (perf.n === 65) {
         perf.done = true;
-        if (perf.sum / 60 > 30) { renderer.setPixelRatio(1); bloom.enabled = false; composer.setPixelRatio?.(1); resize(); }
+        if (perf.sum / 60 > 30 && renderer.getPixelRatio() > 1.5) { const pr = Math.max(1.5, renderer.getPixelRatio() - 0.5); renderer.setPixelRatio(pr); composer.setPixelRatio(pr); bloom.enabled = false; resize(); }
       }
     }
   };

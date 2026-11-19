@@ -231,7 +231,7 @@ let introState = 'off', introTimer = 0, introBuildingReady = false;
   intro.hidden = false;
   document.documentElement.classList.add('intro-on');
   // segura 2 s depois que APRESENTA termina de surgir (com limite de segurança)
-  intro.querySelector('.intro-pre').addEventListener('animationend', () => { clearTimeout(introTimer); introTimer = setTimeout(endIntro, 2000); }, { once: true });
+  intro.querySelector('.intro-bar').addEventListener('animationend', () => { clearTimeout(introTimer); introTimer = setTimeout(endIntro, 2000); }, { once: true });
   introTimer = setTimeout(endIntro, 9000);
 })();
 function introReady() { introBuildingReady = true; if (introState === 'waiting') revealBuilding(); }
@@ -250,12 +250,15 @@ function revealBuilding() {
   viewer?.intro(3600);
   document.documentElement.classList.remove('intro-on');
   hero.classList.add('intro-reveal');
-  const show = (el, at, until) => {
-    setTimeout(() => { el.hidden = false; requestAnimationFrame(() => el.classList.add('on')); }, at);
-    setTimeout(() => { el.classList.remove('on'); setTimeout(() => { el.hidden = true; }, 900); }, until);
-  };
-  show(introTitle, 300, 3600); // SANTA ANA em destaque enquanto o edifício surge
-  show(introMsg, 4100, 7600);
+  // cada etapa conta o tempo a partir de quando a anterior de fato apareceu
+  const show = (el, delay, dur, next) => setTimeout(() => {
+    el.hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.classList.add('on');
+      setTimeout(() => { el.classList.remove('on'); setTimeout(() => { el.hidden = true; next?.(); }, 900); }, dur);
+    }));
+  }, delay);
+  show(introTitle, 300, 3000, () => show(introMsg, 200, 3200)); // SANTA ANA em destaque, depois a mensagem
 }
 
 /* ---------- Maquete 3D ---------- */
