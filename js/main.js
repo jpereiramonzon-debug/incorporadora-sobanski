@@ -19,6 +19,7 @@ const SOCIAL_AREAS = ['Salão de festas', 'Hall de entrada com elevador', 'Área
 
 const MODELS = {
   t01: {
+    plan: true,
     name: 'Apartamento Tipo 01',
     short: 'Tipo 01',
     tour: 't01-sala',
@@ -77,6 +78,7 @@ const MODELS = {
     ],
   },
   t04: {
+    plan: true,
     name: 'Apartamento Tipo 04',
     short: 'Tipo 04',
     form: 'o Apartamento Tipo 04',

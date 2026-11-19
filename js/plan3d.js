@@ -3,6 +3,45 @@
 import * as THREE from 'three';
 
 export const PLANS = {
+  // Tipo 01 (planta oficial, escala aproximada): quarto com sacada, banheiro, sala com cozinha, corredor, quarto 2 e sacada com churrasqueira
+  t01: {
+    rooms: [
+      { n: 'Quarto', x: 0, z: 5.25, w: 3.69, d: 2.7, f: 'wood' },
+      { n: 'Sacada', x: 0, z: 7.95, w: 3.69, d: 0.7, f: 'stone', open: true },
+      { n: '', x: 3.69, z: 5.25, w: 1.52, d: 0.98, f: 'tile' },
+      { n: 'Banheiro', x: 3.69, z: 6.23, w: 1.52, d: 2.42, f: 'tile' },
+      { n: 'Estar · jantar · cozinha', x: 5.21, z: 5.25, w: 5.25, d: 3.4, f: 'tile' },
+      { n: 'Entrada', x: 5.21, z: 0, w: 1.1, d: 5.25, f: 'tile' },
+      { n: 'Quarto 2', x: 6.31, z: 1.44, w: 2.51, d: 3.81, f: 'wood' },
+      { n: 'Sacada · churrasqueira', x: 8.82, z: 2.91, w: 1.64, d: 2.34, f: 'stone', open: true },
+    ],
+    openings: [[3.69, 5.35, 3.69, 6.13], [5.21, 5.25, 5.21, 6.23], [3.85, 6.23, 4.7, 6.23], [5.21, 5.25, 6.31, 5.25], [6.31, 3.48, 6.31, 4.43], [8.9, 5.25, 9.76, 5.25], [5.35, 0, 6.2, 0], [2.01, 7.95, 3.57, 7.95]],
+    rails: [[0, 8.65, 3.69, 8.65], [0, 7.95, 0, 8.65], [8.82, 2.91, 10.46, 2.91], [10.46, 2.91, 10.46, 5.25]],
+    items: [
+      ['bed', 1.0, 5.4, 1.6, 2.0, 'n'], ['wardrobe', 0.12, 5.4, 0.55, 2.2],
+      ['wc', 4.75, 6.4], ['sink', 4.45, 7.05, 0.65, 0.45],
+      ['counter', 9.85, 5.35, 0.6, 2.55], ['fridge', 9.75, 7.9, 0.7, 0.68],
+      ['table', 8.2, 6.95, 0.55], ['rug', 5.45, 5.95, 2.1, 2.3], ['sofa', 5.6, 6.0, 1.9, 0.9],
+      ['bed', 7.25, 1.55, 1.4, 1.95, 'n'], ['wardrobe', 6.43, 1.56, 0.42, 1.6], ['wardrobe', 6.48, 4.62, 2.2, 0.55],
+      ['grill', 9.8, 2.95, 0.6, 0.6], ['counter', 10.0, 4.15, 0.42, 0.9],
+    ],
+  },
+  // Tipo 04 (planta oficial, escala aproximada): quarto, circulação com armário, cozinha com estar e banheiro
+  t04: {
+    rooms: [
+      { n: 'Quarto', x: 0, z: 0, w: 3.68, d: 2.13, f: 'wood' },
+      { n: '', x: 1.42, z: 2.13, w: 2.26, d: 1.19, f: 'wood' },
+      { n: 'Cozinha · estar', x: 1.42, z: 3.32, w: 2.26, d: 7.19, f: 'tile' },
+      { n: 'Banheiro', x: 1.11, z: 10.51, w: 2.57, d: 1.58, f: 'tile' },
+    ],
+    openings: [[1.42, 2.13, 3.68, 2.13], [1.6, 3.32, 2.3, 3.32], [1.42, 5.77, 1.42, 6.48], [1.8, 10.51, 2.48, 10.51]],
+    rails: [],
+    items: [
+      ['bed', 1.5, 0.12, 1.4, 1.9, 'n'], ['wardrobe', 0.1, 0.12, 0.5, 1.9], ['wardrobe', 3.15, 2.2, 0.48, 1.05],
+      ['counter', 3.06, 3.45, 0.6, 3.4], ['table', 3.0, 8.1, 0.42], ['rug', 1.7, 8.65, 1.8, 1.4], ['sofa', 1.6, 9.45, 1.9, 0.9],
+      ['wc', 1.25, 11.35], ['sink', 1.9, 11.6, 0.5, 0.4],
+    ],
+  },
   t02: {
     rooms: [
       { n: 'Sacada · churrasqueira', x: 0, z: 0, w: 1.5, d: 2.2, f: 'stone', open: true },
