@@ -480,6 +480,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   new ResizeObserver(resize).observe(container);
   resize();
   cur.rad = goal.rad * 1.25;
+  let slowUntil = 0;
 
   const ray = new THREE.Raycaster(); const ptr = new THREE.Vector2();
   const pick = (e) => {
@@ -532,7 +533,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     for (const p in cur) if (Math.abs(goal[p] - cur[p]) > 1e-4) moving = true;
     const settling = moving && !(spinning && !dirty);
     if (!moving || (!settling && now - lastDraw < 32)) return;
-    const k = 1 - Math.exp(-dt * 5.5);
+    const k = 1 - Math.exp(-dt * (now < slowUntil ? 1.1 : 5.5));
     for (const p in cur) cur[p] += (goal[p] - cur[p]) * k;
     fade += ((selected ? 1 : 0) - fade) * k;
     foliage.forEach((m) => { m.opacity = 1 - fade * 0.8; m.depthWrite = fade < 0.5; });
@@ -567,5 +568,10 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     highlight(k) { hovered = k; paint(); },
     setPanel(open) { panelOpen = open; frame(); },
     rotate(d) { goal.az += d; touched(); },
+    // abertura: a câmera desce do alto, de longe, girando até o enquadramento normal
+    intro(ms = 3600) {
+      cur.rad = goal.rad * 2.3; cur.pol = 0.62; cur.az = goal.az - 1.5; cur.ty = HOME_Y + 3;
+      slowUntil = performance.now() + ms; lastTouch = performance.now(); dirty = true;
+    },
   };
 }

@@ -3,6 +3,26 @@
 import * as THREE from 'three';
 
 export const PLANS = {
+  // Tipo 05 (planta oficial, escala aproximada): sacada privativa, quarto 1, quarto 2, banheiro e estar com cozinha
+  t05: {
+    rooms: [
+      { n: 'Sacada privativa', x: 0, z: 0, w: 2.61, d: 0.82, f: 'stone', open: true },
+      { n: 'Quarto 1', x: 0, z: 0.82, w: 2.61, d: 3.9, f: 'wood' },
+      { n: 'Quarto 2', x: 2.61, z: 0, w: 2.54, d: 4.72, f: 'wood' },
+      { n: '', x: 0, z: 4.72, w: 3.74, d: 1.33, f: 'tile' },
+      { n: 'Banheiro', x: 3.74, z: 4.72, w: 1.41, d: 1.33, f: 'tile' },
+      { n: 'Estar · jantar · cozinha', x: 0, z: 6.05, w: 5.81, d: 4.83, f: 'tile' },
+    ],
+    openings: [[1.85, 4.72, 2.55, 4.72], [2.75, 4.72, 3.6, 4.72], [3.86, 6.05, 4.49, 6.05], [0, 6.05, 3.74, 6.05], [0.16, 10.88, 1.1, 10.88], [0.98, 0.82, 2.46, 0.82]],
+    rails: [[0, 0, 2.61, 0], [0, 0, 0, 0.82]],
+    items: [
+      ['bed', 0.18, 2.65, 1.3, 1.95, 's'], ['wardrobe', 0.31, 0.94, 0.62, 1.6],
+      ['bed', 3.1, 0.12, 1.4, 1.9, 'n'], ['wardrobe', 3.5, 2.92, 1.56, 0.58],
+      ['wc', 4.65, 5.35], ['sink', 3.95, 4.85, 0.6, 0.42],
+      ['sofa', 0.9, 6.2, 2.0, 0.9], ['rug', 0.6, 7.2, 2.2, 1.6], ['table', 1.6, 8.6, 0.55],
+      ['counter', 5.15, 6.3, 0.6, 3.6], ['fridge', 5.1, 10.05, 0.7, 0.68],
+    ],
+  },
   // Tipo 01 (planta oficial, escala aproximada): quarto com sacada, banheiro, sala com cozinha, corredor, quarto 2 e sacada com churrasqueira
   t01: {
     rooms: [

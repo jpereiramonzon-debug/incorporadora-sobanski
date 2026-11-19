@@ -16,6 +16,17 @@
 </head>
 <body>
 
+<!-- abertura: apresentação em formato de vídeo -->
+<div class="intro" id="intro" aria-hidden="true" hidden>
+  <div class="intro-card">
+    <p class="intro-brand"><span>SOBANSKI</span><small>INCORPORADORA</small></p>
+    <i class="intro-bar"></i>
+    <p class="intro-pre">APRESENTA</p>
+  </div>
+  <button type="button" class="intro-skip" id="introSkip">Pular</button>
+</div>
+<p class="intro-msg" id="introMsg" aria-live="polite" hidden><b>Viva uma experiência sem comparação.</b><span>Gire o prédio, escolha um andar e entre nos apartamentos.</span></p>
+
 <header class="nav" id="nav">
   <button type="button" class="nav-toggle" id="navToggle" aria-controls="navMenu" aria-expanded="false" aria-label="Abrir menu"><span></span><span></span><span></span></button>
   <a class="brand" href="#topo" aria-label="Sobanski Incorporadora, início">SOBANSKI</a>
@@ -42,7 +53,7 @@
 
     <div class="hero-copy">
       <p class="eyebrow">Sobanski Incorporadora apresenta</p>
-      <h1>Edifício <em>Santa Ana</em></h1>
+      <h1 aria-label="Edifício Santa Ana"><span class="h1-a" aria-hidden="true">Edifício</span> <em class="h1-b" aria-hidden="true">Santa Ana</em></h1>
     </div>
 
     <div class="floors" id="floors" role="group" aria-label="Escolha um andar"></div>
@@ -216,6 +227,16 @@
         <a class="link" href="https://www.google.com/maps/search/?api=1&query=Rua+Norberto+Lopacinski+Mallet+PR" target="_blank" rel="noopener">Abrir no mapa</a>
         <a class="link" href="https://www.instagram.com/sobanski.incorporadora/" target="_blank" rel="noopener">@sobanski.incorporadora</a>
       </address>
+    </div>
+  </section>
+
+  <!-- imagem do prédio fixa enquanto a página rola por cima -->
+  <section class="still" aria-label="Edifício Santa Ana">
+    <div class="still-img" aria-hidden="true"><img src="assets/vista-lateral.jpg" alt=""></div>
+    <div class="still-copy">
+      <p class="eyebrow">Edifício Santa Ana</p>
+      <p class="still-title">Transformando sonhos, <em>construindo o seu lar.</em></p>
+      <a class="btn" href="#contato">Quero conhecer</a>
     </div>
   </section>
 </main>

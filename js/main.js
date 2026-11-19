@@ -57,6 +57,7 @@ const MODELS = {
   },
   t03: {
     plan: true,
+    plans: [['t03', '3D 03'], ['t05', '3D 05']],
     name: 'Apartamento Tipo 03 e 05',
     short: 'Tipo 03 e 05',
     tour: 't03-sala',
@@ -140,7 +141,7 @@ const viewModel = (f, m) => `
   ${m.media ? `
   <figure class="media" id="media"></figure>
   <div class="thumbs" role="group" aria-label="Planta em 3D, planta e fotos">
-    ${m.plan ? '<button type="button" data-i="3d" aria-label="Planta em 3D" aria-pressed="true"><b>3D</b></button>' : ''}${m.media.map(([src, cap], i) =>
+    ${m.plan ? (m.plans || [[null, '3D']]).map(([pid, lb], k) => `<button type="button" data-i="3d${pid ? ':' + pid : ''}" aria-label="Planta em 3D${pid ? ' do ' + lb.replace('3D ', 'Tipo ') : ''}" aria-pressed="${k === 0}"><b>${lb}</b></button>`).join('') : ''}${m.media.map(([src, cap], i) =>
     `<button type="button" data-i="${i}" aria-label="${cap}" aria-pressed="${!m.plan && i === 0}"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div>
   <dl class="specs">${m.specs.map(([v, l]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>
   <h3>Neste apartamento</h3><ul class="feats">${m.features.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}
@@ -158,14 +159,14 @@ const showMedia = async (i) => {
   fig.parentElement.querySelectorAll('.thumbs button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.i === String(i)));
   const media = state.model ? MODELS[state.model].media : SOCIAL;
   const image = ([src, cap, alt]) => { fig.className = state.model ? 'media' : 'media cover'; fig.innerHTML = `<img src="${src}" alt="${alt}"><figcaption>${cap}</figcaption>`; };
-  if (i !== '3d') return image(media[+i]);
-  const id = state.model;
+  if (!String(i).startsWith('3d')) return image(media[+i]);
+  const id = state.model, planId = String(i).split(':')[1] || id;
   try {
     const { createPlan, PLANS } = await import('./plan3d.js');
     if (state.model !== id || !fig.isConnected) return;
     fig.className = 'media is3d';
     fig.innerHTML = '<figcaption>Planta em 3D · arraste para girar</figcaption>';
-    plan3d = createPlan(fig, PLANS[id]);
+    plan3d = createPlan(fig, PLANS[planId]);
   } catch (err) {
     console.warn('Planta 3D indisponível:', err);
     image(media[0]);
@@ -188,7 +189,7 @@ const render = () => {
   body.innerHTML = m ? viewModel(f, m) : f.models.length ? viewFloor(f) : viewGround(f);
   body.scrollTop = 0;
   body.classList.remove('enter'); void body.offsetWidth; body.classList.add('enter');
-  if (m?.media) showMedia(m.plan ? '3d' : 0); else if (!m && !f.models.length) showMedia(0);
+  if (m?.media) showMedia(m.plan ? (m.plans ? `3d:${m.plans[0][0]}` : '3d') : 0); else if (!m && !f.models.length) showMedia(0);
 };
 const openFloor = (k) => { state.floor = k; state.model = null; render(); };
 const closePanel = () => { state.floor = state.model = null; render(); };
@@ -219,6 +220,40 @@ $('floors').addEventListener('click', (e) => { const b = e.target.closest('butto
 $('floors').addEventListener('pointerover', (e) => viewer?.highlight(e.target.closest('button')?.dataset.k ?? null));
 $('floors').addEventListener('pointerleave', () => viewer?.highlight(null));
 
+/* ---------- Abertura: SOBANSKI INCORPORADORA | APRESENTA, depois o edifício ---------- */
+const intro = $('intro'), introMsg = $('introMsg');
+let introState = 'off', introTimer = 0, introBuildingReady = false;
+(() => {
+  let seen = false;
+  try { seen = sessionStorage.getItem('sa-intro') === '1'; } catch {}
+  if (calm || seen || location.hash) return;
+  introState = 'playing';
+  intro.hidden = false;
+  document.documentElement.classList.add('intro-on');
+  introTimer = setTimeout(endIntro, 2900);
+  $('introSkip').addEventListener('click', () => endIntro(true));
+  addEventListener('keydown', (e) => { if (introState === 'playing' && e.key === 'Escape') endIntro(true); });
+})();
+function introReady() { introBuildingReady = true; if (introState === 'waiting') revealBuilding(); }
+function endIntro(skipped = false) {
+  if (introState !== 'playing') return;
+  clearTimeout(introTimer);
+  try { sessionStorage.setItem('sa-intro', '1'); } catch {}
+  introState = skipped ? 'skipped' : 'waiting';
+  intro.classList.add('out');
+  setTimeout(() => { intro.hidden = true; }, 900);
+  if (skipped) { document.documentElement.classList.remove('intro-on'); return; }
+  if (introBuildingReady || hero.classList.contains('no3d')) revealBuilding();
+}
+function revealBuilding() {
+  introState = 'done';
+  viewer?.intro(3600);
+  document.documentElement.classList.remove('intro-on');
+  hero.classList.add('intro-reveal');
+  setTimeout(() => { introMsg.hidden = false; requestAnimationFrame(() => introMsg.classList.add('on')); }, 2400);
+  setTimeout(() => { introMsg.classList.remove('on'); setTimeout(() => { introMsg.hidden = true; }, 700); }, 6200);
+}
+
 /* ---------- Maquete 3D ---------- */
 import('./building.js').then(({ createViewer }) => {
   viewer = createViewer($('viewer'), {
@@ -232,6 +267,7 @@ import('./building.js').then(({ createViewer }) => {
     },
   });
   hero.classList.add('ready');
+  introReady();
 }).catch((err) => {
   console.warn('Maquete 3D indisponível:', err);
   hero.classList.add('no3d');
