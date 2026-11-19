@@ -167,6 +167,7 @@ h3{font-family:var(--serif);font-weight:500;font-size:1.15rem;line-height:1.25;l
 .pl-intro-copy{width:min(880px,100%);text-align:center;display:grid;justify-items:center}
 .pl-intro h2{max-width:20ch;margin-bottom:22px}
 .pl-intro .body{max-width:56ch;margin-bottom:30px}
+.pl-intro .pl-stage{padding-top:clamp(110px,18vh,190px)} /* texto da abertura um pouco abaixo do centro */
 .pl-list{list-style:none;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
 .pl-list a{display:inline-flex;align-items:center;gap:12px;padding:12px 20px 12px 12px;border:1px solid rgba(143,111,47,.45);border-radius:999px;text-decoration:none;color:var(--text);font:500 .95rem var(--serif);letter-spacing:.06em;background:var(--paper);transition:border-color .25s,background .25s,transform .25s}
 .pl-list a:hover,.pl-list a:focus-visible{border-color:var(--gold-deep);background:#fff;transform:translateY(-2px)}
@@ -288,11 +289,11 @@ h3{font-family:var(--serif);font-weight:500;font-size:1.15rem;line-height:1.25;l
 @media (max-width:760px){.views{grid-template-columns:1fr;grid-template-rows:auto}.views .view-main{grid-row:auto}}
 
 /* localização */
-.near{list-style:none;padding:0;display:grid;gap:8px;margin-bottom:24px}
-.near li{position:relative;padding-left:24px}
-.near li::before{content:"";position:absolute;left:2px;top:.45em;width:9px;height:9px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--gold-deep)}
-.map{margin:0;border-radius:6px;overflow:hidden;max-width:460px}
-.map img{width:100%;height:auto}
+
+
+
+
+
 
 /* ---------- abertura ---------- */
 .intro[hidden],.intro-title[hidden],.intro-msg[hidden]{display:none}
@@ -401,3 +402,8 @@ h3{font-family:var(--serif);font-weight:500;font-size:1.15rem;line-height:1.25;l
 /* no celular, com o painel do apartamento aberto, o botão some (o painel tem o próprio botão de interesse) */
 @media (max-width:860px){.panel-open .wa:not(.open){opacity:0;pointer-events:none}}
 .wa{transition:opacity .3s}
+
+/* localização enxuta */
+.local.compact{padding:clamp(56px,7vw,88px) 0}
+.local.compact h2{margin-bottom:18px}
+.local.compact .two{align-items:center}

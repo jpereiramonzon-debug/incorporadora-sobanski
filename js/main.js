@@ -250,7 +250,12 @@ function revealBuilding() {
   document.documentElement.classList.remove('intro-on');
   hero.classList.add('intro-reveal');
   // cada etapa conta o tempo a partir de quando a anterior de fato apareceu
+  // título e mensagem só aparecem com o topo à vista e somem se a pessoa rolar a página
+  const away = () => scrollY > innerHeight * 0.25;
+  const hideNow = () => { if (!away()) return; for (const el of [introTitle, introMsg]) { el.classList.remove('on'); el.hidden = true; } removeEventListener('scroll', hideNow); };
+  addEventListener('scroll', hideNow, { passive: true });
   const show = (el, delay, dur, next) => setTimeout(() => {
+    if (away()) return;
     el.hidden = false;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       el.classList.add('on');
@@ -306,8 +311,11 @@ const update = () => {
     const r = el.getBoundingClientRect();
     const q = clamp(-r.top / Math.max(1, r.height - vh));
     // a obra começa quando a etapa ocupa a tela; volta ao canteiro ao rolar de novo para cima
-    if (!el.classList.contains('build') && r.top < vh * 0.35) el.classList.add('build');
-    else if (el.classList.contains('build') && r.top > vh * 0.9) el.classList.remove('build');
+    // constrói quando a etapa ocupa a tela, descendo ou subindo; reinicia quando ela sai da tela
+    const inView = r.top < vh * 0.35 && r.bottom > vh * 0.65;
+    const gone = r.top > vh * 0.95 || r.bottom < vh * 0.05;
+    if (inView && !el.classList.contains('build')) el.classList.add('build');
+    else if (gone && el.classList.contains('build')) el.classList.remove('build');
     el.style.setProperty('--m', ease((q - 0.3) / 0.28).toFixed(3));
     el.style.setProperty('--t', ease((q - 0.5) / 0.22).toFixed(3));
     if (r.top < vh * 0.5 && r.bottom > vh * 0.5) active = i;
