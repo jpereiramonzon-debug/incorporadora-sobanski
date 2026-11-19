@@ -177,11 +177,38 @@ h3{font-family:var(--serif);font-weight:500;font-size:1.15rem;line-height:1.25;l
 
 .pl-step{--g:0;--m:0;--t:0}
 .pl-step .pl-track{height:250vh}
-.pl-word{position:absolute;inset:0;display:grid;place-items:center;margin:0;pointer-events:none;font-family:var(--serif);font-weight:500;text-transform:uppercase;text-align:center;line-height:.98;letter-spacing:.04em;font-size:clamp(3rem,11vw,11rem);
-  opacity:var(--g);transform:translateY(calc(var(--m) * -24vh)) scale(calc(.72 + var(--g) * .28 - var(--m) * .42));transform-origin:50% 50%;will-change:transform,opacity}
-.pl-word span{grid-area:1/1}
-.pl-outline{color:transparent;-webkit-text-stroke:1.5px var(--gold-deep)}
-.pl-fill{color:var(--gold-deep);opacity:var(--m)}
+.pl-word{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;margin:0;pointer-events:none;font-family:var(--serif);font-weight:500;text-transform:uppercase;text-align:center;line-height:1;letter-spacing:.04em;font-size:clamp(3rem,11vw,11rem);
+  transform:translateY(calc(var(--m) * -24vh)) scale(calc(1 - var(--m) * .42));transform-origin:50% 50%;will-change:transform}
+/* ---- a palavra como obra ---- */
+.pl-line{position:relative;display:block;white-space:nowrap;padding-bottom:.06em}
+.pl-sp{display:inline-block;width:.32em}
+/* linha-guia do projeto: risca a base antes das letras chegarem */
+.pl-guide{position:absolute;left:-6vw;right:-6vw;bottom:.06em;height:1px;background:repeating-linear-gradient(90deg,var(--gold-deep) 0 14px,transparent 14px 22px);opacity:.55;transform:scaleX(0);transform-origin:left center}
+.pl-guide::before,.pl-guide::after{content:"";position:absolute;top:-6px;width:1px;height:13px;background:var(--gold-deep)}
+.pl-guide::before{left:0}.pl-guide::after{right:0}
+.pl-l{position:relative;display:inline-block;opacity:0;transform:translate3d(0,-115vh,0) rotate(var(--r))}
+/* cabo do guindaste que desce a letra */
+.pl-l::before{content:"";position:absolute;left:50%;bottom:92%;width:1px;height:120vh;background:linear-gradient(transparent,rgba(143,111,47,.55));transform-origin:50% 0;transform:scaleY(1)}
+/* poeira ao assentar */
+.pl-l::after{content:"";position:absolute;left:-12%;right:-12%;bottom:.02em;height:.16em;border-radius:50%;background:radial-gradient(closest-side,rgba(143,111,47,.45),transparent);opacity:0;transform:scaleX(.3)}
+.pl-ghost{color:transparent;-webkit-text-stroke:1.5px var(--gold-deep)}
+.pl-solid{position:absolute;inset:0;color:var(--gold-deep);clip-path:inset(100% 0 0 0)}
+.pl-step.build .pl-guide{animation:plGuide .9s cubic-bezier(.65,0,.35,1) forwards,plGuideOut .8s calc(.35s + var(--n) * 70ms + 2.1s) ease forwards}
+@keyframes plGuideOut{to{opacity:0;transform:scaleX(1)}}
+.pl-step.build .pl-l{--t0:calc(.35s + var(--i) * 70ms);animation:plDrop 1s var(--t0) forwards}
+.pl-step.build .pl-l::before{animation:plCable .5s calc(var(--t0) + .95s) cubic-bezier(.4,0,.2,1) forwards}
+.pl-step.build .pl-l::after{animation:plDust .7s calc(var(--t0) + .66s) ease-out forwards}
+.pl-step.build .pl-solid{animation:plPour .9s calc(var(--t0) + 1.05s) cubic-bezier(.45,0,.25,1) forwards}
+@keyframes plGuide{to{transform:scaleX(1)}}
+@keyframes plDrop{
+  0%{opacity:0;transform:translate3d(0,-115vh,0) rotate(var(--r));animation-timing-function:cubic-bezier(.55,0,.85,.4)}
+  6%{opacity:1}
+  66%{opacity:1;transform:translate3d(0,.07em,0) rotate(0);animation-timing-function:cubic-bezier(.2,.6,.3,1)}
+  80%{opacity:1;transform:translate3d(0,-.035em,0)}
+  100%{opacity:1;transform:none}}
+@keyframes plCable{to{transform:scaleY(0)}}
+@keyframes plDust{0%{opacity:.9;transform:scaleX(.3)}100%{opacity:0;transform:scaleX(1.6) translateY(-.05em)}}
+@keyframes plPour{to{clip-path:inset(0 0 0 0)}}
 .pl-copy{position:relative;top:13vh;width:min(560px,100%);text-align:center;opacity:var(--t);transform:translateY(calc((1 - var(--t)) * 28px))}
 .pl-kicker{display:inline-flex;align-items:center;gap:10px;font-size:.74rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:14px}
 .pl-kicker span{padding:3px 9px;border:1px solid var(--gold-deep);border-radius:999px;letter-spacing:.08em}
@@ -214,6 +241,10 @@ h3{font-family:var(--serif);font-weight:500;font-size:1.15rem;line-height:1.25;l
   .pl-stage{position:relative;height:auto;min-height:0;padding-block:60px}
   .pl-step{--g:1;--m:1;--t:1}
   .pl-word{position:relative;transform:none;font-size:clamp(2.4rem,8vw,6rem);margin-bottom:24px}
+  .pl-l,.pl-step.build .pl-l{opacity:1;transform:none;animation:none}
+  .pl-l::before,.pl-l::after{display:none}
+  .pl-solid,.pl-step.build .pl-solid{clip-path:none;animation:none}
+  .pl-guide,.pl-step.build .pl-guide{transform:none;animation:none}
   .pl-copy{top:0}
   .pl-hint i{animation:none}
 }

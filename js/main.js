@@ -285,6 +285,16 @@ const pillars = $('investimento');
 const plSteps = [...pillars.querySelectorAll('.pl-step')];
 const plDots = [...pillars.querySelectorAll('.pl-dots a')];
 const ease = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
+// monta cada palavra como uma obra: linhas-guia, letras penduradas no cabo e preenchimento
+plSteps.forEach((el) => {
+  const word = el.querySelector('.pl-word');
+  let i = 0;
+  const rows = word.dataset.text.split('|');
+  word.innerHTML = rows.map((row) => `<span class="pl-line"><i class="pl-guide" aria-hidden="true"></i>${[...row].map((c) => (c === ' '
+    ? '<span class="pl-sp"> </span>'
+    : `<span class="pl-l" style="--i:${i++};--r:${((i * 37) % 7) - 3}deg"><span class="pl-ghost">${c}</span><span class="pl-solid">${c}</span></span>`)).join('')}</span>`).join('');
+  word.style.setProperty('--n', i);
+});
 let ticking = false;
 const update = () => {
   ticking = false;
@@ -295,7 +305,9 @@ const update = () => {
   plSteps.forEach((el, i) => {
     const r = el.getBoundingClientRect();
     const q = clamp(-r.top / Math.max(1, r.height - vh));
-    el.style.setProperty('--g', ease(q / 0.3).toFixed(3));
+    // a obra começa quando a etapa ocupa a tela; volta ao canteiro ao rolar de novo para cima
+    if (!el.classList.contains('build') && r.top < vh * 0.35) el.classList.add('build');
+    else if (el.classList.contains('build') && r.top > vh * 0.9) el.classList.remove('build');
     el.style.setProperty('--m', ease((q - 0.3) / 0.28).toFixed(3));
     el.style.setProperty('--t', ease((q - 0.5) / 0.22).toFixed(3));
     if (r.top < vh * 0.5 && r.bottom > vh * 0.5) active = i;
