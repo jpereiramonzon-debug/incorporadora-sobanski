@@ -7,7 +7,7 @@ import {
   shell, cove, spots, windowUnit, door, curtain,
   sofa, boucleChair, roundTable, chandelierGlobes, pendant, sconce, tv, rack, ac, plant, rug,
   slats, lattice, nightstand, bed, headboard, wardrobe, openWardrobe,
-  kitchenRun, fridge, ovenTower, washer, barStool, shellChair, brickWall, frameArt, teddy,
+  kitchenRun, fridge, ovenTower, washer, barStool, shellChair, brickWall, frameArt, teddy, vase, basket,
   ground, wallBlock, ivyWall, wallLamp, bench, bamboo,
 } from './kit.js';
 
@@ -28,6 +28,204 @@ const FEAT = {
 };
 
 export const ENVS = {
+  /* ------------------------------------------------ Tipo 01 (fotos: cozinha e sala, varanda, quarto 01 e 02) */
+  't01-estar': {
+    name: 'Cozinha e sala', group: 'Apartamento Tipo 01', h: 2.6,
+    bounds: [-1.2, 1.75, -2.0, 2.05], sun: [-1, 5, -6],
+    build(g) {
+      const W = 4.0, D = 4.6, H = 2.6;
+      shell(g, { w: W, d: D, h: H, floor: porcelainFloor(W, D, '#dedbd6'), walls: paint(0xece8e1) });
+      // parede das janelas: dois vãos altos com caixilho preto e cortina de voil
+      windowUnit(g, { x: -0.7, z: -2.3, w: 1.25, h: 1.95, sill: 0.45, ceil: H, view: 'field' });
+      windowUnit(g, { x: 1.3, z: -2.3, w: 1.15, h: 1.95, sill: 0.45, ceil: H, view: 'field' });
+      // cozinha linear na parede oeste: base cinza, tampo de mármore claro, aéreos de madeira
+      kitchenRun(g, { len: 2.8, x: -1.7, z: -0.15, ry: Math.PI / 2, base: 0xc7cac3, counter: 0xe4dfd7, upper: 'wood', wood: '#b98b5d', backsplash: 'marble', sinkAt: -0.85, cooktopAt: 0.2, ovenAt: 0.2, h: H, upperFrom: 1.52 });
+      box(g, M(0x5e432c), 0.005, 0.38, 0.72, -1.636, 1.52, -1.0, { cast: false }); // nicho do micro-ondas
+      rbox(g, M(0xf4f4f1, { roughness: 0.4 }), 0.34, 0.27, 0.5, 0.02, -1.79, 1.56, -0.95);
+      box(g, M(0x1b1c1e, { roughness: 0.2 }), 0.005, 0.18, 0.3, -1.618, 1.6, -1.0, { cast: false });
+      // geladeira inox em torre de madeira junto à janela
+      fridge(g, { x: -1.66, z: -1.93, ry: Math.PI / 2, w: 0.68, h: 1.82 });
+      box(g, woodM('#b98b5d', 0.6, 2), 0.62, H, 0.03, -1.70, 0, -1.575, { solid: true });
+      box(g, woodM('#b98b5d', 0.6, 0.6), 0.62, H - 1.9, 0.72, -1.70, 1.9, -1.93);
+      // jantar: mesa redonda de tampo branco, base de madeira, cadeiras terracota com estrutura dourada
+      const mesa = solid(grp(g, -0.45, 0, -0.95));
+      cyl(mesa, M(0xf3f1ec, { roughness: 0.35 }), 0.56, 0.56, 0.035, 0, 0.72, 0, { seg: 56 });
+      cyl(mesa, woodM('#c9a77c'), 0.12, 0.33, 0.72, 0, 0, 0, { seg: 40 });
+      around(-0.45, -0.95, 0.78, 4, Math.PI / 4, (o) => shellChair(g, { ...o, color: 0xa4512e, legs: 'brass' }));
+      chandelierGlobes(g, { x: -0.45, z: -0.95, y: 1.95, ceil: H, n: 8, span: 0.6 });
+      // estar: sofá branco voltado para o painel da TV, aparador preto e branco atrás
+      sofa(g, { x: 0.85, z: 0.55, ry: Math.PI / 2, len: 2.0, color: 0xf2efe9, pillows: [0xf2efe9, 0xe6e1d8] });
+      const ap = solid(grp(g, 0.2, 0, 0.55));
+      box(ap, M(0xf1eeea, { roughness: 0.3 }), 0.3, 0.03, 1.6, 0, 0.75, 0);
+      box(ap, M(0xf1eeea, { roughness: 0.3 }), 0.28, 0.02, 1.55, 0, 0.18, 0);
+      for (const [lx, lz] of [[-0.13, -0.78], [0.13, -0.78], [-0.13, 0.78], [0.13, 0.78]]) box(ap, blackMetal(), 0.02, 0.75, 0.02, lx, 0, lz);
+      vase(ap, { x: 0, z: -0.6, y: 0.78, color: 0xf3f0ea, h: 0.28 });
+      rug(g, { x: 1.2, z: 0.55, w: 1.5, d: 2.5, color: 0xe7ddcc });
+      box(g, woodM('#b5875b', 2, 2.2), 0.04, H, 2.6, 1.98, 0, 0.45, { cast: false });
+      box(g, M(0xf4f2ee, { map: rep(TX.concrete('#e6e2dc'), 2, 0.3), roughness: 0.3 }), 0.38, 0.22, 2.3, 1.79, 0.38, 0.45, { solid: true });
+      tv(g, { x: 1.95, y: 1.4, z: 0.45, ry: -Math.PI / 2, w: 1.15 });
+      ac(g, { x: 1.97, z: -1.55, y: 2.18, ry: -Math.PI / 2 });
+      vase(g, { x: 1.8, z: 1.25, y: 0.6, color: 0x9c1f35, glassy: false, h: 0.25 });
+      spots(g, [[-1.0, -1.6], [0.6, -1.6], [-1.0, 0.6], [0.4, 1.5]], H);
+      door(g, { x: -1.35, z: 2.29, ry: Math.PI });
+      door(g, { x: 1.0, z: 2.29, ry: Math.PI });
+    },
+    pois: [
+      { p: [1.95, 2.18, -1.55], t: 'Ar-condicionado', d: FEAT.ac },
+      { p: [-1.75, 1.4, -0.2], t: 'Cozinha integrada', d: 'Aéreos em madeira, tampo de mármore claro, cooktop, forno embutido e nicho para micro-ondas.', go: 't01-cozinha' },
+      { p: [-0.45, 1.25, -0.95], t: 'Mesa de jantar', d: 'Jantar integrado à cozinha e à sala, com luz natural das janelas amplas.' },
+      { p: [-1.35, 1.6, 2.2], t: 'Ir para a varanda', d: 'Varanda com churrasqueira e área de serviço.', go: 't01-varanda' },
+      { p: [1.0, 1.6, 2.2], t: 'Ir para os quartos', d: 'Quarto 01 com painel de madeira e quarto 02 com armário espelhado.', go: 't01-quarto-1' },
+    ],
+  },
+  't01-varanda': {
+    name: 'Varanda e área de serviço', group: 'Apartamento Tipo 01', h: 2.6, outdoor: 'sky',
+    bounds: [-1.2, 1.25, -0.2, 0.75], sun: [6, 5, 2],
+    build(g) {
+      const W = 3.0, D = 1.9, H = 2.6, wall = paint(0xdcd8d1);
+      shell(g, { w: W, d: D, h: H, floor: porcelainFloor(W, D, '#dddad5'), walls: { n: wall, s: wall, w: wall, e: null } });
+      // abertura para fora com guarda-corpo de ferro ornamental
+      const rail = new THREE.MeshStandardMaterial({ map: TX.railing(), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.5, metalness: 0.4 });
+      rail.map.repeat.set(1, 1);
+      plane(g, rail, D, 1.0, 1.47, 0.6, 0, { ry: -Math.PI / 2 });
+      box(g, blackMetal(), 0.05, 0.05, D, 1.47, 1.08, 0, { cast: false });
+      box(g, M(0xe8e5e0), 0.12, 0.08, D, 1.47, 0, 0, { cast: false });
+      box(g, paint(0xdcd8d1), 0.2, 0.3, D + 0.2, 1.55, H - 0.3, 0, { cast: false });
+      plane(g, new THREE.MeshBasicMaterial({ map: TX.view('field'), color: new THREE.Color(1.05, 1.05, 1.05) }), 30, 12, 9, 3, 0, { ry: -Math.PI / 2 });
+      const sunL = new THREE.RectAreaLight(0xfff1dc, 6, D, 1.6); sunL.position.set(1.45, 1.4, 0); sunL.lookAt(-3, 1.2, 0); g.add(sunL);
+      // área de serviço: lavadora, gabinete cinza com tanque, prateleira e aéreos estilo shaker
+      const zb = -0.95;
+      washer(g, { x: -1.17, z: zb + 0.31 });
+      const cab = solid(grp(g, -0.43, 0, zb + 0.3));
+      box(cab, M(0xc9ccc6, { roughness: 0.45 }), 0.86, 0.84, 0.58, 0, 0, 0);
+      for (const y of [0.3, 0.6]) box(cab, M(0x9da09a), 0.84, 0.004, 0.002, 0, y, 0.292, { cast: false });
+      for (const y of [0.2, 0.52]) for (const hx of [-0.2, 0.2]) cyl(cab, metal(), 0.012, 0.012, 0.01, hx, y + 0.02, 0.3, { rx: Math.PI / 2, cast: false });
+      box(g, M(0xffffff, { map: rep(TX.concrete('#d9d4cc'), 1, 0.3), roughness: 0.3 }), 1.5, 0.04, 0.62, -0.75, 0.86, zb + 0.31);
+      box(g, metal(0xbfc2c5, 0.3), 0.45, 0.005, 0.35, -0.4, 0.901, zb + 0.32, { cast: false });
+      cyl(g, metal(0x9a9da0, 0.3), 0.012, 0.012, 0.28, -0.4, 0.9, zb + 0.08);
+      box(g, metal(0x9a9da0, 0.3), 0.02, 0.02, 0.14, -0.4, 1.17, zb + 0.15, { cast: false });
+      plane(g, M(0xffffff, { map: rep(TX.porcelain('#ebe8e3'), 0.8, 0.4), roughness: 0.25 }), 1.5, 0.72, -0.75, 1.26, zb + 0.004);
+      box(g, M(0xd6d8d3), 1.5, 0.025, 0.22, -0.75, 1.22, zb + 0.11);
+      basket(g, { x: -1.1, z: zb + 0.12, y: 1.245 });
+      vase(g, { x: -0.62, z: zb + 0.12, y: 1.245, color: 0x4f7a3a, glassy: false, h: 0.12 });
+      const up = solid(grp(g, -0.75, 1.62, zb + 0.18));
+      box(up, M(0xc9ccc6, { roughness: 0.45 }), 1.5, 0.82, 0.36, 0, 0, 0);
+      for (const dx of [-0.37, 0.37]) {
+        for (const [w, h, xx, yy] of [[0.62, 0.035, 0, 0.08], [0.62, 0.035, 0, 0.71], [0.035, 0.62, -0.29, 0.1], [0.035, 0.62, 0.29, 0.1]]) box(up, M(0xbfc2bc), w, h, 0.012, dx + xx, yy, 0.186, { cast: false });
+        sph(up, metal(), 0.015, dx + (dx < 0 ? 0.28 : -0.28), 0.12, 0.2, { cast: false });
+      }
+      // pilar com churrasqueira em granito preto
+      const col = solid(grp(g, 0.32, 0, zb + 0.25));
+      box(col, wall, 0.66, H, 0.5, 0, 0, 0);
+      const gr = M(0xffffff, { map: rep(TX.granite(), 0.6, 0.6), roughness: 0.25 });
+      box(col, gr, 0.56, 0.08, 0.04, 0, 0.94, 0.25);
+      box(col, gr, 0.56, 0.08, 0.04, 0, 1.68, 0.25);
+      box(col, gr, 0.08, 0.74, 0.04, -0.24, 0.94, 0.25);
+      box(col, gr, 0.08, 0.74, 0.04, 0.24, 0.94, 0.25);
+      box(col, M(0xc9b39a, { roughness: 0.9 }), 0.4, 0.58, 0.005, 0, 1.02, 0.19, { cast: false });
+      for (const y of [1.18, 1.36]) { box(col, metal(0xcfd2d4, 0.3), 0.46, 0.012, 0.012, 0, y, 0.24, { cast: false }); for (const sx of [-0.1, 0.1]) sph(col, M(0x6b1d12), 0.016, sx, y + 0.006, 0.255, { cast: false }); }
+      spots(g, [[-0.6, 0], [0.8, 0]], H);
+      door(g, { x: 0.85, z: 0.94, ry: Math.PI });
+    },
+    pois: [
+      { p: [0.32, 1.35, -0.3], t: 'Churrasqueira', d: 'Churrasqueira na varanda, em moldura de granito preto.' },
+      { p: [-0.75, 1.05, -0.5], t: 'Área de serviço', d: 'Lavadora, tanque e armários integrados à varanda.' },
+      { p: [1.45, 1.2, 0], t: 'Vista da varanda', d: 'Guarda-corpo de ferro com volutas, o mesmo da fachada.' },
+      { p: [0.85, 1.6, 0.85], t: 'Voltar para a sala', d: 'Cozinha e sala integradas.', go: 't01-sala' },
+    ],
+  },
+  't01-quarto1': {
+    name: 'Quarto 01', group: 'Apartamento Tipo 01', h: 2.6,
+    bounds: [-1.15, 1.2, -1.2, 1.25], sun: [1, 5, 6],
+    build(g) {
+      const W = 2.9, D = 3.0, H = 2.6, walnut = '#7a5236';
+      shell(g, { w: W, d: D, h: H, floor: woodFloor(W, D, '#d9c09b'), walls: paint(0xf4f2ee) });
+      // marcenaria da parede da cama: aéreos brancos e nicho de nogueira com prateleira
+      const mc = grp(g, -0.4, 0, -1.5);
+      box(mc, M(0xf7f6f3, { roughness: 0.4 }), 2.1, H - 1.84, 0.42, 0, 1.84, 0.21);
+      for (let i = 1; i < 4; i++) box(mc, M(0xc8c5bf), 0.003, H - 1.86, 0.002, -1.05 + i * 0.525, 1.85, 0.421, { cast: false });
+      const nog = woodM(walnut, 1.6, 1.4);
+      box(mc, nog, 2.1, 1.84, 0.02, 0, 0, 0.01, { cast: false });
+      for (const sx of [-1.03, 1.03]) box(mc, nog, 0.04, 1.84, 0.32, sx, 0, 0.16);
+      box(mc, nog, 2.1, 0.05, 0.32, 0, 1.79, 0.16);
+      box(mc, nog, 2.02, 0.03, 0.26, 0, 1.42, 0.13);
+      const books = [[0x111111, 0.05, 0.24], [0x222222, 0.04, 0.22], [0xe9e4da, 0.06, 0.2], [0x1a1a1a, 0.03, 0.25]];
+      books.forEach(([c, w, h], i) => box(mc, M(c, { roughness: 0.7 }), w, h, 0.18, -0.92 + i * 0.06, 1.45, 0.12));
+      box(mc, M(0x141414), 0.24, 0.24, 0.03, -0.1, 1.45, 0.08);
+      cyl(mc, M(0xd9d6d0, { roughness: 0.3 }), 0.08, 0.06, 0.18, 0.55, 1.45, 0.12);
+      box(mc, M(0x1c1c1c), 0.3, 0.07, 0.2, 0.8, 1.45, 0.12);
+      // criado-mudo suspenso, arandela de braço articulado e cama estofada cinza
+      box(g, woodM(walnut, 0.5, 0.3), 0.5, 0.3, 0.38, -1.12, 0.42, -1.29);
+      box(g, M(0x3a2618), 0.46, 0.004, 0.002, -1.12, 0.57, -1.098, { cast: false });
+      vase(g, { x: -1.25, z: -1.32, y: 0.72, color: 0x5b8a42, h: 0.26 });
+      const arm = grp(g, -0.95, 1.2, -1.47);
+      box(arm, M(0x161616), 0.04, 0.12, 0.03, 0, -0.06, 0.015);
+      box(arm, M(0x161616), 0.012, 0.012, 0.32, 0, 0.0, 0.18);
+      box(arm, M(0x161616), 0.012, 0.012, 0.3, 0.08, 0.12, 0.34, { ry: 0.6 });
+      cyl(arm, M(0x161616), 0.035, 0.03, 0.08, 0.2, 0.08, 0.45);
+      bed(g, { x: -0.35, z: -0.52, w: 1.45, l: 1.95, sheet: 0xeceae6, duvet: 0x9b9995, throwC: 0x737170, pillows: [0x8f8d8a, 0x6f6d6a, 0xd9d7d3], wood: '#bdbab4' });
+      // ripado de nogueira até o teto
+      slats(g, { x: 0.93, z: -1.475, w: 0.55, h: H, wood: walnut, dep: 0.03 });
+      door(g, { x: 1.44, z: -0.9, ry: -Math.PI / 2 });
+      windowUnit(g, { x: 0, z: 1.5, ry: Math.PI, w: 1.2, h: 1.2, sill: 1.0, ceil: H });
+      spots(g, [[-0.9, -0.8], [0.3, -0.8]], H);
+    },
+    pois: [
+      { p: [-0.4, 1.6, -1.35], t: 'Marcenaria sob medida', d: 'Painel de nogueira com prateleira e armários brancos até o teto. ' + FEAT.person },
+      { p: [0.93, 1.6, -1.45], t: 'Ripado de madeira', d: 'Ripado em nogueira do piso ao teto.' },
+      { p: [1.4, 1.6, -0.9], t: 'Quarto 02', d: 'Quarto com armário espelhado e boiserie.', go: 't01-quarto-2' },
+      { p: [0, 1.6, 1.45], t: 'Voltar para a sala', d: 'Cozinha e sala integradas.', go: 't01-sala' },
+    ],
+  },
+  't01-quarto2': {
+    name: 'Quarto 02', group: 'Apartamento Tipo 01', h: 2.6,
+    bounds: [-1.2, 0.8, -1.5, 1.55], sun: [1, 5, -6],
+    build(g) {
+      const W = 3.0, D = 3.6, H = 2.6;
+      shell(g, { w: W, d: D, h: H, floor: M(0xffffff, { map: rep(TX.carpet(), 3, 3), roughness: 1 }), walls: paint(0xd8d1c7) });
+      // parede da cabeceira: lambri de madeira e boiserie branca
+      box(g, woodM('#8a5f3e', 2.4, 0.8), 0.03, 1.1, D, -1.485, 0, 0, { cast: false });
+      const mold = M(0xf6f4f0, { roughness: 0.5 });
+      for (const [zc, w] of [[-1.05, 0.52], [-0.25, 0.85], [0.6, 0.62]]) {
+        const y0 = 1.22, hh = 1.18;
+        box(g, mold, 0.025, 0.035, w, -1.485, y0, zc, { cast: false });
+        box(g, mold, 0.025, 0.035, w, -1.485, y0 + hh, zc, { cast: false });
+        box(g, mold, 0.025, hh, 0.035, -1.485, y0, zc - w / 2, { cast: false });
+        box(g, mold, 0.025, hh, 0.035, -1.485, y0, zc + w / 2, { cast: false });
+      }
+      headboard(g, { w: 1.75, h: 1.0, x: -1.42, y: 0.28, z: -0.15, ry: Math.PI / 2, color: 0xb29d8e, channels: false });
+      bed(g, { x: -0.45, z: -0.15, ry: Math.PI / 2, w: 1.6, l: 2.0, sheet: 0xf4f2ee, duvet: 0xf2f0ec, throwC: 0x8e8f8d, pillows: [0xb6a699, 0xf4f2ee, 0xe9e6e1], wood: '#a38877' });
+      for (const z of [-1.22, 0.92]) {
+        cyl(g, M(0x8f9096, { roughness: 0.5 }), 0.22, 0.22, 0.55, -1.22, 0, z, { solid: true });
+        const pd = grp(g, -1.12, 0, z);
+        cyl(pd, brass(), 0.004, 0.004, H - 1.42, 0, 1.42, 0, { cast: false });
+        sph(pd, M(0xfff8ec, { emissive: 0xffe2b5, emissiveIntensity: 1.8, roughness: 0.2 }), 0.09, 0, 1.33, 0, { cast: false });
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.006, 8, 40), brass()); ring.position.set(0, 1.33, 0); ring.rotation.y = Math.PI / 2; pd.add(ring);
+        const L = new THREE.PointLight(0xffc98a, 1.2, 3, 2); L.position.set(0.1, 1.3, 0); pd.add(L);
+      }
+      vase(g, { x: -1.22, z: 0.62, y: 0.55, color: 0xf6f4ef, h: 0.18 });
+      windowUnit(g, { x: -0.55, z: -1.8, w: 1.25, h: 1.3, sill: 0.95, curtains: false, ceil: H, view: 'field' });
+      plane(g, M(0xffffff, { map: TX.abstract(), roughness: 0.8 }), 0.78, 1.1, 0.55, 1.5, -1.78);
+      // armário com portas espelhadas bronze na parede leste
+      const ar = solid(grp(g, 1.2, 0, -0.27));
+      box(ar, M(0x6c6358, { roughness: 0.4 }), 0.6, 2.5, 2.45, 0, 0, 0);
+      const mir = M(0xc2b3a1, { metalness: 0.55, roughness: 0.12, envMapIntensity: 1.6 });
+      for (let i = 0; i < 3; i++) {
+        const dz = -1.225 + 0.8167 * (i + 0.5);
+        plane(ar, mir, 0.79, 2.42, -0.302, 1.24, dz, { ry: -Math.PI / 2 });
+      }
+      for (let i = 0; i <= 3; i++) box(ar, M(0x5a4c3d, { metalness: 0.6, roughness: 0.3 }), 0.012, 2.46, 0.02, -0.305, 0.02, -1.225 + 0.8167 * i, { cast: false });
+      spots(g, [[0, -0.6], [0, 0.7]], H);
+      door(g, { x: 0.3, z: 1.79, ry: Math.PI });
+    },
+    pois: [
+      { p: [-1.45, 1.8, -0.25], t: 'Boiserie e lambri', d: 'Lambri de madeira na cabeceira e molduras brancas na parede.' },
+      { p: [0.9, 1.5, -0.3], t: 'Armário espelhado', d: 'Portas com espelho bronze que ampliam o quarto. ' + FEAT.person },
+      { p: [-0.55, 1.6, -1.75], t: 'Janela', d: 'Ótima ventilação e entrada de luz natural.' },
+      { p: [0.3, 1.6, 1.7], t: 'Voltar para o quarto 01', d: 'Quarto com marcenaria de nogueira.', go: 't01-quarto-1' },
+    ],
+  },
+
   /* ------------------------------------------------ Tipo 02 */
   't02-estar': {
     name: 'Estar, jantar e cozinha', group: 'Apartamento Tipo 02', h: 2.65,
@@ -452,6 +650,11 @@ export const ENVS = {
 
 // uma entrada por foto de referência: ambiente, ponto de vista e textos do menu
 export const SHOTS = [
+  { id: 't01-sala', env: 't01-estar', photo: 'assets/tipo01-sala-cozinha.jpg', title: 'Cozinha e sala', sub: 'Tipo 01 · ambientes integrados', pos: [-0.35, 1.5, 2.15], look: [0.2, 1.15, -2.3] },
+  { id: 't01-cozinha', env: 't01-estar', photo: 'assets/tipo01-cozinha.jpg', title: 'Cozinha', sub: 'Tipo 01 · aéreos em madeira e geladeira embutida', pos: [1.55, 1.4, -0.95], look: [-2, 1.25, -0.85] },
+  { id: 't01-varanda', env: 't01-varanda', photo: 'assets/tipo01-varanda.jpg', title: 'Varanda e área de serviço', sub: 'Tipo 01 · churrasqueira e lavanderia', pos: [-1.05, 1.5, 0.6], look: [1.5, 1.2, -0.25] },
+  { id: 't01-quarto-1', env: 't01-quarto1', photo: 'assets/tipo01-quarto-1.jpg', title: 'Quarto 01', sub: 'Tipo 01 · marcenaria em nogueira', pos: [-0.15, 1.45, 1.35], look: [-0.15, 1.15, -1.5] },
+  { id: 't01-quarto-2', env: 't01-quarto2', photo: 'assets/tipo01-quarto-2.jpg', title: 'Quarto 02', sub: 'Tipo 01 · armário espelhado e boiserie', pos: [0.5, 1.5, 1.6], look: [-0.3, 1.05, -1.8] },
   { id: 't02-jantar', env: 't02-estar', photo: 'assets/tipo02-sala-jantar.jpg', title: 'Estar e jantar', sub: 'Tipo 02 · sala integrada à cozinha', pos: [0.95, 1.45, 2.4], look: [-0.15, 1.1, -2.7] },
   { id: 't02-tv', env: 't02-estar', photo: 'assets/tipo02-sala-tv.jpg', title: 'Sala de TV', sub: 'Tipo 02 · painel de madeira e ar-condicionado', pos: [1.2, 1.45, 1.7], look: [-2, 1.15, -0.4] },
   { id: 't02-cozinha', env: 't02-estar', photo: 'assets/tipo02-cozinha.jpg', title: 'Cozinha', sub: 'Tipo 02 · prateleiras com LED', pos: [-0.75, 1.45, -0.6], look: [2, 1.25, -1.2] },

@@ -64,9 +64,9 @@ kbd{font:500 .7rem var(--sans);display:inline-grid;place-items:center;min-width:
 
 .t-welcome{position:absolute;inset:0;z-index:7;display:grid;place-items:center;padding:20px;background:rgba(14,16,20,.78);backdrop-filter:blur(6px);overflow-y:auto}
 .t-welcome[hidden]{display:none}
-.t-welcome-box{width:min(860px,100%);text-align:center}
+.t-welcome-box{width:min(1000px,100%);text-align:center}
 .t-welcome h2{font-size:clamp(1.35rem,3.2vw,2.2rem);margin:0 auto 22px;max-width:none}
-.t-welcome-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.t-welcome-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .t-welcome-grid button{all:unset;box-sizing:border-box;cursor:pointer;display:grid;background:var(--coal);border:1px solid var(--line);border-radius:8px;overflow:hidden;text-align:left;transition:transform .25s,border-color .25s}
 .t-welcome-grid button:hover,.t-welcome-grid button:focus-visible{transform:translateY(-4px);border-color:var(--gold)}
 .t-welcome-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}

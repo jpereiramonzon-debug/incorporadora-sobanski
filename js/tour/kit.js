@@ -185,11 +185,48 @@ export const TX = {
     const r = rng(kind.length * 7);
     g.filter = 'blur(7px)';
     if (kind === 'city') { g.fillStyle = '#c9c4ba'; for (let i = 0; i < 6; i++) g.fillRect(r() * w, h * (0.3 + r() * 0.2), 60 + r() * 90, h); }
+    if (kind === 'field') { // campo aberto e enevoado, como nas fotos do Tipo 01
+      const f = g.createLinearGradient(0, h * 0.55, 0, h);
+      f.addColorStop(0, '#c9c6b4'); f.addColorStop(1, '#b3ad92');
+      g.fillStyle = f; g.fillRect(0, h * 0.58, w, h);
+      for (let i = 0; i < 18; i++) { g.fillStyle = `hsla(${80 + r() * 30},14%,${52 + r() * 10}%,.8)`; g.beginPath(); g.ellipse(r() * w, h * 0.57, 12 + r() * 26, 8 + r() * 12, 0, 0, 7); g.fill(); }
+      g.filter = 'none';
+      return;
+    }
     for (let i = 0; i < 26; i++) {
       g.fillStyle = `hsl(${90 + r() * 30},${25 + r() * 20}%,${38 + r() * 20}%)`;
       g.beginPath(); g.arc(r() * w, h * (0.35 + r() * 0.6), 30 + r() * 70, 0, 7); g.fill();
     }
     g.filter = 'none';
+  }),
+  // guarda-corpo de ferro com volutas (varanda do Tipo 01)
+  railing: () => ctex('railing', 1024, 384, (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    g.strokeStyle = g.fillStyle = '#141416'; g.lineCap = 'round';
+    g.fillRect(0, 0, w, 16); g.fillRect(0, 70, w, 7); g.fillRect(0, h - 16, w, 16);
+    for (let x = 6; x < w; x += 64) g.fillRect(x, 0, 8, h);
+    g.lineWidth = 6;
+    for (let x = 38; x < w; x += 128) { // par de volutas espelhadas em cada vão
+      for (const s of [-1, 1]) {
+        g.beginPath(); g.moveTo(x, 110); g.bezierCurveTo(x + s * 40, 120, x + s * 40, 190, x + s * 6, 200);
+        g.bezierCurveTo(x - s * 26, 205, x - s * 20, 168, x + s * 2, 172); g.stroke();
+        g.beginPath(); g.moveTo(x, 330); g.bezierCurveTo(x + s * 40, 320, x + s * 40, 250, x + s * 6, 240);
+        g.bezierCurveTo(x - s * 26, 235, x - s * 20, 272, x + s * 2, 268); g.stroke();
+      }
+      g.fillRect(x - 4, 100, 8, 240);
+      for (const s of [-1, 1]) { g.beginPath(); g.arc(x + 32 * s + 32, 40, 14, 0, 7); g.stroke(); }
+    }
+  }),
+  carpet: () => ctex('carpet', 256, 256, (g, w, h) => {
+    g.fillStyle = '#9c9e99'; g.fillRect(0, 0, w, h);
+    const r = rng(52);
+    for (let y = 0; y < h; y += 4) { g.fillStyle = `rgba(${r() < 0.5 ? '60,62,60' : '230,232,228'},${0.08 + r() * 0.1})`; g.fillRect(0, y, w, 2); }
+  }),
+  abstract: () => ctex('abstract', 300, 420, (g, w, h) => {
+    g.fillStyle = '#f7f5f0'; g.fillRect(0, 0, w, h);
+    const blob = (x, y, rx, ry, c) => { g.fillStyle = c; g.beginPath(); g.ellipse(x, y, rx, ry, 0.2, 0, 7); g.fill(); };
+    blob(120, 120, 70, 78, '#9cc9c6'); blob(185, 210, 70, 95, '#5d6f86'); blob(120, 300, 68, 70, '#a39aa8'); blob(220, 225, 40, 40, '#f0b58c');
+    g.strokeStyle = '#d8b46a'; g.lineWidth = 3; g.beginPath(); g.ellipse(190, 120, 45, 38, 0.4, 0, 7); g.stroke();
   }),
   sheer: () => ctex('sheer', 256, 64, (g, w, h) => {
     for (let x = 0; x < w; x++) { const v = 0.72 + Math.sin(x * 0.2) * 0.12 + Math.sin(x * 0.53) * 0.06; g.fillStyle = `rgba(255,255,255,${v})`; g.fillRect(x, 0, 1, h); }
@@ -602,7 +639,7 @@ export function kitchenRun(p, { len, x, z, ry = 0, base = 0xf0ebe2, counter = 0x
   const n = Math.max(1, Math.round(len / 0.6));
   for (let i = 1; i < n; i++) box(g, M(0xb5aea3), 0.003, 0.76, 0.002, -len / 2 + (len / n) * i, 0.11, 0.291, { cast: false });
   box(g, M(counter, { roughness: 0.2, metalness: 0.05 }), len + 0.02, 0.03, 0.62, 0, 0.88, 0.01);
-  const bs = backsplash === 'subway' ? M(0xffffff, { map: rep(TX.subway(), len / 1.2, 0.5), roughness: 0.25 }) : M(0xe8dfd0, { map: rep(TX.concrete('#e4d9c6'), len, 1), roughness: 0.5 });
+  const bs = backsplash === 'subway' ? M(0xffffff, { map: rep(TX.subway(), len / 1.2, 0.5), roughness: 0.25 }) : backsplash === 'marble' ? M(0xffffff, { map: rep(TX.concrete('#cfc9c1'), len / 1.5, 0.6), roughness: 0.3 }) : M(0xe8dfd0, { map: rep(TX.concrete('#e4d9c6'), len, 1), roughness: 0.5 });
   plane(g, bs, len, upperFrom - 0.91, 0, 0.91 + (upperFrom - 0.91) / 2, -0.285);
   if (sinkAt !== null) {
     box(g, metal(0xbfc2c5, 0.3), 0.55, 0.005, 0.4, sinkAt, 0.905, 0, { cast: false });
@@ -631,13 +668,13 @@ export function kitchenRun(p, { len, x, z, ry = 0, base = 0xf0ebe2, counter = 0x
       }
       for (const s of [-1, 0, 1]) box(g, brass(), 0.02, uh, 0.02, s * (len / 2 - 0.01), uy, 0.01, { cast: false });
     } else {
-      const um = upper === 'glass' ? woodM(wood, 0.6, 1) : M(base, { roughness: 0.45 });
+      const um = upper === 'glass' || upper === 'wood' ? woodM(wood, 0.6, 1) : M(base, { roughness: 0.45 });
       box(g, um, len, uh, 0.35, 0, uy, -0.11);
       const doorsN = Math.max(1, Math.round(len / 0.5));
       for (let i = 0; i < doorsN; i++) {
         const dx = -len / 2 + (len / doorsN) * (i + 0.5);
         if (upper === 'glass') plane(g, M(0xe2c99d, { map: TX.reed(), roughness: 0.3, emissive: 0xffd9a0, emissiveIntensity: 0.12 }), len / doorsN - 0.09, uh - 0.1, dx, uy + uh / 2, 0.067);
-        else box(g, M(0xb5aea3), 0.003, uh - 0.02, 0.002, -len / 2 + (len / doorsN) * i, uy + 0.01, 0.067, { cast: false });
+        else box(g, M(upper === 'wood' ? 0x5a3e28 : 0xb5aea3), 0.003, uh - 0.02, 0.002, -len / 2 + (len / doorsN) * i, uy + 0.01, 0.067, { cast: false });
       }
       box(g, glow(0xffd9a3, 3), len - 0.05, 0.006, 0.02, 0, uy - 0.006, 0.0, { cast: false });
     }
@@ -694,8 +731,8 @@ export function barStool(p, { x, z, ry = 0, seat = 0xb06a3c, wood = '#b48a5c', h
   return g;
 }
 
-export function shellChair(p, { x, z, ry = 0, color = 0xb06a3c }) {
-  const g = grp(p, x, 0, z, ry), l = blackMetal(), c = M(color, { roughness: 0.55 });
+export function shellChair(p, { x, z, ry = 0, color = 0xb06a3c, legs = 'black' }) {
+  const g = grp(p, x, 0, z, ry), l = legs === 'brass' ? brass() : blackMetal(), c = M(color, { roughness: legs === 'brass' ? 0.95 : 0.55 });
   for (const [lx, lz] of [[-0.19, -0.18], [0.19, -0.18], [-0.19, 0.18], [0.19, 0.18]]) cyl(g, l, 0.012, 0.012, 0.45, lx, 0, lz);
   rbox(g, c, 0.5, 0.07, 0.48, 0.03, 0, 0.45, 0);
   cyl(g, c, 0.27, 0.26, 0.32, 0, 0.5, 0.02, { open: true, t0: Math.PI * 0.6, tl: Math.PI * 0.8 }).material.side = THREE.DoubleSide;
@@ -704,6 +741,26 @@ export function shellChair(p, { x, z, ry = 0, color = 0xb06a3c }) {
 
 export function brickWall(p, { w, h, x, y = 0, z, ry = 0, dep = 0.1 }) {
   return box(p, M(0xffffff, { map: rep(TX.brick(), w / 1.17, h / 1.12), roughness: 0.95, bumpMap: rep(TX.brick(), w / 1.17, h / 1.12), bumpScale: 1.5 }), w, h, dep, x, y, z, { ry, cast: false });
+}
+
+// vaso pequeno com flores (decoração de aparadores e criados-mudos)
+export function vase(p, { x, y = 0, z, color = 0xb02a3a, glassy = true, h = 0.22 }) {
+  const g = grp(p, x, y, z);
+  cyl(g, glassy ? M(0xe6eef0, { roughness: 0.05, transparent: true, opacity: 0.45, depthWrite: false }) : M(0xd9d6d0, { roughness: 0.3 }), 0.035, 0.03, h * 0.55, 0, 0, 0, { cast: false });
+  const st = M(0x55703c);
+  for (let i = 0; i < 5; i++) {
+    const a = i * 1.26, dx = Math.cos(a) * 0.04, dz = Math.sin(a) * 0.04;
+    cyl(g, st, 0.003, 0.003, h, dx * 0.4, h * 0.4, dz * 0.4, { cast: false });
+    sph(g, M(color, { roughness: 0.7 }), 0.025, dx, h * 1.4 + (i % 2) * 0.03, dz, { cast: false });
+  }
+  return g;
+}
+export function basket(p, { x, y = 0, z }) {
+  const g = grp(p, x, y, z);
+  box(g, M(0xb8935e, { roughness: 0.95, bumpMap: rep(TX.weave(), 1), bumpScale: 1 }), 0.26, 0.11, 0.14, 0, 0, 0);
+  sph(g, M(0x4c7a37, { roughness: 0.9 }), 0.08, -0.04, 0.13, 0, { s: [1.2, 0.7, 0.9] });
+  sph(g, M(0x5b8a42, { roughness: 0.9 }), 0.07, 0.06, 0.14, 0.01, { s: [1, 0.7, 0.9] });
+  return g;
 }
 
 export function frameArt(p, { w = 0.5, h = 0.65, x, y, z, ry = 0, seed = 1 }) {

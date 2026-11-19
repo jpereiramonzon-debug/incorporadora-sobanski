@@ -18,7 +18,25 @@ const SOCIAL = [
 const SOCIAL_AREAS = ['Salão de festas', 'Hall de entrada com elevador', 'Área pet', 'Pet banho', 'Área kids'];
 
 const MODELS = {
+  t01: {
+    name: 'Apartamento Tipo 01',
+    short: 'Tipo 01',
+    tour: 't01-sala',
+    form: 'o Apartamento Tipo 01',
+    summary: '2 quartos · varanda com churrasqueira',
+    tagline: 'Cozinha e sala integradas, com muita luz natural.',
+    specs: [['2', 'quartos'], ['Varanda', 'com churrasqueira']],
+    features: ['Varanda com churrasqueira e área de serviço', 'Cozinha integrada à sala de jantar e estar', 'Janelas amplas e ótima entrada de luz natural'],
+    media: [
+      ['assets/tipo01-sala-cozinha.jpg', 'Cozinha e sala', 'Cozinha e sala integradas, com mesa redonda e sofá branco'],
+      ['assets/tipo01-cozinha.jpg', 'Cozinha', 'Cozinha com aéreos de madeira e geladeira inox embutida'],
+      ['assets/tipo01-varanda.jpg', 'Varanda e área de serviço', 'Varanda com churrasqueira e área de serviço'],
+      ['assets/tipo01-quarto-1.jpg', 'Quarto 01', 'Quarto com painel de nogueira e ripado'],
+      ['assets/tipo01-quarto-2.jpg', 'Quarto 02', 'Quarto com boiserie e armário espelhado'],
+    ],
+  },
   t02: {
+    plan: true,
     name: 'Apartamento Tipo 02',
     short: 'Tipo 02',
     tour: 't02-jantar',
@@ -37,6 +55,7 @@ const MODELS = {
     ],
   },
   t03: {
+    plan: true,
     name: 'Apartamento Tipo 03',
     short: 'Tipo 03',
     tour: 't03-sala',
@@ -59,9 +78,9 @@ const MODELS = {
 };
 
 const FLOORS = [
-  { k: '3', name: '3º andar', models: ['t02', 't03'] },
-  { k: '2', name: '2º andar', models: ['t02', 't03'] },
-  { k: '1', name: '1º andar', models: ['t02', 't03'] },
+  { k: '3', name: '3º andar', models: ['t01', 't02', 't03'] },
+  { k: '2', name: '2º andar', models: ['t01', 't02', 't03'] },
+  { k: '1', name: '1º andar', models: ['t01', 't02', 't03'] },
   { k: 'T', name: 'Térreo', models: [] },
 ];
 const floorOf = (k) => FLOORS.find((f) => f.k === k);
@@ -108,8 +127,8 @@ const viewModel = (f, m) => `
   ${m.media ? `
   <figure class="media" id="media"></figure>
   <div class="thumbs" role="group" aria-label="Planta em 3D, planta e fotos">
-    <button type="button" data-i="3d" aria-label="Planta em 3D" aria-pressed="true"><b>3D</b></button>${m.media.map(([src, cap], i) =>
-    `<button type="button" data-i="${i}" aria-label="${cap}" aria-pressed="false"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div>
+    ${m.plan ? '<button type="button" data-i="3d" aria-label="Planta em 3D" aria-pressed="true"><b>3D</b></button>' : ''}${m.media.map(([src, cap], i) =>
+    `<button type="button" data-i="${i}" aria-label="${cap}" aria-pressed="${!m.plan && i === 0}"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div>
   <dl class="specs">${m.specs.map(([v, l]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>
   <h3>Neste apartamento</h3><ul class="feats">${m.features.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}
   <h3>No edifício</h3>${chips(BUILDING_FEATURES)}
@@ -156,7 +175,7 @@ const render = () => {
   body.innerHTML = m ? viewModel(f, m) : f.models.length ? viewFloor(f) : viewGround(f);
   body.scrollTop = 0;
   body.classList.remove('enter'); void body.offsetWidth; body.classList.add('enter');
-  if (m?.media) showMedia('3d'); else if (!m && !f.models.length) showMedia(0);
+  if (m?.media) showMedia(m.plan ? '3d' : 0); else if (!m && !f.models.length) showMedia(0);
 };
 const openFloor = (k) => { state.floor = k; state.model = null; render(); };
 const closePanel = () => { state.floor = state.model = null; render(); };
