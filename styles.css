@@ -248,3 +248,31 @@ legend{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(-
   .reveal{opacity:1;transform:none;transition:none}
   .panel,.panel-body.enter>*,.media img{animation:none}
 }
+
+/* topo: selo de pré-lançamento */
+.hero-tag{display:inline-flex;align-items:center;gap:12px;margin-top:16px;font-size:clamp(.9rem,1.4vw,1.05rem);letter-spacing:.04em;text-shadow:none;background:rgba(14,16,20,.45);backdrop-filter:blur(8px);border:1px solid rgba(232,207,154,.45);border-radius:999px;padding:6px 16px 6px 6px}
+.hero-tag span{background:var(--gold);color:#17130a;font:500 .66rem var(--sans);letter-spacing:.2em;text-transform:uppercase;padding:6px 12px;border-radius:999px}
+.hero-tag b{font-weight:500;color:var(--gold-soft)}
+.hero-sub{margin-top:10px;font-size:.88rem;letter-spacing:.06em;opacity:.9}
+.hero-tag span,.hero-tag b{white-space:nowrap}
+@media (max-width:860px){.hero-tag{flex-direction:column;gap:6px;border-radius:16px;padding:8px 16px;font-size:.84rem}.hero-sub{font-size:.76rem;padding:0 10px}}
+
+/* o empreendimento */
+#empreendimento h2{max-width:24ch}
+.views{display:grid;grid-template-columns:1.4fr 1fr;grid-template-rows:1fr 1fr;gap:clamp(10px,1.6vw,18px);margin:clamp(28px,4vw,44px) 0}
+.views figure{position:relative;margin:0;overflow:hidden;border-radius:6px;background:var(--coal)}
+.views .view-main{grid-row:span 2}
+.views img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s cubic-bezier(.2,.7,.2,1)}
+.views figure:hover img{transform:scale(1.04)}
+.views figcaption{position:absolute;left:12px;bottom:12px;background:rgba(14,16,20,.72);color:#fff;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;padding:6px 12px;border-radius:999px}
+.hl{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px 28px;margin-bottom:30px}
+.hl li{position:relative;padding:10px 0 10px 22px;border-bottom:1px solid var(--line);color:#d9d2c5}
+.hl li::before{content:"";position:absolute;left:0;top:1.15em;width:10px;height:1px;background:var(--gold)}
+@media (max-width:760px){.views{grid-template-columns:1fr;grid-template-rows:auto}.views .view-main{grid-row:auto}}
+
+/* localização */
+.near{list-style:none;padding:0;display:grid;gap:8px;margin-bottom:24px}
+.near li{position:relative;padding-left:24px}
+.near li::before{content:"";position:absolute;left:2px;top:.45em;width:9px;height:9px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--gold-deep)}
+.map{margin:0;border-radius:6px;overflow:hidden;max-width:460px}
+.map img{width:100%;height:auto}

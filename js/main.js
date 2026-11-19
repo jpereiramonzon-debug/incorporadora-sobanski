@@ -3,7 +3,7 @@ const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- Conteúdo: edite aqui andares e modelos ---------- */
-const BUILDING_FEATURES = ['Elevador', 'Forro de gesso', 'Infraestrutura para ar-condicionado', 'Piso aquecido', 'Personalização durante a obra'];
+const BUILDING_FEATURES = ['Hall com elevador', 'Salão de festas', 'Área kids e área pet', 'Área técnica para ar-condicionado', 'Porcelanato e laminado', 'Personalização das unidades'];
 
 const SOCIAL = [
   ['assets/social-salao-a.jpg', 'Salão de festas', 'Salão de festas com churrasqueira e bancada'],
@@ -23,11 +23,12 @@ const MODELS = {
     short: 'Tipo 01',
     tour: 't01-sala',
     form: 'o Apartamento Tipo 01',
-    summary: '2 quartos · varanda com churrasqueira',
+    summary: '60,60 m² · 2 quartos · 1 vaga',
     tagline: 'Cozinha e sala integradas, com muita luz natural.',
-    specs: [['2', 'quartos'], ['Varanda', 'com churrasqueira']],
-    features: ['Varanda com churrasqueira e área de serviço', 'Cozinha integrada à sala de jantar e estar', 'Janelas amplas e ótima entrada de luz natural'],
+    specs: [['60,60 m²', 'área total'], ['78,15 m²', 'área equivalente'], ['2', 'quartos'], ['1', 'banheiro'], ['1', 'vaga de garagem']],
+    features: ['1 quarto com sacada privativa', 'Sacada com churrasqueira e área de serviço', 'Piso aquecido no banheiro'],
     media: [
+      ['assets/tipo01-planta.jpg', 'Planta', 'Planta oficial do Apartamento Tipo 01'],
       ['assets/tipo01-sala-cozinha.jpg', 'Cozinha e sala', 'Cozinha e sala integradas, com mesa redonda e sofá branco'],
       ['assets/tipo01-cozinha.jpg', 'Cozinha', 'Cozinha com aéreos de madeira e geladeira inox embutida'],
       ['assets/tipo01-varanda.jpg', 'Varanda e área de serviço', 'Varanda com churrasqueira e área de serviço'],
@@ -46,7 +47,7 @@ const MODELS = {
     specs: [['60,94 m²', 'área total'], ['78,63 m²', 'área equivalente'], ['2', 'quartos'], ['1', 'banheiro'], ['1', 'vaga de garagem']],
     features: ['1 quarto com sacada privativa', 'Sacada com churrasqueira e área de serviço', 'Piso aquecido no banheiro'],
     media: [
-      ['assets/tipo02-planta.jpg', 'Planta', 'Planta do Apartamento Tipo 02'],
+      ['assets/tipo02-planta-oficial.jpg', 'Planta', 'Planta oficial do Apartamento Tipo 02'],
       ['assets/tipo02-cozinha-sala.jpg', 'Cozinha e sala', 'Cozinha e sala integradas, com treliça de madeira e sofá curvo'],
       ['assets/tipo02-cozinha-v2.jpg', 'Cozinha', 'Cozinha com nichos de vidro canelado, geladeira inox e dois fornos'],
       ['assets/tipo02-sacadas.jpg', 'Sacadas', 'Sacada do quarto 01 e sacada com área de serviço e churrasqueira'],
@@ -55,16 +56,16 @@ const MODELS = {
   },
   t03: {
     plan: true,
-    name: 'Apartamento Tipo 03',
-    short: 'Tipo 03',
+    name: 'Apartamento Tipo 03 e 05',
+    short: 'Tipo 03 e 05',
     tour: 't03-sala',
-    form: 'o Apartamento Tipo 03',
+    form: 'o Apartamento Tipo 03 e 05',
     summary: '57,00 m² · 2 quartos · 1 vaga',
     tagline: 'Conforto e funcionalidade em cada detalhe.',
     specs: [['57,00 m²', 'área total'], ['71,56 m²', 'área equivalente'], ['2', 'quartos'], ['1', 'banheiro'], ['1', 'vaga de garagem']],
     features: ['1 quarto com sacada privativa', 'Área de serviço integrada na cozinha', 'Piso aquecido no banheiro'],
     media: [
-      ['assets/tipo03-planta.jpg', 'Planta', 'Planta do Apartamento Tipo 03'],
+      ['assets/tipo03-05-planta.jpg', 'Planta', 'Planta oficial dos Apartamentos Tipo 03 e 05'],
       ['assets/tipo03-sala-cozinha.jpg', 'Estar e cozinha', 'Sala de estar integrada à cozinha com bancada'],
       ['assets/tipo03-cozinha.jpg', 'Cozinha', 'Cozinha com área de serviço integrada'],
       ['assets/tipo03-sala-tv.jpg', 'Sala de TV', 'Sala de TV com bancada de refeições'],
@@ -75,12 +76,22 @@ const MODELS = {
       ['assets/tipo03-infantil.jpg', 'Quarto infantil', 'Quarto infantil com painéis estofados e armário de palhinha (Tipos 03 e 04)'],
     ],
   },
+  t04: {
+    name: 'Apartamento Tipo 04',
+    short: 'Tipo 04',
+    form: 'o Apartamento Tipo 04',
+    summary: '30,85 m² · 1 quarto',
+    tagline: 'Planta otimizada, com área de serviço integrada na cozinha.',
+    specs: [['30,85 m²', 'área total'], ['43,50 m²', 'área equivalente'], ['1', 'quarto'], ['1', 'banheiro'], ['Otimizada', 'planta']],
+    features: ['Área de serviço integrada na cozinha', 'Planta otimizada', '1 banheiro'],
+    media: [['assets/tipo04-planta.jpg', 'Planta', 'Planta oficial do Apartamento Tipo 04']],
+  },
 };
 
 const FLOORS = [
-  { k: '3', name: '3º andar', models: ['t01', 't02', 't03'] },
-  { k: '2', name: '2º andar', models: ['t01', 't02', 't03'] },
-  { k: '1', name: '1º andar', models: ['t01', 't02', 't03'] },
+  { k: '3', name: '3º andar', models: ['t01', 't02', 't03', 't04'] },
+  { k: '2', name: '2º andar', models: ['t01', 't02', 't03', 't04'] },
+  { k: '1', name: '1º andar', models: ['t01', 't02', 't03', 't04'] },
   { k: 'T', name: 'Térreo', models: [] },
 ];
 const floorOf = (k) => FLOORS.find((f) => f.k === k);
@@ -133,7 +144,7 @@ const viewModel = (f, m) => `
   <h3>Neste apartamento</h3><ul class="feats">${m.features.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}
   <h3>No edifício</h3>${chips(BUILDING_FEATURES)}
   <div class="actions"><button type="button" class="btn" data-cta>Tenho interesse no ${m.short}</button>
-    <a class="btn btn-ghost" href="tour.html#${m.tour}">Visitar em 3D</a></div>
+    ${m.tour ? `<a class="btn btn-ghost" href="tour.html#${m.tour}">Visitar em 3D</a>` : ''}</div>
   <small class="muted">Imagens e planta 3D ilustrativas. Medidas conforme material de divulgação.</small>`;
 
 // área de mídia do modelo: planta giratória em 3D, planta e fotos

@@ -106,17 +106,19 @@ const glowTex = () => tex(256, 256, (g, w) => {
 
 const signTex = () => {
   const draw = (g, w, h) => {
-    g.fillStyle = '#f1e4cb'; g.fillRect(0, 0, w, h);
-    g.fillStyle = '#2f2616'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.font = '500 78px "Cinzel", Georgia, serif';
-    g.fillText('Edifício Santa Ana', w / 2, h / 2 + 6);
+    g.fillStyle = '#efe4cf'; g.fillRect(0, 0, w, h);
+    const flag = (x, y, top, bottom) => { g.fillStyle = top; g.fillRect(x, y, 46, 15); g.fillStyle = bottom; g.fillRect(x, y + 15, 46, 15); };
+    g.fillStyle = '#2f2616'; g.textBaseline = 'middle';
+    flag(60, 48, '#ffffff', '#d4213d'); g.font = '40px Georgia, serif'; g.textAlign = 'left'; g.fillText('Witamy', 120, 64);
+    flag(w - 106, 48, '#0057b7', '#ffd700'); g.textAlign = 'right'; g.fillText('Laskavo prosymo', w - 120, 64);
+    g.textAlign = 'center'; g.font = 'italic 600 112px Georgia, serif'; g.fillText('Edifício Santa Ana', w / 2, h * 0.62);
   };
-  const t = tex(1024, 256, draw);
-  document.fonts?.load('500 78px "Cinzel"').then(() => {
-    draw(t.image.getContext('2d'), 1024, 256); t.needsUpdate = true;
-  }).catch(() => {});
-  return t;
+  return tex(1024, 310, draw);
 };
+const nameTex = () => tex(512, 150, (g, w, h) => {
+  g.fillStyle = '#e8e2d8'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = '500 92px Georgia, serif'; g.fillText('Sobanski', w / 2, h / 2);
+});
 
 /* ---------- cena ---------- */
 export function createViewer(container, { onHover = () => {}, onSelect = () => {} } = {}) {
@@ -197,117 +199,211 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     m.position.set(x, y, z); m.rotation.y = ry; scene.add(m); return m;
   };
 
-  // corpo do prédio: 3 pavimentos sobre pilotis, com sacadas recuadas à esquerda da fachada
-  box(6.4, 9, 20, wall, 1.8, 7.5, 0);
-  box(3.6, 9, 18.6, wall, -3.2, 7.5, -0.7);
-  box(0.22, 9, 1.4, wallDark, -4.89, 7.5, 9.3);
-  box(0.3, 9, 0.12, wallDark, -1.25, 7.5, 9.96);
-  for (const y of [3, 6, 9]) {
-    box(10.18, 0.16, 20.18, trim, 0, y, 0);
-    box(10.24, 0.07, 20.24, led, 0, y - 0.12, 0, false);
-  }
-  box(10.24, 0.07, 20.24, led, 0, 11.92, 0, false);
-  box(10.5, 0.5, 20.5, trim, 0, 12.25, 0);
-  box(10.8, 0.22, 20.8, trim, 0, 12.6, 0);
-  box(10.36, 0.55, 20.36, trim, 0, 12.98, 0);
-
-  // torre de escada e elevador aos fundos
-  box(4, 14, 2.6, wallDark, 0, 7, -11.3);
-  box(4.3, 0.3, 2.9, trim, 0, 14.15, -11.3);
-  plane(0.55, 8.4, new THREE.MeshBasicMaterial({ map: blockTex() }), 0, 7.6, -12.64, Math.PI);
-
-  // térreo: núcleo recuado, pilares e garagem iluminada
-  box(8.2, 3, 16, wallDark, 0, 1.5, -1.6);
-  for (const z of [9.7, 4.9, 0, -4.9, -9.7]) for (const x of [-4.7, 4.7]) box(0.5, 3, 0.5, wall, x, 1.5, z);
-  box(0.5, 3, 0.5, wall, -1.2, 1.5, 9.7);
-  for (const [x, z] of [[-3, 8], [2.6, 8], [0, 3]]) {
-    const d = new THREE.Mesh(new THREE.CircleGeometry(0.16, 20), lamp);
-    d.rotation.x = Math.PI / 2; d.position.set(x, 2.9, z); scene.add(d);
-  }
-  const garage = new THREE.PointLight(0xffc78a, 26, 16, 1.6); garage.position.set(0, 2.3, 8); scene.add(garage);
-
-  // janelas
+  // ===== corpo do prédio, conforme as vistas oficiais (frente, quina esquerda e fundos) =====
+  const dark = M(0x57524d, { bumpMap: noise, bumpScale: 1.2 });
+  const light = M(0xcdc4b7, { bumpMap: noise, bumpScale: 1.0 });
+  const inner = M(0xddd3c5, { bumpMap: noise, bumpScale: 0.8 });
+  const corn = M(0x59544f, { roughness: 0.85 });
+  const G = (x, y, z, ry = 0) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; scene.add(g); return g; };
+  const gb = (g, w, h, d, mat, x, y, z, cast = true) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; g.add(m); return m; };
+  const gp = (g, w, h, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); m.position.set(x, y, z); g.add(m); return m; };
+  const blk = (x0, x1, y0, y1, z0, z1, mat) => box(x1 - x0, y1 - y0, z1 - z0, mat, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
   const winMats = {};
   const winMat = (lit, tall, v) => {
     const key = `${lit}${tall}${v}`;
     if (!winMats[key]) {
       const t = windowTex(lit, tall, v * 13 + (tall ? 5 : 1));
       winMats[key] = lit
-        ? new THREE.MeshStandardMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 1.55, roughness: 0.5 })
+        ? new THREE.MeshStandardMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 1.45, roughness: 0.5 })
         : new THREE.MeshStandardMaterial({ map: t, roughness: 0.18, metalness: 0.35 });
     }
     return winMats[key];
   };
   const rw = rng(42);
-  const addWindow = (x, y, z, ry, w, h, tall = false, forceLit = false) => {
-    const lit = forceLit || rw() < 0.72;
-    plane(w, h, winMat(lit, tall, Math.floor(rw() * 3)), x, y, z, ry);
-    const nx = Math.sin(ry), nz = Math.cos(ry);
-    const sill = box(ry % Math.PI ? 0.14 : w + 0.24, 0.07, ry % Math.PI ? w + 0.24 : 0.14, trim, x + nx * 0.05, y - h / 2 - 0.04, z + nz * 0.05, false);
-    sill.castShadow = false;
+  // janela no plano local (vidro em z=0 olhando para +z), com caixilho preto, moldura de reboco e peitoril
+  const win = (g, x, y, w, h, { lit = rw() < 0.75, surround = true } = {}) => {
+    gp(g, w, h, winMat(lit, h > 1.9, Math.floor(rw() * 3)), x, y, 0.012);
+    for (const [bw, bh, ox, oy] of [[w + 0.06, 0.05, 0, h / 2], [w + 0.06, 0.05, 0, -h / 2], [0.05, h, -w / 2, 0], [0.05, h, w / 2, 0]]) gb(g, bw, bh, 0.06, metal, x + ox, y + oy, 0.03, false);
+    if (surround) for (const [bw, bh, ox, oy] of [[w + 0.32, 0.12, 0, h / 2 + 0.1], [0.12, h + 0.2, -w / 2 - 0.1, 0], [0.12, h + 0.2, w / 2 + 0.1, 0]]) gb(g, bw, bh, 0.06, light, x + ox, y + oy, 0.03, false);
+    gb(g, w + 0.36, 0.07, 0.15, light, x, y - h / 2 - 0.05, 0.06, false);
   };
   const rail = new THREE.MeshBasicMaterial({ map: railTex(), transparent: true, alphaTest: 0.4, side: THREE.DoubleSide });
-  for (const f of [3, 6, 9]) {
-    // fachada: sacada + duas janelas
-    addWindow(-3.1, f + 1.33, 8.615, 0, 1.9, 2.3, true, true);
-    plane(3.4, 1.05, rail, -3.1, f + 0.62, 10.04);
-    const spot = new THREE.Mesh(new THREE.CircleGeometry(0.11, 16), lamp);
-    spot.rotation.x = Math.PI / 2; spot.position.set(-3.1, f + 2.9, 9.4); scene.add(spot);
-    const pl = new THREE.PointLight(0xffc98f, 5, 5, 1.8); pl.position.set(-3.1, f + 2.5, 9.4); scene.add(pl);
-    addWindow(0.75, f + 1.6, 10.035, 0, 1.3, 1.75);
-    addWindow(3.3, f + 1.6, 10.035, 0, 1.3, 1.75);
-    for (const wx of [0.75, 3.3]) { // moldura preta e moldura de reboco, como na fachada de referência
-      const cy = f + 1.6, fw = 1.3, fh = 1.75;
-      box(fw + 0.14, 0.06, 0.07, metal, wx, cy + fh / 2 + 0.03, 10.06, false);
-      box(fw + 0.14, 0.06, 0.07, metal, wx, cy - fh / 2 - 0.03, 10.06, false);
-      box(0.06, fh + 0.12, 0.07, metal, wx - fw / 2 - 0.03, cy, 10.06, false);
-      box(0.06, fh + 0.12, 0.07, metal, wx + fw / 2 + 0.03, cy, 10.06, false);
-      box(fw + 0.36, 0.1, 0.16, muro, wx, cy - fh / 2 - 0.1, 10.1, false); // peitoril de reboco
-    }
-    // laterais
-    [7, 3.6, 0.2, -3.2, -6.6].forEach((z, i) => {
-      const small = i === 2;
-      addWindow(5.035, f + (small ? 2.05 : 1.6), z, Math.PI / 2, small ? 0.8 : 1.25, small ? 0.75 : 1.6);
-    });
-    [5.4, 2, -1.4, -4.8, -8.2].forEach((z, i) => {
-      const small = i === 3;
-      addWindow(-5.035, f + (small ? 2.05 : 1.6), z, -Math.PI / 2, small ? 0.8 : 1.25, small ? 0.75 : 1.6);
-    });
-    // fundos
-    addWindow(-3.5, f + 1.6, -10.035, Math.PI, 1.25, 1.6);
-    addWindow(3.5, f + 1.6, -10.035, Math.PI, 1.25, 1.6);
-  }
-  // coluna de tijolos de vidro iluminada
-  plane(0.5, 8.6, new THREE.MeshBasicMaterial({ map: blockTex(), color: new THREE.Color(1.5, 1.4, 1.2) }), -0.8, 7.5, 10.04);
+  const railing = (g, x, y, w) => { gp(g, w, 1.0, rail, x, y + 0.5, 0.02); gb(g, w, 0.05, 0.06, metal, x, y + 1.02, 0.02, false); };
+  const FL = [3, 6, 9];
 
-  // terreno, calçada, rua e muros
+  // laje sobre os pilotis
+  blk(-5.05, 5.05, 2.78, 3.0, -11.05, 10.05, corn);
+
+  // --- bloco da frente (z 6.8..10): loggias à esquerda, painel claro com janelas à direita
+  blk(-5, -4.55, 3, 12, 6.8, 10, dark);
+  blk(-4.55, -1.4, 3, 12, 6.8, 8.7, inner);
+  blk(-1.4, -0.55, 3, 12, 6.8, 10, light);
+  blk(-0.55, -0.15, 3, 12, 6.8, 10, dark);
+  blk(-0.15, 4.6, 3, 12, 6.8, 10, light);
+  blk(4.6, 5, 3, 12, 6.8, 10, dark);
+  const fr = G(0, 0, 10);
+  for (const f of FL) {
+    blk(-4.55, -1.4, f - 0.02, f + 0.16, 8.7, 10.02, corn); // laje da varanda
+    const lg = G(0, 0, 8.7);
+    win(lg, -2.7, f + 1.2, 1.25, 2.3, { lit: true, surround: false });
+    win(lg, -1.85, f + 1.55, 0.35, 1.2, { lit: true, surround: false });
+    railing(fr, -2.975, f + 0.16, 3.15);
+    const d = new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), lamp); d.rotation.x = Math.PI / 2; d.position.set(-2.95, f + 2.82, 9.4); scene.add(d);
+    const pl = new THREE.PointLight(0xffc98f, 4, 5, 1.8); pl.position.set(-2.95, f + 2.4, 9.5); scene.add(pl);
+    const pot = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), M(0x3e5f34, { roughness: 1 })); pot.position.set(-4.15, f + 0.65, 9.2); pot.scale.y = 1.3; scene.add(pot);
+    win(fr, 0.95, f + 1.55, 1.3, 2.05);
+    win(fr, 3.6, f + 1.55, 1.3, 2.05);
+  }
+  blk(-4.55, -1.4, 11.84, 12, 8.7, 10.02, corn);
+  for (const y of [6, 9]) blk(-0.15, 4.6, y - 0.04, y + 0.04, 10, 10.03, corn);
+  // fitas de LED nas bordas das lajes, dobrando a quina esquerda
+  for (const y of [3, 6, 9, 11.98]) {
+    box(3.66, 0.06, 0.06, led, -3.2, y - 0.08, 10.03, false);
+    box(0.06, 0.06, 3.26, led, -5.03, y - 0.08, 8.4, false);
+  }
+  // coluna de tijolos de vidro iluminada na lateral esquerda
+  plane(0.62, 8.6, new THREE.MeshBasicMaterial({ map: blockTex(), color: new THREE.Color(1.35, 1.3, 1.2) }), -5.02, 7.5, 7.25, -Math.PI / 2);
+
+  // --- bloco do meio (z -6.2..6.8): mais baixo e recuado, claro com faixas escuras
+  blk(-4.1, 4.4, 3, 11.8, -6.2, 5.3, light);
+  blk(-3.2, 3.5, 3, 11.8, 5.3, 6.8, inner);
+  blk(-4.2, 4.5, 11.8, 12.3, -6.25, 6.8, corn);
+  for (const y of [6, 9]) { blk(-4.14, -4.1, y - 0.07, y + 0.07, -6.2, 5.3, dark); blk(4.4, 4.44, y - 0.07, y + 0.07, -6.2, 5.3, dark); }
+  blk(-4.16, -4.1, 3, 11.8, 0.2, 1.0, dark); blk(4.4, 4.46, 3, 11.8, 0.2, 1.0, dark);
+  const ls = G(-4.1, 0, 0, -Math.PI / 2), rs = G(4.4, 0, 0, Math.PI / 2);
+  for (const f of FL) {
+    for (const z of [4.2, 2.3, -0.9, -3.1]) win(ls, z, f + 1.55, 0.95, 1.5);
+    win(ls, -5.1, f + 1.9, 0.5, 0.6, { surround: false });
+    for (const z of [4.2, 2.3, -0.9, -3.1]) win(rs, -z, f + 1.55, 0.95, 1.5);
+    // sacadinhas recuadas nas duas laterais, junto ao bloco da frente
+    for (const sx of [-1, 1]) {
+      const xe = sx < 0 ? -4.1 : 4.4, xi = sx < 0 ? -3.2 : 3.5;
+      blk(Math.min(xe, xi), Math.max(xe, xi), f - 0.02, f + 0.14, 5.3, 6.8, corn);
+      const g = G(xi, 0, 6.05, sx * Math.PI / 2);
+      win(g, 0, f + 1.2, 0.9, 2.2, { lit: true, surround: false });
+      railing(G(xe, 0, 6.05, sx * Math.PI / 2), 0, f + 0.14, 1.5);
+    }
+  }
+
+  // --- bloco dos fundos (z -11..-6.2): loggia central e duas janelas por andar
+  blk(-5, -1.9, 3, 12, -11, -6.2, dark);
+  blk(1.9, 5, 3, 12, -11, -6.2, dark);
+  blk(-1.9, 1.9, 3, 12, -9.7, -6.2, inner);
+  const rr = G(0, 0, -11, Math.PI), rl = G(0, 0, -9.7, Math.PI);
+  for (const f of FL) {
+    blk(-1.9, 1.9, f - 0.02, f + 0.16, -11.02, -9.7, corn);
+    win(rr, 3.45, f + 1.55, 1.1, 1.6); win(rr, -3.45, f + 1.55, 1.1, 1.6);
+    win(rl, -0.8, f + 1.2, 1.0, 2.25, { lit: true, surround: false }); win(rl, 0.8, f + 1.2, 1.0, 2.25, { lit: true, surround: false });
+    railing(rr, 0, f + 0.16, 3.8);
+    const d = new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), lamp); d.rotation.x = Math.PI / 2; d.position.set(0, f + 2.82, -10.4); scene.add(d);
+  }
+  blk(-1.9, 1.9, 11.84, 12, -11.02, -9.7, corn);
+  // torre da escada e do elevador com o nome Sobanski
+  blk(-5, -3, 3, 14.4, -9.2, -6.2, dark);
+  blk(-5.15, -2.85, 14.4, 14.65, -9.35, -6.05, corn);
+  plane(1.9, 0.55, new THREE.MeshBasicMaterial({ map: nameTex(), transparent: true }), -5.02, 13.3, -7.7, -Math.PI / 2);
+
+  // cornijas clássicas nos blocos da frente e dos fundos
+  const cornice = (x0, x1, z0, z1) => {
+    const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    box(w + 0.1, 0.45, d + 0.1, corn, cx, 12.22, cz);
+    box(w + 0.5, 0.15, d + 0.5, corn, cx, 12.52, cz);
+    box(w + 0.3, 0.55, d + 0.3, dark, cx, 12.87, cz);
+    box(w + 0.34, 0.06, d + 0.34, corn, cx, 12.95, cz, false);
+    box(w + 0.46, 0.12, d + 0.46, corn, cx, 13.2, cz);
+  };
+  cornice(-5, 5, 6.8, 10);
+  cornice(-5, 5, -11, -6.2);
+
+  // --- térreo: arcadas, hall envidraçado, salão e garagem sob o prédio
+  const archWall = (x0, x1, arches) => {
+    const sh = new THREE.Shape(); sh.moveTo(x0, 0); sh.lineTo(x1, 0); sh.lineTo(x1, 2.78); sh.lineTo(x0, 2.78); sh.lineTo(x0, 0);
+    for (const [a0, a1] of arches) {
+      const r = (a1 - a0) / 2, c = (a0 + a1) / 2, spring = 2.55 - Math.min(r, 1.1);
+      const h = new THREE.Path(); h.moveTo(a0, 0); h.lineTo(a0, spring); h.absellipse(c, spring, r, 2.55 - spring, Math.PI, 0, true); h.lineTo(a1, 0); h.lineTo(a0, 0);
+      sh.holes.push(h);
+    }
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.4, bevelEnabled: false, curveSegments: 24 });
+    const m = new THREE.Mesh(geo, dark); m.castShadow = m.receiveShadow = true; scene.add(m); return m;
+  };
+  archWall(-0.15, 5.05, [[0.25, 2.4], [2.7, 4.65]]).position.z = 9.65;
+  archWall(-5.05, 5.05, [[-4.5, -0.35], [0.35, 4.5]]).position.z = -11.05;
+  // hall com caixilhos em arco (porta de entrada)
+  blk(-4.65, -0.3, 0, 2.78, 6.2, 9.45, inner);
+  const hallGlow = M(0xfff1dc, { emissive: 0xffd8a0, emissiveIntensity: 0.55 });
+  plane(4.3, 2.75, hallGlow, -2.47, 1.38, 9.46);
+  for (const x of [-4.62, -3.17, -1.72, -0.32]) box(0.07, 2.78, 0.08, metal, x, 1.39, 9.6, false);
+  box(4.4, 0.07, 0.08, metal, -2.47, 2.0, 9.6, false);
+  for (const cx of [-3.895, -2.445, -1.02]) { const t = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.035, 6, 32, Math.PI), metal); t.position.set(cx, 2.0, 9.6); t.scale.y = 1.05; scene.add(t); }
+  const hl = new THREE.PointLight(0xffd8a0, 10, 9, 1.6); hl.position.set(-2.5, 2.3, 10.4); scene.add(hl);
+  // salão de festas e áreas comuns (metade esquerda do térreo)
+  blk(-4.65, -0.3, 0, 2.78, -10.5, 6.2, light);
+  const gs = G(-4.65, 0, 0, -Math.PI / 2);
+  for (const z of [3.5, 0.5, -2.5, -5.5]) win(gs, z, 1.4, 1.6, 1.3, { lit: true });
+  // pilares e garagem sob o prédio
+  for (const z of [5.4, 1.4, -2.6, -6.6]) box(0.45, 2.78, 0.45, dark, 4.75, 1.39, z);
+  box(5.2, 0.04, 21.0, M(0x8d8780, { bumpMap: noise, bumpScale: 0.6 }), 2.4, 0.04, -0.5, false);
+  for (const z of [7.5, 3.5, -0.5, -4.5, -8.5]) { const d = new THREE.Mesh(new THREE.CircleGeometry(0.14, 16), lamp); d.rotation.x = Math.PI / 2; d.position.set(2.4, 2.76, z); scene.add(d); }
+  const gl = new THREE.PointLight(0xffd2a0, 14, 14, 1.5); gl.position.set(2.4, 2.3, 0); scene.add(gl);
+  const car = (x, z, color) => {
+    const c = G(x, 0, z), body = M(color, { roughness: 0.25, metalness: 0.6 }), glassM = M(0x1d232a, { roughness: 0.1, metalness: 0.5 });
+    gb(c, 1.8, 0.6, 4.3, body, 0, 0.55, 0); gb(c, 1.6, 0.5, 2.2, glassM, 0, 1.08, -0.2);
+    for (const [wx, wz] of [[-0.85, 1.35], [0.85, 1.35], [-0.85, -1.35], [0.85, -1.35]]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.33, 0.24, 16), M(0x111111)); w.rotation.z = Math.PI / 2; w.position.set(wx, 0.33, wz); c.add(w); }
+  };
+  car(2.6, 4.2, 0xe9e9e7); car(2.6, -1.4, 0x8f9499); car(2.6, -7.2, 0xd8d8d6);
+
+  // --- lote: piso, calçada, rua, muro com portões e letreiro
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), M(0x1d2618, { roughness: 1 }));
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
-  box(18, 0.06, 28.4, M(0x6f6961, { bumpMap: noise, bumpScale: 0.8 }), 0, 0.03, -1, false);
-  box(300, 0.16, 3.2, M(0x8d877e, { bumpMap: noise, bumpScale: 0.8 }), 0, 0.08, 14.95, false);
-  box(300, 0.05, 10, M(0x242528, { roughness: 0.85 }), 0, 0.025, 21.5, false);
-  for (const [x, w] of [[-8.5, 1], [0.3, 9.8], [7.8, 2.4]]) {
-    box(w, 2.3, 0.26, muro, x, 1.15, 13.2);
-    box(w + 0.1, 0.1, 0.36, trim, x, 2.35, 13.2);
+  box(20, 0.05, 27.2, M(0x2f3a24, { roughness: 1 }), 0, 0.02, -1.4, false);
+  box(9.5, 0.06, 26.8, M(0x8b857d, { bumpMap: noise, bumpScale: 0.8 }), 5.0, 0.03, -1.4, false);
+  box(300, 0.16, 3.0, M(0x9a948b, { bumpMap: noise, bumpScale: 0.8 }), 0, 0.08, 14.0, false);
+  box(300, 0.05, 10, M(0x242528, { roughness: 0.85 }), 0, 0.025, 20.5, false);
+  const muroM = M(0x6e6862, { bumpMap: noise, bumpScale: 1 });
+  const wallSeg = (x0, x1, h = 2.6) => { blk(x0, x1, 0, h, 12.0, 12.4, muroM); blk(x0 - 0.03, x1 + 0.03, h, h + 0.08, 11.97, 12.43, corn); };
+  wallSeg(-10, -8.7); wallSeg(-6.0, -5.9); wallSeg(-4.0, 1.45); wallSeg(6.5, 6.9, 3.0); wallSeg(8.4, 10, 3.0);
+  blk(-8.7, -6.0, 2.35, 2.6, 12.0, 12.4, muroM); blk(-5.9, -4.0, 2.35, 2.6, 12.0, 12.4, muroM);
+  // portões de garagem pretos (largo e estreito)
+  const door = M(0x1e1e20, { roughness: 0.5, metalness: 0.3 });
+  blk(-8.7, -6.0, 0, 2.35, 12.1, 12.25, door); blk(-5.9, -4.0, 0, 2.35, 12.1, 12.25, door);
+  for (let y = 0.3; y < 2.3; y += 0.32) { box(2.7, 0.02, 0.04, metal, -7.35, y, 12.27, false); box(1.9, 0.02, 0.04, metal, -4.95, y, 12.27, false); }
+  // letreiro iluminado com o nome do edifício e boas-vindas em polonês e ucraniano
+  plane(5.2, 1.55, new THREE.MeshBasicMaterial({ map: signTex(), color: new THREE.Color(1.18, 1.14, 1.06) }), -1.27, 1.55, 12.41);
+  blk(-4.0, 1.45, 0, 0.45, 12.4, 12.9, muroM);
+  // portão de ferro em arco da garagem e portão de pedestres
+  const gateTex = railTex(); gateTex.wrapS = THREE.RepeatWrapping; gateTex.repeat.set(2.2, 1.3);
+  const gateM = new THREE.MeshBasicMaterial({ map: gateTex, transparent: true, alphaTest: 0.4, side: THREE.DoubleSide });
+  plane(5.0, 2.3, gateM, 4.0, 1.15, 12.2);
+  const arch = new THREE.Mesh(new THREE.TorusGeometry(2.5, 0.05, 6, 48, Math.PI), metal); arch.position.set(4.0, 2.3, 12.2); arch.scale.y = 0.38; scene.add(arch);
+  const pg2 = gateTex.clone(); pg2.repeat.set(0.7, 1.2); pg2.needsUpdate = true;
+  plane(1.45, 2.6, new THREE.MeshBasicMaterial({ map: pg2, transparent: true, alphaTest: 0.4, side: THREE.DoubleSide }), 7.65, 1.3, 12.2);
+  // muros laterais e do fundo
+  blk(-10.1, -9.9, 0, 2.2, -14.8, 12.0, muroM); blk(9.9, 10.1, 0, 2.2, -14.8, 12.0, muroM); blk(-10, 10, 0, 2.2, -15, -14.8, muroM);
+
+  // palmeira em frente às varandas
+  {
+    const pm = G(-2.7, 0, 11.2), trunkM = M(0x6e5a44, { roughness: 1 }), frondM = M(0x3f6b34, { roughness: 0.9, side: THREE.DoubleSide });
+    const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.32, 6.2, 10), trunkM); tr.position.y = 3.1; tr.castShadow = true; pm.add(tr);
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2, tilt = 0.35 + (i % 3) * 0.25;
+      const fg = new THREE.Group(); fg.position.y = 6.15; fg.rotation.set(0, a, 0); pm.add(fg);
+      const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 2.6, 1, 6), frondM);
+      const pos = leaf.geometry.attributes.position;
+      for (let k = 0; k < pos.count; k++) { const yy = pos.getY(k) + 1.3; pos.setZ(k, -0.12 * yy * yy); pos.setX(k, pos.getX(k) * (1 - yy / 2.9)); }
+      leaf.geometry.computeVertexNormals();
+      leaf.rotation.x = -Math.PI / 2 + tilt; leaf.position.set(0, 0, 1.25); leaf.castShadow = true; fg.add(leaf);
+    }
   }
-  box(3.4, 2.15, 0.08, metal, -6.3, 1.08, 13.2);
-  for (let y = 0.25; y < 2.1; y += 0.27) box(3.4, 0.03, 0.1, trim, -6.3, y, 13.2, false);
-  const gateTex = railTex(); gateTex.wrapS = THREE.RepeatWrapping; gateTex.repeat.set(0.4, 1);
-  plane(1.4, 2.1, new THREE.MeshBasicMaterial({ map: gateTex, transparent: true, alphaTest: 0.4, side: THREE.DoubleSide }), 5.9, 1.05, 13.2);
-  box(0.2, 2, 28.6, muro, -9, 1, -1.1); box(0.2, 2, 28.6, muro, 9, 1, -1.1); box(18, 2, 0.2, muro, 0, 1, -15.3);
-  plane(4.4, 1.1, new THREE.MeshBasicMaterial({ map: signTex(), color: new THREE.Color(1.25, 1.2, 1.1) }), 0.6, 1.3, 13.34);
 
   // luzes rasantes no muro e na fachada
   const cone = new THREE.MeshBasicMaterial({ map: coneTex(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
-  for (const x of [-8.5, -3.6, -2.2, 3.4, 4.8, 7.4, 8.6]) plane(1.1, 2.2, cone, x, 1.1, 13.345);
-  for (const x of [-4.7, -1.2, 4.7]) plane(1.5, 5.5, cone, x, 2.9, 9.97);
-  for (const [x, z] of [[-6.5, 11], [6.5, 11], [0.5, 15.6]]) {
-    const p = new THREE.PointLight(0xffbf80, 7, 13, 1.7); p.position.set(x, 0.6, z); scene.add(p);
-  }
+  for (const x of [-9.35, -5.95, -3.6, 1.1, 6.7, 8.6, 9.6]) plane(1.0, 2.3, cone, x, 1.15, 12.42);
+  for (const x of [-4.8, -0.35, 4.8]) plane(1.2, 4.0, cone, x, 2.0, 10.42);
+  for (const [x, z] of [[-6.5, 13.4], [4.5, 13.4], [-1.3, 13.6]]) { const p = new THREE.PointLight(0xffbf80, 7, 12, 1.7); p.position.set(x, 0.6, z); scene.add(p); }
 
   // vegetação
   const rt = rng(3);
-  const trees = [[-15, -1, 1.1], [-16.5, -12, 1.3], [15.5, -3, 1.2], [16, -14, 1.05], [-7, -23, 1.3], [6, -24, 1.15], [0, -29, 1.4], [-24, 9, 1], [24, 8, 1.1], [-28, -22, 1.5], [29, -24, 1.4]];
+  const trees = [[-13.5, 7, 1.15], [13.5, 7.5, 1.05], [-15, -4, 1.2], [-16.5, -14, 1.3], [15.5, -4, 1.2], [16, -15, 1.05], [-7, -23, 1.3], [6, -24, 1.15], [0, -29, 1.4], [-24, 9, 1], [24, 8, 1.1], [-28, -22, 1.5], [29, -24, 1.4]];
   const BLOBS = 90;
   const leaves = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), M(0xffffff, { roughness: 1 }), trees.length * BLOBS + 60);
   const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.24, 1, 8), M(0x2c211a), trees.length);
@@ -325,8 +421,8 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     }
   });
   for (let i = 0; i < 60; i++) { // canteiro junto ao muro
-    const x = -4.3 + (i / 59) * 9.3, k = 0.26 + rt() * 0.18;
-    o.position.set(x, 0.3 + rt() * 0.12, 13.62 + rt() * 0.16); o.scale.set(k, k, k); o.rotation.set(rt() * 3, rt() * 3, 0); o.updateMatrix();
+    const x = -3.85 + (i / 59) * 5.1, k = 0.24 + rt() * 0.16;
+    o.position.set(x, 0.55 + rt() * 0.1, 12.66 + rt() * 0.14); o.scale.set(k, k, k); o.rotation.set(rt() * 3, rt() * 3, 0); o.updateMatrix();
     leaves.setMatrixAt(n, o.matrix);
     leaves.setColorAt(n++, col.setHSL(0.26 + rt() * 0.07, 0.4, 0.13 + rt() * 0.1));
   }
@@ -339,9 +435,9 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
 
   // áreas clicáveis dos andares
   const hits = Object.entries(FLOOR_Y).map(([k, y]) => {
-    const g = new THREE.BoxGeometry(10.5, 2.86, 20.5);
+    const g = new THREE.BoxGeometry(10.6, 2.86, 21.4);
     const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0, depthWrite: false }));
-    m.position.set(0, y, 0); m.userData.k = k;
+    m.position.set(0, y, -0.5); m.userData.k = k;
     const e = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: new THREE.Color(0xffdca6).multiplyScalar(2) }));
     e.visible = false; m.add(e); scene.add(m);
     return m;

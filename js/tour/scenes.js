@@ -359,7 +359,7 @@ export const ENVS = {
 
   /* ------------------------------------------------ Tipo 03 */
   't03-estar': {
-    name: 'Estar e cozinha', group: 'Apartamento Tipo 03', h: 2.65,
+    name: 'Estar e cozinha', group: 'Apartamento Tipo 03 e 05', h: 2.65,
     bounds: [-1.9, 1.9, -2.3, 2.8], sun: [-2, 5, 6],
     build(g) {
       const W = 4.3, D = 6.1, H = 2.65;
@@ -405,7 +405,7 @@ export const ENVS = {
     ],
   },
   't03-quarto1': {
-    name: 'Quarto 1', group: 'Apartamento Tipo 03', h: 2.65,
+    name: 'Quarto 1', group: 'Apartamento Tipo 03 e 05', h: 2.65,
     bounds: [-1.2, 1.25, -1.55, 1.55], sun: [6, 4, -2],
     build(g) {
       const W = 3.0, D = 3.6, H = 2.65;
@@ -432,7 +432,7 @@ export const ENVS = {
     ],
   },
   't03-quarto2': {
-    name: 'Quarto 2', group: 'Apartamento Tipo 03', h: 2.65,
+    name: 'Quarto 2', group: 'Apartamento Tipo 03 e 05', h: 2.65,
     bounds: [-1.1, 1.15, -1.0, 1.45], sun: [-6, 4, 0],
     build(g) {
       const W = 2.8, D = 3.4, H = 2.65;
@@ -475,7 +475,7 @@ export const ENVS = {
   },
 
   't03-infantil': {
-    name: 'Quarto infantil', group: 'Apartamento Tipo 03', h: 2.6,
+    name: 'Quarto infantil', group: 'Apartamento Tipo 03 e 05', h: 2.6,
     bounds: [-0.6, 0.85, 0.1, 1.35], sun: [1, 5, -6],
     build(g) {
       const W = 3.0, D = 3.2, H = 2.6;
@@ -783,13 +783,13 @@ export const SHOTS = [
   { id: 't02-varanda', env: 't02-varanda', photo: 'assets/tipo02-sacadas.jpg', title: 'Sacada com área de serviço', sub: 'Tipo 02 · churrasqueira e lavanderia', pos: [1.05, 1.5, 0.6], look: [-1.5, 1.2, -0.25], fov: 72 },
   { id: 't02-sacada', env: 't02-sacada-q1', photo: 'assets/tipo02-sacadas.jpg', title: 'Sacada do quarto 01', sub: 'Tipo 02 · tijolo de vidro e guarda-corpo de vidro', pos: [0.75, 1.45, 0.85], look: [-0.4, 1.1, -0.95], fov: 78 },
   { id: 't02-quarto-01', env: 't02-quarto1', photo: 'assets/tipo02-quarto-01.jpg', title: 'Quarto 01', sub: 'Tipo 02 · painel de madeira e cabeceira estofada', pos: [0.05, 1.45, 1.4], look: [0.05, 1.2, -1.6] },
-  { id: 't03-sala', env: 't03-estar', photo: 'assets/tipo03-sala-cozinha.jpg', title: 'Estar e cozinha', sub: 'Tipo 03 · ripado e bancada', pos: [-1.55, 1.55, 2.7], look: [0.7, 1.2, -2.6] },
-  { id: 't03-cozinha', env: 't03-estar', photo: 'assets/tipo03-cozinha.jpg', title: 'Cozinha', sub: 'Tipo 03 · área de serviço integrada', pos: [-0.45, 1.6, 0.2], look: [-0.35, 1.05, -3.05] },
-  { id: 't03-tv', env: 't03-estar', photo: 'assets/tipo03-sala-tv.jpg', title: 'Sala de TV', sub: 'Tipo 03 · forro com LED', pos: [-1.6, 1.5, -0.55], look: [2.15, 1.1, 1.6] },
-  { id: 't03-quarto1-a', env: 't03-quarto1', photo: 'assets/tipo03-quarto1-a.jpg', title: 'Quarto 1', sub: 'Tipo 03 · painel com frisos curvos', pos: [0.55, 1.35, 1.5], look: [-0.15, 0.95, -1.8] },
-  { id: 't03-quarto1-b', env: 't03-quarto1', photo: 'assets/tipo03-quarto1-b.jpg', title: 'Quarto 1, armário', sub: 'Tipo 03 · guarda-roupa de 3 portas', pos: [0.95, 1.45, 1.5], look: [-0.7, 1.1, -1.5] },
-  { id: 't03-quarto2-a', env: 't03-quarto2', photo: 'assets/tipo03-quarto2-a.jpg', title: 'Quarto 2', sub: 'Tipo 03 · infantil com sacada', pos: [0.95, 1.35, 1.35], look: [-0.9, 0.9, -1.0] },
-  { id: 't03-quarto2-b', env: 't03-quarto2', photo: 'assets/tipo03-quarto2-b.jpg', title: 'Quarto 2, mural', sub: 'Tipo 03 · prateleira com LED', pos: [0.3, 1.3, 1.4], look: [0.3, 1.15, -1.7] },
+  { id: 't03-sala', env: 't03-estar', photo: 'assets/tipo03-sala-cozinha.jpg', title: 'Estar e cozinha', sub: 'Tipo 03 e 05 · ripado e bancada', pos: [-1.55, 1.55, 2.7], look: [0.7, 1.2, -2.6] },
+  { id: 't03-cozinha', env: 't03-estar', photo: 'assets/tipo03-cozinha.jpg', title: 'Cozinha', sub: 'Tipo 03 e 05 · área de serviço integrada', pos: [-0.45, 1.6, 0.2], look: [-0.35, 1.05, -3.05] },
+  { id: 't03-tv', env: 't03-estar', photo: 'assets/tipo03-sala-tv.jpg', title: 'Sala de TV', sub: 'Tipo 03 e 05 · forro com LED', pos: [-1.6, 1.5, -0.55], look: [2.15, 1.1, 1.6] },
+  { id: 't03-quarto1-a', env: 't03-quarto1', photo: 'assets/tipo03-quarto1-a.jpg', title: 'Quarto 1', sub: 'Tipo 03 e 05 · painel com frisos curvos', pos: [0.55, 1.35, 1.5], look: [-0.15, 0.95, -1.8] },
+  { id: 't03-quarto1-b', env: 't03-quarto1', photo: 'assets/tipo03-quarto1-b.jpg', title: 'Quarto 1, armário', sub: 'Tipo 03 e 05 · guarda-roupa de 3 portas', pos: [0.95, 1.45, 1.5], look: [-0.7, 1.1, -1.5] },
+  { id: 't03-quarto2-a', env: 't03-quarto2', photo: 'assets/tipo03-quarto2-a.jpg', title: 'Quarto 2', sub: 'Tipo 03 e 05 · infantil com sacada', pos: [0.95, 1.35, 1.35], look: [-0.9, 0.9, -1.0] },
+  { id: 't03-quarto2-b', env: 't03-quarto2', photo: 'assets/tipo03-quarto2-b.jpg', title: 'Quarto 2, mural', sub: 'Tipo 03 e 05 · prateleira com LED', pos: [0.3, 1.3, 1.4], look: [0.3, 1.15, -1.7] },
   { id: 't03-infantil', env: 't03-infantil', photo: 'assets/tipo03-infantil.jpg', title: 'Quarto infantil', sub: 'Tipos 03 e 04 · painéis estofados e armário de palhinha', pos: [0.35, 1.4, 1.35], look: [-0.3, 1.05, -1.6] },
   { id: 'salao-a', env: 'salao', photo: 'assets/social-salao-a.jpg', title: 'Salão de festas', sub: 'Churrasqueira e balcão gourmet', pos: [-0.4, 1.5, 0.9], look: [-1.3, 1.15, -3.5] },
   { id: 'salao-b', env: 'salao', photo: 'assets/social-salao-b.jpg', title: 'Salão, mesas', sub: 'Mesas para receber', pos: [-2.6, 1.5, 3.1], look: [0.3, 1.2, -2.8] },
