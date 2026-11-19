@@ -19,7 +19,9 @@ RectAreaLightUniformsLib.init();
 const stage = $('stage');
 const modest = coarse || (navigator.hardwareConcurrency || 8) <= 4;
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, modest ? 1.25 : 1.75));
+// resolução dinâmica: começa no máximo e só baixa se o aparelho não acompanhar
+const PR_MAX = Math.min(devicePixelRatio, modest ? 1.25 : 1.75), PR_MIN = Math.min(PR_MAX, 0.85);
+renderer.setPixelRatio(PR_MAX);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate = false; // ambientes estáticos: sombra calculada ao entrar
@@ -45,15 +47,28 @@ const sky = TX.sky();
 let dirty = true; // só desenha quando algo muda na tela
 
 // quadro refinado: quando a câmera para, o quadro é refeito com oclusão de ambiente (GTAO)
-const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }));
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: modest ? 2 : 4 }));
 composer.addPass(new RenderPass(scene, camera));
 const gtao = new GTAOPass(scene, camera, 1, 1);
-gtao.updateGtaoMaterial({ radius: 0.45, distanceExponent: 1.2, thickness: 1.2, scale: 1.1, samples: modest ? 12 : 16, distanceFallOff: 1 });
-gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+gtao.updateGtaoMaterial({ radius: 0.45, distanceExponent: 1.2, thickness: 1.2, scale: 1.1, samples: modest ? 8 : 12, distanceFallOff: 1 });
+gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: modest ? 8 : 12 });
 gtao.blendIntensity = 0.85;
 composer.addPass(gtao);
 composer.addPass(new OutputPass());
-let refined = false, stillSince = 0;
+// todos os quadros passam pelo mesmo caminho de qualidade (andando ou parado)
+const perf = { avg: 16.7, lastDraw: 0, lastChange: 0, warmUntil: 0 };
+function adaptResolution(now) {
+  const gap = now - perf.lastDraw;
+  perf.lastDraw = now;
+  if (gap > 100 || now < perf.warmUntil) return; // pausa ou shaders compilando: não mede
+  perf.avg = perf.avg * 0.9 + gap * 0.1;
+  if (now - perf.lastChange < 1500) return;
+  const pr = renderer.getPixelRatio();
+  let next = pr;
+  if (perf.avg > 24 && pr > PR_MIN) next = Math.max(PR_MIN, pr - 0.15);
+  else if (perf.avg < 17.5 && pr < PR_MAX) next = Math.min(PR_MAX, pr + 0.1);
+  if (next !== pr) { renderer.setPixelRatio(next); perf.lastChange = now; perf.avg = 16.7; resize(); }
+}
 
 const resize = () => {
   const w = stage.clientWidth, h = stage.clientHeight;
@@ -78,6 +93,7 @@ function disposeGroup(g) {
 }
 
 function loadEnv(id) {
+  perf.warmUntil = performance.now() + 1500;
   if (id === envId) return;
   if (group) { scene.remove(group); disposeGroup(group); }
   env = ENVS[id]; envId = id;
@@ -369,10 +385,8 @@ function tick(now) {
   }
   const same = !dirty && pos.equals(last.p) && yaw === last.yaw && pitch === last.pitch && ring.position.equals(last.ring) && ring.visible === last.rv;
   if (same) {
-    if (!refined && now - stillSince > 220) { composer.render(); refined = true; }
     return;
   }
-  refined = false; stillSince = now;
   last.p.copy(pos); last.yaw = yaw; last.pitch = pitch; last.ring.copy(ring.position); last.rv = ring.visible;
   dirty = false;
   camera.position.copy(pos);
@@ -387,7 +401,8 @@ function tick(now) {
     p.el.classList.toggle('off', !vis);
     if (vis) p.el.style.transform = `translate(${((v.x + 1) / 2 * W).toFixed(1)}px, ${((1 - v.y) / 2 * H).toFixed(1)}px)`;
   }
-  renderer.render(scene, camera);
+  composer.render();
+  adaptResolution(now);
 }
 
 /* ---------------- início ---------------- */
