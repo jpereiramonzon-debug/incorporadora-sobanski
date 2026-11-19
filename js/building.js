@@ -4,6 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { mergeStatic } from './merge.js';
 
 const FLOOR_Y = { T: 1.5, 1: 4.5, 2: 7.5, 3: 10.5 };
 const HOME_Y = 7.4;
@@ -227,7 +228,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     if (surround) for (const [bw, bh, ox, oy] of [[w + 0.32, 0.12, 0, h / 2 + 0.1], [0.12, h + 0.2, -w / 2 - 0.1, 0], [0.12, h + 0.2, w / 2 + 0.1, 0]]) gb(g, bw, bh, 0.06, light, x + ox, y + oy, 0.03, false);
     gb(g, w + 0.36, 0.07, 0.15, light, x, y - h / 2 - 0.05, 0.06, false);
   };
-  const rail = new THREE.MeshBasicMaterial({ map: railTex(), transparent: true, alphaTest: 0.4, side: THREE.DoubleSide });
+  const rail = new THREE.MeshBasicMaterial({ map: railTex(), alphaTest: 0.4, side: THREE.DoubleSide });
   const railing = (g, x, y, w) => { gp(g, w, 1.0, rail, x, y + 0.5, 0.02); gb(g, w, 0.05, 0.06, metal, x, y + 1.02, 0.02, false); };
   const FL = [3, 6, 9];
 
@@ -372,11 +373,11 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   blk(-4.0, 1.45, 0, 0.45, 12.4, 12.9, muroM);
   // portão de ferro em arco da garagem e portão de pedestres
   const gateTex = railTex(); gateTex.wrapS = THREE.RepeatWrapping; gateTex.repeat.set(2.2, 1.3);
-  const gateM = new THREE.MeshBasicMaterial({ map: gateTex, transparent: true, alphaTest: 0.4, side: THREE.DoubleSide });
+  const gateM = new THREE.MeshBasicMaterial({ map: gateTex, alphaTest: 0.4, side: THREE.DoubleSide });
   plane(5.0, 2.3, gateM, 4.0, 1.15, 12.2);
   const arch = new THREE.Mesh(new THREE.TorusGeometry(2.5, 0.05, 6, 48, Math.PI), metal); arch.position.set(4.0, 2.3, 12.2); arch.scale.y = 0.38; scene.add(arch);
   const pg2 = gateTex.clone(); pg2.repeat.set(0.7, 1.2); pg2.needsUpdate = true;
-  plane(1.45, 2.6, new THREE.MeshBasicMaterial({ map: pg2, transparent: true, alphaTest: 0.4, side: THREE.DoubleSide }), 7.65, 1.3, 12.2);
+  plane(1.45, 2.6, new THREE.MeshBasicMaterial({ map: pg2, alphaTest: 0.4, side: THREE.DoubleSide }), 7.65, 1.3, 12.2);
   // muros laterais e do fundo
   blk(-10.1, -9.9, 0, 2.2, -14.8, 12.0, muroM); blk(9.9, 10.1, 0, 2.2, -14.8, 12.0, muroM); blk(-10, 10, 0, 2.2, -15, -14.8, muroM);
 
@@ -439,9 +440,12 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0, depthWrite: false }));
     m.position.set(0, y, -0.5); m.userData.k = k;
     const e = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: new THREE.Color(0xffdca6).multiplyScalar(2) }));
-    e.visible = false; m.add(e); scene.add(m);
+    e.visible = false; m.visible = false; m.add(e); scene.add(m);
     return m;
   });
+
+  // junta as peças estáticas por material: centenas de chamadas de desenho viram poucas dezenas
+  mergeStatic(scene);
 
   /* ---------- pós-processamento ---------- */
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
@@ -463,6 +467,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     const sel = m.userData.k === selected, hov = m.userData.k === hovered;
     m.material.opacity = sel ? 0.2 : hov ? 0.13 : 0;
     m.children[0].visible = sel || hov;
+    m.visible = sel || hov; // caixa de clique só é desenhada quando destacada (o clique funciona mesmo invisível)
   }); };
   const frame = () => {
     goal.rad = baseRad * (selected ? 0.86 : 1);

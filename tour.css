@@ -99,3 +99,11 @@ kbd{font:500 .7rem var(--sans);display:inline-grid;place-items:center;min-width:
   .t-ref figcaption{display:none}
 }
 @media (prefers-reduced-motion:reduce){.poi i,.t-card{animation:none}.t-menu{transition:none}}
+
+/* desempenho: sem desfoque de fundo sobre o 3D (refeito a cada quadro em movimento) */
+.poi span,.t-help,.t-card,.t-joy{backdrop-filter:none}
+.poi span{background:rgba(14,16,20,.85)}
+.t-help{background:rgba(14,16,20,.82)}
+.t-card{background:rgba(14,16,20,.96)}
+.t-joy{background:rgba(14,16,20,.55)}
+.t-welcome{backdrop-filter:none;background:rgba(14,16,20,.9)}

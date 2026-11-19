@@ -8,6 +8,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { ENVS, SHOTS } from './scenes.js';
 import { TX } from './kit.js';
+import { mergeStatic } from '../merge.js';
 
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -129,6 +130,7 @@ function loadEnv(id) {
       if (b.min.y < 1.2 && b.max.x - b.min.x < 6) colliders.push([b.min.x - 0.22, b.min.z - 0.22, b.max.x + 0.22, b.max.z + 0.22]);
     }
   });
+  mergeStatic(group); // depois de medir os obstáculos: junta as peças estáticas por material
 
   poiLayer.innerHTML = '';
   pois = env.pois.map((p) => {
@@ -300,7 +302,7 @@ const groups = [...new Set(SHOTS.map((s) => ENVS[s.env].group))];
 shotsNav.innerHTML = groups.map((gname) => `
   <section><h2>${gname}</h2>${SHOTS.filter((s) => ENVS[s.env].group === gname).map((s) => `
     <button type="button" class="shot" data-id="${s.id}">
-      <img src="${s.photo}" alt="" loading="lazy" width="96" height="64">
+      <img src="${s.photo.replace('assets/', 'assets/thumbs/')}" alt="" loading="lazy" width="96" height="64">
       <span><b>${s.title}</b><small>${s.sub}</small></span>
     </button>`).join('')}</section>`).join('');
 shotsNav.addEventListener('click', (e) => {
@@ -314,7 +316,7 @@ function updateUI() {
   document.querySelectorAll('.shot').forEach((b) => b.setAttribute('aria-current', b.dataset.id === shot.id ? 'true' : 'false'));
   $('nowGroup').textContent = ENVS[shot.env].group;
   $('nowTitle').textContent = shot.title;
-  $('refImg').src = shot.photo;
+  $('refImg').src = shot.photo.replace('assets/', 'assets/thumbs/');
   $('refImg').alt = `Foto de referência: ${shot.title}`;
   document.title = `${shot.title} · Tour 3D · Edifício Santa Ana`;
 }

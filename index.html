@@ -13,6 +13,25 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Jost:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<!-- baixa o 3D já no começo, em paralelo, enquanto a abertura toca -->
+<link rel="modulepreload" href="js/main.js">
+<link rel="modulepreload" href="js/building.js">
+<link rel="modulepreload" href="js/merge.js">
+<link rel="modulepreload" href="vendor/three/three.module.min.js">
+<link rel="modulepreload" href="vendor/three/addons/utils/BufferGeometryUtils.js">
+<link rel="modulepreload" href="vendor/three/addons/postprocessing/EffectComposer.js">
+<link rel="modulepreload" href="vendor/three/addons/postprocessing/RenderPass.js">
+<link rel="modulepreload" href="vendor/three/addons/postprocessing/UnrealBloomPass.js">
+<link rel="modulepreload" href="vendor/three/addons/postprocessing/OutputPass.js">
+<link rel="modulepreload" href="vendor/three/addons/postprocessing/Pass.js">
+<link rel="modulepreload" href="vendor/three/addons/postprocessing/ShaderPass.js">
+<link rel="modulepreload" href="vendor/three/addons/postprocessing/MaskPass.js">
+<link rel="modulepreload" href="vendor/three/addons/shaders/CopyShader.js">
+<link rel="modulepreload" href="vendor/three/addons/shaders/LuminosityHighPassShader.js">
+<link rel="modulepreload" href="vendor/three/addons/shaders/OutputShader.js">
 </head>
 <body>
 
@@ -76,9 +95,9 @@
       <h2 class="reveal">Um novo conceito de <em>moradia em Mallet</em></h2>
       <p class="body reveal">Um imóvel pensado para quem quer conforto e bem-estar, com acabamento de alta qualidade. Cada detalhe foi pensado para unir design, funcionalidade e localização estratégica.</p>
       <div class="views reveal">
-        <figure class="view-main"><img src="assets/vista-lateral.jpg" alt="Edifício Santa Ana visto da quina dianteira, com a coluna de tijolos de vidro iluminada" loading="lazy" width="1400" height="1120"><figcaption>Vista frente</figcaption></figure>
-        <figure><img src="assets/vista-frente.jpg" alt="Fachada frontal do Edifício Santa Ana com o letreiro e o portão em arco" loading="lazy" width="1400" height="1120"><figcaption>Fachada</figcaption></figure>
-        <figure><img src="assets/vista-fundos.jpg" alt="Vista dos fundos do Edifício Santa Ana, com as arcadas e a garagem sob o prédio" loading="lazy" width="799" height="532"><figcaption>Vista fundos</figcaption></figure>
+        <figure class="view-main"><img src="assets/vista-lateral.webp" srcset="assets/vista-lateral-800.webp 800w, assets/vista-lateral.webp 1400w" sizes="(max-width:760px) 100vw, 60vw" decoding="async" alt="Edifício Santa Ana visto da quina dianteira, com a coluna de tijolos de vidro iluminada" loading="lazy" width="1400" height="1120"><figcaption>Vista frente</figcaption></figure>
+        <figure><img src="assets/vista-frente.webp" srcset="assets/vista-frente-800.webp 800w, assets/vista-frente.webp 1400w" sizes="(max-width:760px) 100vw, 40vw" decoding="async" alt="Fachada frontal do Edifício Santa Ana com o letreiro e o portão em arco" loading="lazy" width="1400" height="1120"><figcaption>Fachada</figcaption></figure>
+        <figure><img src="assets/vista-fundos.webp" decoding="async" alt="Vista dos fundos do Edifício Santa Ana, com as arcadas e a garagem sob o prédio" loading="lazy" width="799" height="532"><figcaption>Vista fundos</figcaption></figure>
       </div>
       <ul class="hl reveal">
         <li>Alta qualidade de acabamento</li>
@@ -217,7 +236,7 @@
           <li>Fonte da Água Mineral Sulfurosa João Paulo II</li>
           <li>Mercado, farmácia e demais comodidades</li>
         </ul>
-        <figure class="map reveal"><img src="assets/localizacao-aerea.jpg" alt="Vista aérea de Mallet com a localização do Edifício Santa Ana, o centro, o parque, a fonte e o colégio" loading="lazy" width="814" height="1131"></figure>
+        <figure class="map reveal"><img src="assets/localizacao-aerea.webp" decoding="async" alt="Vista aérea de Mallet com a localização do Edifício Santa Ana, o centro, o parque, a fonte e o colégio" loading="lazy" width="814" height="1131"></figure>
       </div>
       <address class="card reveal">
         <span class="brand">SOBANSKI</span>
@@ -231,7 +250,7 @@
 
   <!-- imagem do prédio fixa enquanto a página rola por cima -->
   <section class="still" aria-label="Edifício Santa Ana">
-    <div class="still-img" aria-hidden="true"><img src="assets/vista-lateral.jpg" alt=""></div>
+    <div class="still-img" aria-hidden="true"><img src="assets/vista-lateral.webp" srcset="assets/vista-lateral-800.webp 800w, assets/vista-lateral.webp 1400w" sizes="100vw" loading="lazy" decoding="async" alt=""></div>
     <div class="still-copy">
       <p class="eyebrow">Edifício Santa Ana</p>
       <p class="still-title">Transformando sonhos, <em>construindo o seu lar.</em></p>
@@ -246,9 +265,6 @@
   <small>Imagens e ilustrações meramente ilustrativas. © <span id="year"></span> Sobanski Incorporadora.</small>
 </footer>
 
-<script type="importmap">
-{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
-</script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

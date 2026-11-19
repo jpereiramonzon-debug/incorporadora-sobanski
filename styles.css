@@ -319,3 +319,13 @@ legend{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(-
 .intro-title small{font:400 clamp(.7rem,1.5vw,.9rem) var(--sans);letter-spacing:.6em;padding-left:.6em;color:var(--gold-soft)}
 .intro-title span{font:500 clamp(2.6rem,9vw,6.4rem) var(--serif);letter-spacing:.18em;padding-left:.18em;line-height:1;white-space:nowrap}
 .intro-title.on span{animation:titleIn 1.6s cubic-bezier(.2,.7,.2,1) backwards}
+
+/* desempenho: desfoque de fundo sobre o 3D animado obriga o navegador a refazer o desfoque a
+   cada quadro; troca por fundos sólidos um pouco mais opacos, com o mesmo aspecto */
+.nav-toggle{backdrop-filter:none;background:rgba(14,16,20,.55)}
+.nav-toggle:hover{background:rgba(14,16,20,.75)}
+.nav.solid{backdrop-filter:none;background:rgba(14,16,20,.92)}
+.floors b{backdrop-filter:none;background:rgba(14,16,20,.62)}
+.tour-cta{backdrop-filter:none;background:rgba(14,16,20,.7)}
+.panel{backdrop-filter:none;background:rgba(14,16,20,.97)}
+.intro-msg{backdrop-filter:none;background:rgba(10,11,15,.82)}

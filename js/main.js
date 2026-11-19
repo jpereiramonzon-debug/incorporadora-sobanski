@@ -6,14 +6,14 @@ const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const BUILDING_FEATURES = ['Hall com elevador', 'Salão de festas', 'Área kids e área pet', 'Área técnica para ar-condicionado', 'Porcelanato e laminado', 'Personalização das unidades'];
 
 const SOCIAL = [
-  ['assets/social-salao-a.jpg', 'Salão de festas', 'Salão de festas com churrasqueira e bancada'],
-  ['assets/social-salao-b.jpg', 'Salão de festas', 'Salão de festas com mesas e churrasqueira ao fundo'],
-  ['assets/social-hall-a.jpg', 'Hall de entrada com elevador', 'Hall de entrada com escada e elevador'],
-  ['assets/social-hall-b.jpg', 'Hall de entrada com elevador', 'Hall de entrada com portas de vidro em arco e elevador'],
-  ['assets/social-pet.jpg', 'Área pet', 'Área pet com gramado e brinquedos'],
-  ['assets/social-pet-banho.jpg', 'Pet banho', 'Espaço pet banho com cuba e ducha'],
-  ['assets/social-kids-a.jpg', 'Área kids', 'Área kids com brinquedos e gira-gira'],
-  ['assets/social-kids-b.jpg', 'Área kids', 'Área kids com jardim vertical'],
+  ['assets/social-salao-a.webp', 'Salão de festas', 'Salão de festas com churrasqueira e bancada'],
+  ['assets/social-salao-b.webp', 'Salão de festas', 'Salão de festas com mesas e churrasqueira ao fundo'],
+  ['assets/social-hall-a.webp', 'Hall de entrada com elevador', 'Hall de entrada com escada e elevador'],
+  ['assets/social-hall-b.webp', 'Hall de entrada com elevador', 'Hall de entrada com portas de vidro em arco e elevador'],
+  ['assets/social-pet.webp', 'Área pet', 'Área pet com gramado e brinquedos'],
+  ['assets/social-pet-banho.webp', 'Pet banho', 'Espaço pet banho com cuba e ducha'],
+  ['assets/social-kids-a.webp', 'Área kids', 'Área kids com brinquedos e gira-gira'],
+  ['assets/social-kids-b.webp', 'Área kids', 'Área kids com jardim vertical'],
 ];
 const SOCIAL_AREAS = ['Salão de festas', 'Hall de entrada com elevador', 'Área pet', 'Pet banho', 'Área kids'];
 
@@ -29,12 +29,12 @@ const MODELS = {
     specs: [['60,60 m²', 'área total'], ['78,15 m²', 'área equivalente'], ['2', 'quartos'], ['1', 'banheiro'], ['1', 'vaga de garagem']],
     features: ['1 quarto com sacada privativa', 'Sacada com churrasqueira e área de serviço', 'Piso aquecido no banheiro'],
     media: [
-      ['assets/tipo01-planta.jpg', 'Planta', 'Planta oficial do Apartamento Tipo 01'],
-      ['assets/tipo01-sala-cozinha.jpg', 'Cozinha e sala', 'Cozinha e sala integradas, com mesa redonda e sofá branco'],
-      ['assets/tipo01-cozinha.jpg', 'Cozinha', 'Cozinha com aéreos de madeira e geladeira inox embutida'],
-      ['assets/tipo01-varanda.jpg', 'Varanda e área de serviço', 'Varanda com churrasqueira e área de serviço'],
-      ['assets/tipo01-quarto-1.jpg', 'Quarto 01', 'Quarto com painel de nogueira e ripado'],
-      ['assets/tipo01-quarto-2.jpg', 'Quarto 02', 'Quarto com boiserie e armário espelhado'],
+      ['assets/tipo01-planta.webp', 'Planta', 'Planta oficial do Apartamento Tipo 01'],
+      ['assets/tipo01-sala-cozinha.webp', 'Cozinha e sala', 'Cozinha e sala integradas, com mesa redonda e sofá branco'],
+      ['assets/tipo01-cozinha.webp', 'Cozinha', 'Cozinha com aéreos de madeira e geladeira inox embutida'],
+      ['assets/tipo01-varanda.webp', 'Varanda e área de serviço', 'Varanda com churrasqueira e área de serviço'],
+      ['assets/tipo01-quarto-1.webp', 'Quarto 01', 'Quarto com painel de nogueira e ripado'],
+      ['assets/tipo01-quarto-2.webp', 'Quarto 02', 'Quarto com boiserie e armário espelhado'],
     ],
   },
   t02: {
@@ -48,11 +48,11 @@ const MODELS = {
     specs: [['60,94 m²', 'área total'], ['78,63 m²', 'área equivalente'], ['2', 'quartos'], ['1', 'banheiro'], ['1', 'vaga de garagem']],
     features: ['1 quarto com sacada privativa', 'Sacada com churrasqueira e área de serviço', 'Piso aquecido no banheiro'],
     media: [
-      ['assets/tipo02-planta-oficial.jpg', 'Planta', 'Planta oficial do Apartamento Tipo 02'],
-      ['assets/tipo02-cozinha-sala.jpg', 'Cozinha e sala', 'Cozinha e sala integradas, com treliça de madeira e sofá curvo'],
-      ['assets/tipo02-cozinha-v2.jpg', 'Cozinha', 'Cozinha com nichos de vidro canelado, geladeira inox e dois fornos'],
-      ['assets/tipo02-sacadas.jpg', 'Sacadas', 'Sacada do quarto 01 e sacada com área de serviço e churrasqueira'],
-      ['assets/tipo02-quarto-01.jpg', 'Quarto 01', 'Quarto com painel de madeira e cabeceira estofada'],
+      ['assets/tipo02-planta-oficial.webp', 'Planta', 'Planta oficial do Apartamento Tipo 02'],
+      ['assets/tipo02-cozinha-sala.webp', 'Cozinha e sala', 'Cozinha e sala integradas, com treliça de madeira e sofá curvo'],
+      ['assets/tipo02-cozinha-v2.webp', 'Cozinha', 'Cozinha com nichos de vidro canelado, geladeira inox e dois fornos'],
+      ['assets/tipo02-sacadas.webp', 'Sacadas', 'Sacada do quarto 01 e sacada com área de serviço e churrasqueira'],
+      ['assets/tipo02-quarto-01.webp', 'Quarto 01', 'Quarto com painel de madeira e cabeceira estofada'],
     ],
   },
   t03: {
@@ -67,15 +67,15 @@ const MODELS = {
     specs: [['57,00 m²', 'área total'], ['71,56 m²', 'área equivalente'], ['2', 'quartos'], ['1', 'banheiro'], ['1', 'vaga de garagem']],
     features: ['1 quarto com sacada privativa', 'Área de serviço integrada na cozinha', 'Piso aquecido no banheiro'],
     media: [
-      ['assets/tipo03-05-planta.jpg', 'Planta', 'Planta oficial dos Apartamentos Tipo 03 e 05'],
-      ['assets/tipo03-sala-cozinha.jpg', 'Estar e cozinha', 'Sala de estar integrada à cozinha com bancada'],
-      ['assets/tipo03-cozinha.jpg', 'Cozinha', 'Cozinha com área de serviço integrada'],
-      ['assets/tipo03-sala-tv.jpg', 'Sala de TV', 'Sala de TV com bancada de refeições'],
-      ['assets/tipo03-quarto1-a.jpg', 'Quarto 1', 'Quarto 1 com painel de madeira e janela'],
-      ['assets/tipo03-quarto1-b.jpg', 'Quarto 1', 'Quarto 1 com armário e cabeceira estofada'],
-      ['assets/tipo03-quarto2-a.jpg', 'Quarto 2', 'Quarto 2 infantil com acesso à sacada'],
-      ['assets/tipo03-quarto2-b.jpg', 'Quarto 2', 'Quarto 2 infantil com armários'],
-      ['assets/tipo03-infantil.jpg', 'Quarto infantil', 'Quarto infantil com painéis estofados e armário de palhinha (Tipos 03 e 04)'],
+      ['assets/tipo03-05-planta.webp', 'Planta', 'Planta oficial dos Apartamentos Tipo 03 e 05'],
+      ['assets/tipo03-sala-cozinha.webp', 'Estar e cozinha', 'Sala de estar integrada à cozinha com bancada'],
+      ['assets/tipo03-cozinha.webp', 'Cozinha', 'Cozinha com área de serviço integrada'],
+      ['assets/tipo03-sala-tv.webp', 'Sala de TV', 'Sala de TV com bancada de refeições'],
+      ['assets/tipo03-quarto1-a.webp', 'Quarto 1', 'Quarto 1 com painel de madeira e janela'],
+      ['assets/tipo03-quarto1-b.webp', 'Quarto 1', 'Quarto 1 com armário e cabeceira estofada'],
+      ['assets/tipo03-quarto2-a.webp', 'Quarto 2', 'Quarto 2 infantil com acesso à sacada'],
+      ['assets/tipo03-quarto2-b.webp', 'Quarto 2', 'Quarto 2 infantil com armários'],
+      ['assets/tipo03-infantil.webp', 'Quarto infantil', 'Quarto infantil com painéis estofados e armário de palhinha (Tipos 03 e 04)'],
     ],
   },
   t04: {
@@ -87,7 +87,7 @@ const MODELS = {
     tagline: 'Planta otimizada, com área de serviço integrada na cozinha.',
     specs: [['30,85 m²', 'área total'], ['43,50 m²', 'área equivalente'], ['1', 'quarto'], ['1', 'banheiro'], ['Otimizada', 'planta']],
     features: ['Área de serviço integrada na cozinha', 'Planta otimizada', '1 banheiro'],
-    media: [['assets/tipo04-planta.jpg', 'Planta', 'Planta oficial do Apartamento Tipo 04']],
+    media: [['assets/tipo04-planta.webp', 'Planta', 'Planta oficial do Apartamento Tipo 04']],
   },
 };
 
@@ -105,6 +105,7 @@ const state = { floor: null, model: null };
 let viewer = null;
 let chosen = null; // { floor, model } levado para a mensagem de contato
 
+const thumb = (src) => src.replace('assets/', 'assets/thumbs/');
 const chips = (list) => `<ul class="chips">${list.map((t) => `<li>${t}</li>`).join('')}</ul>`;
 
 const viewFloor = (f) => `
@@ -114,7 +115,7 @@ const viewFloor = (f) => `
   <div class="models">${f.models.map((id) => {
     const m = MODELS[id];
     return `<button type="button" class="model" data-model="${id}">
-      <img src="${m.media[0][0]}" alt="">
+      <img src="${thumb(m.media[0][0])}" alt="" loading="lazy">
       <span><b>${m.name}</b><small>${m.summary}</small></span><i aria-hidden="true">&rarr;</i>
     </button>`;
   }).join('')}</div>`;
@@ -125,7 +126,7 @@ const viewGround = (f) => `
   <p class="lead">Espaços para receber, brincar e cuidar de quem você ama.</p>
   <figure class="media cover" id="media"></figure>
   <div class="thumbs" role="group" aria-label="Fotos das áreas sociais">${SOCIAL.map(([src, cap], i) =>
-    `<button type="button" data-i="${i}" aria-label="${cap}" aria-pressed="${i === 0}"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div>
+    `<button type="button" data-i="${i}" aria-label="${cap}" aria-pressed="${i === 0}"><img src="${thumb(src)}" alt="" loading="lazy"></button>`).join('')}</div>
   <h3>Áreas do edifício</h3>
   <div class="areas">${SOCIAL_AREAS.map((a) => `<button type="button" data-area="${a}">${a}</button>`).join('')}</div>
   <h3>No edifício</h3>${chips(BUILDING_FEATURES)}
@@ -142,7 +143,7 @@ const viewModel = (f, m) => `
   <figure class="media" id="media"></figure>
   <div class="thumbs" role="group" aria-label="Planta em 3D, planta e fotos">
     ${m.plan ? (m.plans || [[null, '3D']]).map(([pid, lb], k) => `<button type="button" data-i="3d${pid ? ':' + pid : ''}" aria-label="Planta em 3D${pid ? ' do ' + lb.replace('3D ', 'Tipo ') : ''}" aria-pressed="${k === 0}"><b>${lb}</b></button>`).join('') : ''}${m.media.map(([src, cap], i) =>
-    `<button type="button" data-i="${i}" aria-label="${cap}" aria-pressed="${!m.plan && i === 0}"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div>
+    `<button type="button" data-i="${i}" aria-label="${cap}" aria-pressed="${!m.plan && i === 0}"><img src="${thumb(src)}" alt="" loading="lazy"></button>`).join('')}</div>
   <dl class="specs">${m.specs.map(([v, l]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>
   <h3>Neste apartamento</h3><ul class="feats">${m.features.map((t) => `<li>${t}</li>`).join('')}</ul>` : ''}
   <h3>No edifício</h3>${chips(BUILDING_FEATURES)}
