@@ -221,7 +221,7 @@ $('floors').addEventListener('pointerover', (e) => viewer?.highlight(e.target.cl
 $('floors').addEventListener('pointerleave', () => viewer?.highlight(null));
 
 /* ---------- Abertura: SOBANSKI INCORPORADORA | APRESENTA, depois o edifício ---------- */
-const intro = $('intro'), introMsg = $('introMsg');
+const intro = $('intro'), introMsg = $('introMsg'), introTitle = $('introTitle');
 let introState = 'off', introTimer = 0, introBuildingReady = false;
 (() => {
   let seen = false;
@@ -230,9 +230,9 @@ let introState = 'off', introTimer = 0, introBuildingReady = false;
   introState = 'playing';
   intro.hidden = false;
   document.documentElement.classList.add('intro-on');
-  introTimer = setTimeout(endIntro, 2900);
-  $('introSkip').addEventListener('click', () => endIntro(true));
-  addEventListener('keydown', (e) => { if (introState === 'playing' && e.key === 'Escape') endIntro(true); });
+  // segura 2 s depois que APRESENTA termina de surgir (com limite de segurança)
+  intro.querySelector('.intro-pre').addEventListener('animationend', () => { clearTimeout(introTimer); introTimer = setTimeout(endIntro, 2000); }, { once: true });
+  introTimer = setTimeout(endIntro, 9000);
 })();
 function introReady() { introBuildingReady = true; if (introState === 'waiting') revealBuilding(); }
 function endIntro(skipped = false) {
@@ -250,8 +250,12 @@ function revealBuilding() {
   viewer?.intro(3600);
   document.documentElement.classList.remove('intro-on');
   hero.classList.add('intro-reveal');
-  setTimeout(() => { introMsg.hidden = false; requestAnimationFrame(() => introMsg.classList.add('on')); }, 2400);
-  setTimeout(() => { introMsg.classList.remove('on'); setTimeout(() => { introMsg.hidden = true; }, 700); }, 6200);
+  const show = (el, at, until) => {
+    setTimeout(() => { el.hidden = false; requestAnimationFrame(() => el.classList.add('on')); }, at);
+    setTimeout(() => { el.classList.remove('on'); setTimeout(() => { el.hidden = true; }, 900); }, until);
+  };
+  show(introTitle, 300, 3600); // SANTA ANA em destaque enquanto o edifício surge
+  show(introMsg, 4100, 7600);
 }
 
 /* ---------- Maquete 3D ---------- */

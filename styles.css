@@ -286,18 +286,16 @@ legend{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(-
 .intro-brand small{font:400 clamp(.62rem,1.4vw,.8rem) var(--sans);letter-spacing:.6em;padding-left:.6em;color:var(--gold-soft);opacity:0;animation:fadeUp .9s .9s ease forwards}
 .intro-bar{display:block;width:0;height:1px;background:var(--gold);animation:bar .8s 1.4s ease forwards}
 .intro-pre{margin:0;font:400 clamp(.7rem,1.6vw,.9rem) var(--sans);letter-spacing:.7em;padding-left:.7em;color:#cfc8ba;opacity:0;animation:fadeUp .8s 1.8s ease forwards}
-.intro-skip{position:absolute;right:20px;bottom:20px;background:transparent;border:1px solid rgba(255,255,255,.3);color:#cfc8ba;border-radius:999px;padding:8px 16px;font:400 .7rem var(--sans);letter-spacing:.2em;text-transform:uppercase;cursor:pointer}
-.intro-skip:hover{border-color:var(--gold);color:#fff}
 @keyframes introIn{from{opacity:0;letter-spacing:.9em;filter:blur(6px)}to{opacity:1;filter:none}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes bar{to{width:min(260px,50vw)}}
 /* durante a abertura, o conteúdo do topo espera */
 .intro-on .hero-copy,.intro-on .floors,.intro-on .tour-cta,.intro-on .nav{opacity:0}
 .hero.intro-reveal .h1-a,.hero.intro-reveal .h1-b{display:inline-block;animation:titleIn 1.3s cubic-bezier(.2,.7,.2,1) backwards}
-.hero.intro-reveal .h1-a{animation-delay:.6s}
-.hero.intro-reveal .h1-b{animation-delay:1.1s}
-.hero.intro-reveal .hero-copy .eyebrow{animation:fadeUp .8s .3s ease backwards}
-.hero.intro-reveal .floors,.hero.intro-reveal .tour-cta{animation:fadeUp .9s 2.2s ease backwards}
+.hero.intro-reveal .h1-a{animation-delay:3.7s}
+.hero.intro-reveal .h1-b{animation-delay:4s}
+.hero.intro-reveal .hero-copy .eyebrow{animation:fadeUp .8s 3.5s ease backwards}
+.hero.intro-reveal .floors,.hero.intro-reveal .tour-cta{animation:fadeUp .9s 4.4s ease backwards}
 .nav{transition:background .4s,backdrop-filter .4s,padding .4s,opacity .8s}
 @keyframes titleIn{from{opacity:0;letter-spacing:.35em;filter:blur(8px);transform:translateY(14px)}to{opacity:1;filter:none;transform:none}}
 .intro-msg{position:fixed;left:50%;top:50%;z-index:40;transform:translate(-50%,-40%);margin:0;display:grid;gap:8px;text-align:center;color:#fff;pointer-events:none;opacity:0;transition:opacity .7s,transform .7s;width:min(600px,calc(100% - 40px));padding:26px 30px;border-radius:18px;background:rgba(10,11,15,.62);backdrop-filter:blur(10px);border:1px solid rgba(232,207,154,.35);box-shadow:0 20px 60px rgba(0,0,0,.35)}
@@ -314,3 +312,10 @@ legend{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(-
 .still-copy{position:relative;padding:0 clamp(20px,5vw,64px) clamp(40px,8vh,80px);color:#fff;display:grid;gap:14px;justify-items:start;max-width:760px}
 .still-title{margin:0;font:400 clamp(1.6rem,3.6vw,2.8rem) var(--serif);letter-spacing:.04em;line-height:1.2}
 .still-title em{color:var(--gold-soft)}
+
+/* SANTA ANA em destaque enquanto o edifício surge */
+.intro-title{position:fixed;left:50%;top:24%;z-index:40;margin:0;transform:translate(-50%,10px);display:grid;justify-items:center;gap:6px;text-align:center;color:#fff;pointer-events:none;opacity:0;transition:opacity .9s ease,transform 1.2s cubic-bezier(.2,.7,.2,1);text-shadow:0 4px 40px rgba(0,0,0,.55)}
+.intro-title.on{opacity:1;transform:translate(-50%,0)}
+.intro-title small{font:400 clamp(.7rem,1.5vw,.9rem) var(--sans);letter-spacing:.6em;padding-left:.6em;color:var(--gold-soft)}
+.intro-title span{font:500 clamp(2.6rem,9vw,6.4rem) var(--serif);letter-spacing:.18em;padding-left:.18em;line-height:1;white-space:nowrap}
+.intro-title.on span{animation:titleIn 1.6s cubic-bezier(.2,.7,.2,1) backwards}
