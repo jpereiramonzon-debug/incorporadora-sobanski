@@ -331,7 +331,7 @@ pillars.addEventListener('click', (e) => {
   if (!step) return;
   e.preventDefault();
   const top = step.getBoundingClientRect().top + scrollY + (step.offsetHeight - innerHeight) * (calm ? 0 : 0.8);
-  scrollTo({ top: Math.round(top), behavior: calm ? 'auto' : 'smooth' });
+  if (window.__lenis) window.__lenis.scrollTo(Math.round(top), { duration: 1.6 }); else scrollTo({ top: Math.round(top), behavior: calm ? 'auto' : 'smooth' });
 });
 const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } };
 addEventListener('scroll', onScroll, { passive: true });

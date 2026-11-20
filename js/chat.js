@@ -34,7 +34,7 @@ function build() {
         <span class="wa-who"><b>Sobanski Incorporadora</b><small><i aria-hidden="true"></i>Online agora</small></span>
         <button type="button" class="wa-close" aria-label="Fechar atendimento">&times;</button>
       </header>
-      <div class="wa-log" role="log" aria-live="polite"></div>
+      <div class="wa-log" role="log" aria-live="polite" data-lenis-prevent></div>
       <div class="wa-foot"></div>
     </section>`;
   document.body.appendChild(root);
