@@ -4,7 +4,31 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { mergeStatic } from './merge.js';
+import { enhanceMaterials, skyEnvironment, FilmShader } from './lookdev.js';
+
+// cartão de folhagem: tufo de folhas recortado por transparência (substitui as copas de esferas)
+function leafCardTex() {
+  const s = 256, c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d'); let seed = 7;
+  const r = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  g.strokeStyle = 'rgba(70,52,30,.9)'; g.lineWidth = 2;
+  for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(s / 2, s); g.quadraticCurveTo(s * (0.3 + r() * 0.4), s * 0.6, s * (0.15 + r() * 0.7), s * (0.15 + r() * 0.3)); g.stroke(); }
+  for (let i = 0; i < 95; i++) {
+    const a = r() * Math.PI * 2, d = Math.sqrt(r()) * s * 0.42;
+    const x = s / 2 + Math.cos(a) * d, y = s * 0.48 + Math.sin(a) * d * 0.9;
+    const l = 46 + r() * 34 | 0;
+    g.fillStyle = `hsl(${92 + r() * 26},${32 + r() * 22}%,${l}%)`;
+    g.save(); g.translate(x, y); g.rotate(r() * Math.PI * 2);
+    g.beginPath(); g.ellipse(0, 0, 9 + r() * 9, 4 + r() * 3.5, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,255,230,.18)'; g.beginPath(); g.ellipse(-2, -1, 5, 1.5, 0, 0, Math.PI * 2); g.fill();
+    g.restore();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
 
 const FLOOR_Y = { T: 1.5, 1: 4.5, 2: 7.5, 3: 10.5 };
 const HOME_Y = 7.4;
@@ -166,9 +190,12 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
     scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.7 })));
   }
-  const camera = new THREE.PerspectiveCamera(32, 1, 2, 700);
+  const camera = new THREE.PerspectiveCamera(29, 1, 2, 700); // lente um pouco mais longa: menos distorção, leitura de foto de arquitetura
 
-  scene.add(new THREE.HemisphereLight(0x9aa6d8, 0x4a3a30, 1.25));
+  // céu HDR do entardecer como ambiente: reflexos coerentes em vidros e metais e luz ambiente suave
+  scene.environment = skyEnvironment(renderer, { zenith: 0x0d1638, mid: 0x5a5088, horizon: 0xe2a684, ground: 0x241e1a, sunDir: [-0.79, 0.07, 0.6], sunColor: 0xffbf8a, sunPower: 22 });
+  scene.environmentIntensity = 0.55;
+  scene.add(new THREE.HemisphereLight(0x9aa6d8, 0x4a3a30, 0.7));
   const sun = new THREE.DirectionalLight(0xffc09a, 1.5);
   sun.position.set(-34, 17, 26);
   sun.castShadow = true;
@@ -216,7 +243,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       const t = windowTex(lit, tall, v * 13 + (tall ? 5 : 1));
       winMats[key] = lit
         ? new THREE.MeshStandardMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 1.45, roughness: 0.5 })
-        : new THREE.MeshStandardMaterial({ map: t, roughness: 0.18, metalness: 0.35 });
+        : new THREE.MeshPhysicalMaterial({ map: t, roughness: 0.06, metalness: 0, ior: 1.52, reflectivity: 0.6, envMapIntensity: 1.6, userData: { flat: true } }); // vidro: reflete o céu do entardecer
     }
     return winMats[key];
   };
@@ -405,8 +432,11 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   // vegetação
   const rt = rng(3);
   const trees = [[-13.5, 7, 1.15], [13.5, 7.5, 1.05], [-15, -4, 1.2], [-16.5, -14, 1.3], [15.5, -4, 1.2], [16, -15, 1.05], [-7, -23, 1.3], [6, -24, 1.15], [0, -29, 1.4], [-24, 9, 1], [24, 8, 1.1], [-28, -22, 1.5], [29, -24, 1.4]];
-  const BLOBS = 90;
-  const leaves = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), M(0xffffff, { roughness: 1 }), trees.length * BLOBS + 60);
+  const BLOBS = 170;
+  const leafTex = leafCardTex();
+  const leafMat = new THREE.MeshStandardMaterial({ map: leafTex, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.82, envMapIntensity: 0.35, userData: { flat: true } });
+  const leaves = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.7, 1.7), leafMat, trees.length * BLOBS + 60);
+  leaves.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: leafTex, alphaTest: 0.5 }); // sombra recortada pelas folhas
   const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.24, 1, 8), M(0x2c211a), trees.length);
   const o = new THREE.Object3D(); const col = new THREE.Color(); let n = 0;
   trees.forEach(([x, z, s], i) => {
@@ -414,18 +444,18 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     for (let b = 0; b < BLOBS; b++) { // copa: muitos tufos pequenos sobre um elipsoide
       const a = rt() * Math.PI * 2, v = rt() * 2 - 1, sh = 0.55 + rt() * 0.45;
       const hr = Math.sqrt(1 - v * v) * 2.7 * s * sh;
-      const k = (0.42 + rt() * 0.5) * s;
+      const k = (0.55 + rt() * 0.55) * s;
       o.position.set(x + Math.cos(a) * hr, 6.6 * s + v * 2.3 * s * sh + (v < 0 ? 0.5 : 0), z + Math.sin(a) * hr);
       o.scale.set(k * 1.15, k * 0.8, k * 1.15); o.rotation.set(rt() * 3, rt() * 3, rt() * 3); o.updateMatrix();
       leaves.setMatrixAt(n, o.matrix);
-      leaves.setColorAt(n++, col.setHSL(0.25 + rt() * 0.07, 0.3 + rt() * 0.15, 0.05 + rt() * 0.07 + (v > 0.3 ? 0.03 : 0)));
+      leaves.setColorAt(n++, col.setHSL(0.2 + rt() * 0.06, 0.16 + rt() * 0.1, 0.16 + rt() * 0.1 + (v > 0.3 ? 0.06 : 0))); // copa: mais clara no topo, onde o céu ilumina
     }
   });
   for (let i = 0; i < 60; i++) { // canteiro junto ao muro
     const x = -3.85 + (i / 59) * 5.1, k = 0.24 + rt() * 0.16;
     o.position.set(x, 0.55 + rt() * 0.1, 12.66 + rt() * 0.14); o.scale.set(k, k, k); o.rotation.set(rt() * 3, rt() * 3, 0); o.updateMatrix();
     leaves.setMatrixAt(n, o.matrix);
-    leaves.setColorAt(n++, col.setHSL(0.26 + rt() * 0.07, 0.4, 0.13 + rt() * 0.1));
+    leaves.setColorAt(n++, col.setHSL(0.22 + rt() * 0.06, 0.25, 0.2 + rt() * 0.1));
   }
   leaves.castShadow = trunks.castShadow = true; leaves.receiveShadow = true;
   scene.add(leaves, trunks);
@@ -444,6 +474,8 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     return m;
   });
 
+  // relevo e variação de rugosidade nos acabamentos, antes de unir as peças por material
+  enhanceMaterials(scene, { normalScale: 0.6 });
   // junta as peças estáticas por material: centenas de chamadas de desenho viram poucas dezenas
   mergeStatic(scene);
 
@@ -451,10 +483,21 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
   const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.3, 0.35, 1.0);
+  // oclusão de ambiente (sombras de contato sob beirais, sacadas e junto ao chão) — só no computador
+  if (!coarse) {
+    const gtao = new GTAOPass(scene, camera, 1, 1);
+    gtao.updateGtaoMaterial({ radius: 1.6, distanceExponent: 1.2, thickness: 3, scale: 1.15, samples: 12, distanceFallOff: 1 });
+    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 5, rings: 2, samples: 12 });
+    gtao.blendIntensity = 0.9;
+    composer.addPass(gtao);
+  }
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.22, 0.4, 1.0);
   bloom.enabled = !coarse;
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
+  const film = new ShaderPass(FilmShader); // vinheta e grão de filme, depois da conversão de cor
+  film.uniforms.uGrain.value = coarse ? 0.02 : 0.03;
+  composer.addPass(film);
 
   /* ---------- câmera e interação ---------- */
   const cur = { az: -0.72, pol: 1.5, rad: 60, ty: HOME_Y, shift: 0 };
@@ -551,6 +594,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     const ox = wide ? Math.min(480, W * 0.42) / 2 * cur.shift : 0;
     const oy = wide ? 0 : H * 0.27 * cur.shift;
     camera.setViewOffset(W, H, ox, oy, W, H);
+    film.uniforms.uTime.value = (now * 0.001) % 97;
     composer.render();
     const gap = now - lastDraw;
     dirty = false; lastDraw = now;

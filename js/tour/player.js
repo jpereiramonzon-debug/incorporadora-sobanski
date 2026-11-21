@@ -1,6 +1,5 @@
 // Player 3D em primeira pessoa dos ambientes do Edifício Santa Ana.
 import * as THREE from 'three';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
@@ -9,6 +8,8 @@ import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUnifo
 import { ENVS, SHOTS } from './scenes.js';
 import { TX } from './kit.js';
 import { mergeStatic } from '../merge.js';
+import { enhanceMaterials, FilmShader } from '../lookdev.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -36,7 +37,7 @@ stage.prepend(canvas);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 200);
 const pmrem = new THREE.PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+let roomEnv = null; // reflexos e luz rebatida capturados do próprio cômodo (ver captureRoomEnv)
 const hemi = new THREE.HemisphereLight(0xfff6ea, 0x8a7d6c, 0.5);
 const sun = new THREE.DirectionalLight(0xfff1de, 1.6);
 sun.castShadow = true;
@@ -56,6 +57,9 @@ gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings
 gtao.blendIntensity = 0.85;
 composer.addPass(gtao);
 composer.addPass(new OutputPass());
+const film = new ShaderPass(FilmShader); // vinheta e grão sutis, como numa foto de interiores
+film.uniforms.uGrain.value = 0.025; film.uniforms.uVignette.value = 0.22;
+composer.addPass(film);
 // todos os quadros passam pelo mesmo caminho de qualidade (andando ou parado)
 const perf = { avg: 16.7, lastDraw: 0, lastChange: 0, warmUntil: 0 };
 function adaptResolution(now) {
@@ -76,7 +80,7 @@ const resize = () => {
   if (!w || !h) return;
   renderer.setSize(w, h); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); dirty = true;
   camera.aspect = w / h;
-  camera.fov = (shot?.fov ?? 62) + (w / h < 1 ? 12 : 0);
+  camera.fov = (shot?.fov ?? 56) + (w / h < 1 ? 12 : 0);
   camera.updateProjectionMatrix();
 };
 new ResizeObserver(resize).observe(stage);
@@ -93,6 +97,21 @@ function disposeGroup(g) {
   });
 }
 
+// captura o cômodo iluminado num mapa de ambiente: reflexos coerentes (janelas claras refletem
+// no porcelanato, madeira reflete a parede) e uma luz rebatida suave, como iluminação global barata
+function captureRoomEnv() {
+  scene.environment = null;
+  const eye = 1.45;
+  group.position.y -= eye; group.updateMatrixWorld(true); // o mapa é tirado a partir da altura dos olhos
+  const was = ring.visible; ring.visible = false;
+  const rt = pmrem.fromScene(scene, 0.03, 0.05, 40);
+  group.position.y += eye; group.updateMatrixWorld(true);
+  ring.visible = was;
+  renderer.shadowMap.needsUpdate = true; // refaz as sombras com o cômodo na posição certa
+  roomEnv?.dispose(); roomEnv = rt;
+  scene.environment = rt.texture;
+}
+
 function loadEnv(id) {
   perf.warmUntil = performance.now() + 1500;
   if (id === envId) return;
@@ -105,7 +124,7 @@ function loadEnv(id) {
 
   const out = !!env.outdoor;
   scene.background = out ? sky : new THREE.Color(0x15161a);
-  scene.environmentIntensity = out ? 0.6 : 0.3;
+  scene.environmentIntensity = out ? 0.85 : 0.75;
   const k = env.lightK ?? 1;
   scene.environmentIntensity *= k;
   hemi.intensity = (out ? 1.1 : 0.35) * k;
@@ -130,7 +149,9 @@ function loadEnv(id) {
       if (b.min.y < 1.2 && b.max.x - b.min.x < 6) colliders.push([b.min.x - 0.22, b.min.z - 0.22, b.max.x + 0.22, b.max.z + 0.22]);
     }
   });
+  enhanceMaterials(group, { normalScale: 0.4 }); // relevo e variação de rugosidade nos acabamentos
   mergeStatic(group); // depois de medir os obstáculos: junta as peças estáticas por material
+  captureRoomEnv();
 
   poiLayer.innerHTML = '';
   pois = env.pois.map((p) => {
@@ -403,6 +424,7 @@ function tick(now) {
     p.el.classList.toggle('off', !vis);
     if (vis) p.el.style.transform = `translate(${((v.x + 1) / 2 * W).toFixed(1)}px, ${((1 - v.y) / 2 * H).toFixed(1)}px)`;
   }
+  film.uniforms.uTime.value = (now * 0.001) % 97;
   composer.render();
   adaptResolution(now);
 }
