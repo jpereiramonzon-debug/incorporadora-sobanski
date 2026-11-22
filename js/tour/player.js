@@ -222,13 +222,42 @@ let shot = null, busy = false, queue = Promise.resolve(), want = 0;
 function place(s, jump) {
   const a = lookAngles(s.pos, s.look);
   vel.set(0, 0);
-  if (jump || calm) { pos.set(...s.pos); yaw = yawT = a.yaw; pitch = pitchT = a.pitch; tween = null; }
+  if (jump || calm) { pos.set(...s.pos); yaw = yawT = a.yaw; pitch = pitchT = a.pitch; tween = null; showPhoto(s); }
   else { yaw = yawT; pitch = pitchT; tween = { t: 0, from: { p: pos.clone(), yaw, pitch }, to: { p: new THREE.Vector3(...s.pos), yaw: shortest(yaw, a.yaw), pitch: a.pitch } }; }
   dirty = true;
 }
 const veil = $('loading');
+
+/* ---------- vista fotorrealista em alta definição ----------
+   Cada ponto de foto tem uma imagem fotográfica em HD (até 2560 px). Ao chegar no ponto, ela
+   aparece por cima do 3D com uma transição suave, só depois de baixada e decodificada (sem tela
+   preta nem imagem pela metade). Ao andar, girar ou trocar de ponto, o 3D volta na hora. O
+   navegador escolhe a versão de 800 px ou a HD conforme a tela (srcset). */
+const photoBox = $('photo'), photoImg = $('photoImg'), photoBtn = $('photoBtn');
+let photoOn = false, photoReq = 0;
+async function showPhoto(s) {
+  const req = ++photoReq;
+  photoImg.alt = `Foto realista: ${s.title}`;
+  photoImg.srcset = `${s.photo.replace(/\.webp$/, '-800.webp')} 800w, ${s.photo} 2560w`;
+  photoImg.src = s.photo;
+  try { await photoImg.decode(); } catch { return; }
+  if (req !== photoReq || shot !== s || busy || tween) return;
+  photoOn = true;
+  photoBox.classList.remove('fast'); photoBox.classList.add('on');
+  stage.classList.add('photo-on'); photoBtn.setAttribute('aria-pressed', 'true');
+}
+function hidePhoto(fast = true) {
+  photoReq++;
+  if (!photoOn) return;
+  photoOn = false;
+  photoBox.classList.toggle('fast', fast); photoBox.classList.remove('on');
+  stage.classList.remove('photo-on'); photoBtn.setAttribute('aria-pressed', 'false');
+}
+photoBtn.addEventListener('click', () => { if (photoOn) hidePhoto(false); else if (shot) goShot(shot.id); });
+
 function goShot(id, instant = false) {
   const s = SHOTS.find((x) => x.id === id) || SHOTS[0];
+  hidePhoto(false);
   walkTo = null;
   shot = s;
   updateFov();
@@ -242,8 +271,9 @@ function goShot(id, instant = false) {
   veil.classList.add('on');
   queue = queue.then(() => loadEnv(s.env)).then(() => {
     if (ticket !== want) return; // outra troca foi pedida no meio: ela assume
-    place(s, true);
     busy = false;
+    place(s, true);
+    photoBtn.hidden = false;
     draw(performance.now());
     requestAnimationFrame(() => veil.classList.remove('on'));
   }).catch((err) => { console.error(err); busy = false; veil.classList.remove('on'); });
@@ -423,7 +453,7 @@ function tick(now) {
     yaw = tween.from.yaw + (tween.to.yaw - tween.from.yaw) * e;
     pitch = tween.from.pitch + (tween.to.pitch - tween.from.pitch) * e;
     yawT = yaw; pitchT = pitch;
-    if (tween.t >= 1) tween = null;
+    if (tween.t >= 1) { tween = null; showPhoto(shot); } // chegou ao ponto da foto
   } else {
     // olhar com amortecimento
     yawT += ((keys.has('tr') ? -1 : 0) + (keys.has('tl') ? 1 : 0)) * 1.6 * dt;
@@ -466,6 +496,7 @@ function tick(now) {
     return;
   }
   movedAt = now;
+  if (photoOn && !tween && (!pos.equals(last.p) || yaw !== last.yaw || pitch !== last.pitch)) hidePhoto(); // andou ou girou: volta ao 3D
   if (refined) { refined = false; setQuality(qMove); }
   adaptResolution(now);
   draw(now);

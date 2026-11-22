@@ -5,6 +5,28 @@
 // - vinheta + grão de filme sutil, como numa foto real
 import * as THREE from 'three';
 
+/* ---------- bump à prova de NaN ----------
+   A fórmula de bump do three.js normaliza um vetor que vira zero quando uma face é vista exatamente
+   de lado (derivadas nulas). O resultado é NaN: um pixel preto no quadro e, na captura do reflexo do
+   cômodo (PMREM), um NaN que o filtro espalha pelo mapa inteiro e apaga o ambiente todo (era o que
+   deixava o Tipo 03 preto com pontos brancos). Aqui a normal original é usada nesses casos. */
+THREE.ShaderChunk.bumpmap_pars_fragment = THREE.ShaderChunk.bumpmap_pars_fragment.replace(
+  /vec3 perturbNormalArb\([\s\S]*?\n\t}\n/,
+  `vec3 perturbNormalArb( vec3 surf_pos, vec3 surf_norm, vec2 dHdxy, float faceDirection ) {
+\t\tvec3 dX = dFdx( surf_pos.xyz ), dY = dFdy( surf_pos.xyz );
+\t\tif ( dot( dX, dX ) < 1e-12 || dot( dY, dY ) < 1e-12 ) return surf_norm;
+\t\tvec3 vSigmaX = normalize( dX );
+\t\tvec3 vSigmaY = normalize( dY );
+\t\tvec3 vN = surf_norm;
+\t\tvec3 R1 = cross( vSigmaY, vN );
+\t\tvec3 R2 = cross( vN, vSigmaX );
+\t\tfloat fDet = dot( vSigmaX, R1 ) * faceDirection;
+\t\tvec3 vGrad = sign( fDet ) * ( dHdxy.x * R1 + dHdxy.y * R2 );
+\t\tvec3 n = abs( fDet ) * surf_norm - vGrad;
+\t\treturn dot( n, n ) > 1e-12 ? normalize( n ) : surf_norm;
+\t}
+`);
+
 const rnd = (seed) => () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 
 /* ---------- variação de rugosidade (manchas suaves + micro-ruído) ---------- */
