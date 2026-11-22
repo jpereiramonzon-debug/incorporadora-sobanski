@@ -20,6 +20,8 @@
 <link rel="modulepreload" href="js/main.js">
 <link rel="modulepreload" href="js/chat.js">
 <link rel="modulepreload" href="js/building.js">
+<link rel="modulepreload" href="js/plan3d.js">
+<link rel="modulepreload" href="vendor/three/addons/environments/RoomEnvironment.js">
 <link rel="modulepreload" href="js/merge.js">
 <link rel="modulepreload" href="js/lookdev.js">
 <link rel="modulepreload" href="vendor/three/addons/postprocessing/GTAOPass.js">
@@ -84,6 +86,14 @@
 
     <a class="tour-cta" href="tour.html"><i aria-hidden="true">&#9654;</i><span><b>Entrar no tour 3D</b><small>Ande por dentro dos apartamentos</small></span></a>
     <div class="tip" id="tip" aria-hidden="true"></div>
+
+    <!-- vista da unidade: voltar, troca de unidade no mesmo andar e cartão lateral -->
+    <button type="button" class="unit-back" id="unitBack" hidden><i aria-hidden="true">&#8249;</i> Voltar ao prédio</button>
+    <nav class="unit-switch" id="unitSwitch" aria-label="Outras unidades" hidden>
+      <div class="us-floor"><button type="button" data-step="-1" aria-label="Andar de baixo">&#8249;</button><b id="usFloor"></b><button type="button" data-step="1" aria-label="Andar de cima">&#8250;</button></div>
+      <div class="us-units" id="usUnits" role="group" aria-label="Unidades deste andar"></div>
+    </nav>
+    <aside class="unit-card" id="unitCard" aria-live="polite" aria-label="Detalhes da unidade" hidden></aside>
 
     <aside class="panel" id="panel" aria-label="Detalhes do andar" aria-live="polite" hidden>
       <div class="panel-bar">

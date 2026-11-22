@@ -99,6 +99,23 @@ const FLOORS = [
 ];
 const floorOf = (k) => FLOORS.find((f) => f.k === k);
 
+/* ---------- Unidades de cada andar (final do apartamento) ----------
+   Mesma ordem e posição dos "slots" da fachada em building.js. Apto = andar + final (ex.: 201).
+   Numeração e posições ilustrativas: confirme com a incorporadora e ajuste aqui. */
+const UNIT_SLOTS = [
+  { fin: '01', model: 't01', tipo: 'Tipo 01', pos: 'Frente, à esquerda' },
+  { fin: '02', model: 't02', tipo: 'Tipo 02', pos: 'Frente, à direita' },
+  { fin: '03', model: 't03', tipo: 'Tipo 03', pos: 'Lateral esquerda' },
+  { fin: '05', model: 't03', tipo: 'Tipo 05', pos: 'Lateral direita' },
+  { fin: '04', model: 't04', tipo: 'Tipo 04', pos: 'Fundos' },
+];
+const unitInfo = (id) => {
+  const sl = UNIT_SLOTS.find((u) => u.fin === id.slice(1)), m = MODELS[sl.model];
+  const spec = Object.fromEntries(m.specs.map(([v, l]) => [l, v]));
+  const beds = spec.quartos || spec.quarto || '';
+  return { id, floor: id[0], floorName: floorOf(id[0]).name, ...sl, m, spec, beds, bedsTxt: beds ? `${beds} ${beds === '1' ? 'quarto' : 'quartos'}` : '' };
+};
+
 /* ---------- Painel: andar -> modelo -> explicações ---------- */
 const hero = $('topo'), panel = $('panel'), body = $('panelBody'), back = $('panelBack'), tip = $('tip');
 const state = { floor: null, model: null };
@@ -181,6 +198,7 @@ const render = () => {
   panel.hidden = !open;
   viewer?.setPanel(open);
   viewer?.select(state.floor);
+  unitCard.classList.toggle('under', open && !!unitId); // fotos e planta oficial por cima do cartão da unidade
   plan3d?.dispose(); plan3d = null;
   document.querySelectorAll('#floors button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.k === state.floor));
   if (!open) return;
@@ -211,10 +229,104 @@ body.addEventListener('click', (e) => {
 });
 back.addEventListener('click', () => { state.model = null; render(); });
 $('panelClose').addEventListener('click', closePanel);
-addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.floor) closePanel(); });
+addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if (state.floor) closePanel(); else if (unitId) exitUnit(); });
+
+/* ---------- Vista da unidade: voo até o apartamento, planta 3D isolada e cartão lateral ---------- */
+const unitBack = $('unitBack'), unitCard = $('unitCard'), unitSwitch = $('unitSwitch'), usUnits = $('usUnits'), usFloor = $('usFloor');
+let unitId = null;
+const root = document.documentElement;
+const lockScroll = (on) => { root.classList.toggle('no-scroll', on); if (on) window.__lenis?.stop(); else window.__lenis?.start(); };
+
+const tipHTML = (k) => {
+  if (k === 'T') return '<small>Térreo</small><b>Áreas sociais</b><span>Hall, salão de festas, pet e kids</span><em>Clique para ver</em>';
+  const u = unitInfo(k);
+  return `<small>${u.floorName} · Final ${u.fin}</small><b>Apartamento ${k}</b><span>${u.tipo} · ${u.spec['área total']}${u.bedsTxt ? ` · ${u.bedsTxt}` : ''}</span><em>Clique para ver a planta 3D</em>`;
+};
+// cartão do hover ancorado na unidade, ligado a ela por uma linha fina (como no vídeo de referência)
+let tipSize = null;
+const showTip = (k, at) => {
+  tip.classList.toggle('on', !!k && !unitId);
+  if (!k || !at) return;
+  if (tip.dataset.k !== k) { tip.dataset.k = k; tip.innerHTML = tipHTML(k); tipSize = null; }
+  tipSize ??= [tip.offsetWidth, tip.offsetHeight];
+  const [w, h] = tipSize, gap = 48;
+  const right = at.x - w - gap < 12;
+  tip.classList.toggle('right', right);
+  const x = right ? at.x + gap : at.x - w - gap, y = Math.max(70, Math.min(hero.clientHeight - h - 12, at.y - h / 2));
+  tip.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+};
+
+function renderCard(id) {
+  const u = unitInfo(id), m = u.m, sp = u.spec;
+  const rows = [['Andar', u.floorName], ['Quartos', u.beds], ['Banheiro', sp.banheiro], ['Vaga', sp['vaga de garagem']], ['Posição', u.pos], ['Planta', sp.planta || u.tipo]].filter(([, v]) => v);
+  unitCard.innerHTML = `<div class="uc-body">
+    <p class="uc-status"><i aria-hidden="true"></i>${u.floorName} de 3 · Final ${u.fin}</p>
+    <h2>Apartamento ${id}</h2>
+    <p class="uc-sub">${u.tipo}${u.bedsTxt ? ` · ${u.bedsTxt}` : ''} · ${sp['área total']}</p>
+    <div class="uc-area"><b>${sp['área total']}</b><span>área total · ${sp['área equivalente']} de área equivalente</span></div>
+    <dl class="uc-grid">${rows.map(([l, v]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>
+    <ul class="uc-feats">${m.features.map((t) => `<li>${t}</li>`).join('')}</ul>
+    <div class="uc-actions"><button type="button" class="btn" data-uc="interest">Tenho interesse</button>${m.tour ? `<a class="btn btn-ghost" href="tour.html#${m.tour}">Tour 3D</a>` : ''}</div>
+    <button type="button" class="uc-link" data-uc="media">Fotos e planta oficial &rarr;</button>
+    <small>Planta 3D ilustrativa, montada a partir da planta de divulgação. Numeração e posição das unidades ilustrativas.</small>
+  </div>`;
+}
+function renderSwitch(id) {
+  usFloor.textContent = floorOf(id[0]).name;
+  usUnits.innerHTML = UNIT_SLOTS.map((s) => `<button type="button" data-unit="${id[0]}${s.fin}" aria-pressed="${s.fin === id.slice(1)}" aria-label="Apartamento ${id[0]}${s.fin}, ${s.tipo}"><b>${id[0]}${s.fin}</b><small>${s.tipo}</small></button>`).join('');
+  unitSwitch.querySelector('[data-step="-1"]').disabled = id[0] === '1';
+  unitSwitch.querySelector('[data-step="1"]').disabled = id[0] === '3';
+}
+const reveal = (el) => { el.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on'))); };
+function enterUnit(id) {
+  if (!viewer) return;
+  if (unitId) return goUnit(id);
+  closePanel();
+  // voo até a unidade; o cartão entra quando a câmera assenta no estúdio
+  if (!viewer.focusUnit(id, { onStudio: () => { renderCard(id); renderSwitch(id); reveal(unitCard); reveal(unitSwitch); } })) return;
+  unitId = id;
+  tip.classList.remove('on'); tip.dataset.cur = ''; window.SobanskiCursor?.set('Girar');
+  if (scrollY > 2) (window.__lenis ? window.__lenis.scrollTo(0, { duration: 0.8 }) : scrollTo({ top: 0, behavior: 'smooth' }));
+  lockScroll(true);
+  unitBack.hidden = false;
+  root.classList.add('unit-mode'); // textos da hero somem; fica só "Voltar ao prédio"
+}
+// troca entre unidades sem voltar à vista externa: cross-fade da planta e do cartão
+function goUnit(id) {
+  if (!unitId || id === unitId) return;
+  if (!viewer.switchUnit(id)) return;
+  unitId = id;
+  unitCard.classList.add('swap');
+  setTimeout(() => { renderCard(id); unitCard.scrollTop = 0; unitCard.classList.remove('swap'); }, 260);
+  renderSwitch(id);
+}
+function exitUnit() {
+  if (!unitId) return;
+  if (!viewer.exitUnit({
+    onLanding: () => root.classList.remove('unit-mode'),
+    onDone: () => { unitBack.hidden = true; unitId = null; lockScroll(false); },
+  })) return;
+  closePanel();
+  for (const el of [unitCard, unitSwitch]) { el.classList.remove('on'); setTimeout(() => { if (!el.classList.contains('on')) el.hidden = true; }, 600); }
+}
+unitBack.addEventListener('click', exitUnit);
+unitSwitch.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b || !unitId) return;
+  if (b.dataset.unit) goUnit(b.dataset.unit);
+  else if (b.dataset.step) { const f = Math.min(3, Math.max(1, +unitId[0] + +b.dataset.step)); goUnit(`${f}${unitId.slice(1)}`); }
+});
+unitCard.addEventListener('click', (e) => {
+  const a = e.target.closest('[data-uc]');
+  if (!a || !unitId) return;
+  const u = unitInfo(unitId);
+  if (a.dataset.uc === 'interest') window.SobanskiChat?.open({ interest: u.model, where: `${u.floorName}, apartamento ${unitId}` });
+  else { state.floor = u.floor; state.model = u.model; render(); } // fotos, planta oficial e mais detalhes
+});
+const selectFromBuilding = (k) => (k === 'T' ? openFloor('T') : enterUnit(k));
 
 $('floors').innerHTML = FLOORS.map((f) => `<button type="button" data-k="${f.k}" aria-pressed="false" aria-label="${f.name}"><b>${f.k}</b><span>${f.name}</span></button>`).join('');
-$('floors').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) openFloor(b.dataset.k); });
+$('floors').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) selectFromBuilding(b.dataset.k === 'T' ? 'T' : `${b.dataset.k}01`); });
 $('floors').addEventListener('pointerover', (e) => viewer?.highlight(e.target.closest('button')?.dataset.k ?? null));
 $('floors').addEventListener('pointerleave', () => viewer?.highlight(null));
 
@@ -281,18 +393,17 @@ function revealBuilding() {
    fluidas mesmo enquanto o prédio é montado; antes, a montagem segurava a tela preta por segundos. */
 introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => import('./building.js')).then(({ createViewer }) => {
   viewer = createViewer($('viewer'), {
-    onSelect: openFloor,
-    onHover: (k, e) => {
-      tip.classList.toggle('on', !!k);
-      if (!k) return;
-      const r = hero.getBoundingClientRect();
-      tip.textContent = `${floorOf(k).name} · clique para entrar`;
-      tip.style.transform = `translate(${e.clientX - r.left + 16}px, ${e.clientY - r.top + 16}px)`;
+    onSelect: selectFromBuilding,
+    onHover: (k, e, at) => {
+      if (e && e.type === 'pointermove' && tip.dataset.cur !== String(k)) { tip.dataset.cur = String(k); window.SobanskiCursor?.set(k ? 'Ver' : 'Girar'); }
+      showTip(k, at);
     },
   });
   hero.classList.add('ready');
   if (introState === 'playing' || introState === 'waiting') viewer.prime();
   viewer.whenReady.then(introReady); // só revela quando o primeiro quadro do prédio já foi desenhado
+  // plantas 3D e shaders do estúdio preparados em segundo plano, depois que a abertura terminou
+  viewer.whenReady.then(() => setTimeout(() => viewer.preload(), 4500));
 }).catch((err) => {
   console.warn('Maquete 3D indisponível:', err);
   hero.classList.add('no3d');

@@ -177,6 +177,8 @@ if (!gsap || !ST || calm) {
       cur.classList.toggle('is-link', !!link);
       label.textContent = lab;
     });
+    // a maquete troca o rótulo ao passar sobre uma unidade ("Ver") sem sair do canvas
+    window.SobanskiCursor = { set(lab) { cur.classList.toggle('is-label', !!lab); label.textContent = lab || ''; } };
 
     const magnet = (el, k = 0.28) => {
       const mx = gsap.quickTo(el, 'x', { duration: 0.6, ease: 'power3' });

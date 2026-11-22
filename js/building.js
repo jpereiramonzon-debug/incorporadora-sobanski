@@ -1,4 +1,5 @@
-// Maquete 3D do Edifício Santa Ana: giro 360°, andares clicáveis.
+// Maquete 3D do Edifício Santa Ana: giro 360°, unidades clicáveis na fachada e voo de câmera até a
+// planta 3D isolada de cada apartamento num estúdio claro.
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -6,8 +7,11 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeStatic } from './merge.js';
 import { enhanceMaterials, skyEnvironment, FilmShader } from './lookdev.js';
+import { buildPlanGroup, PLANS } from './plan3d.js';
 
 // cartão de folhagem: tufo de folhas recortado por transparência (substitui as copas de esferas)
 function leafCardTex() {
@@ -32,6 +36,23 @@ function leafCardTex() {
 
 const FLOOR_Y = { T: 1.5, 1: 4.5, 2: 7.5, 3: 10.5 };
 const HOME_Y = 7.4;
+
+/* ---------- unidades na fachada ----------
+   Cada andar (1º a 3º) tem 5 apartamentos. Cada "slot" diz onde fica a unidade no volume do prédio
+   (caixa x0,x1,z0,z1), o ponto da fachada que a câmera mira (at), de que lado a câmera chega (az),
+   e qual planta 3D é revelada no estúdio. Id da unidade = andar + final (ex.: 201).
+   Posições aproximadas a partir das vistas oficiais: confirme com a incorporadora e ajuste aqui. */
+export const SLOTS = [
+  { fin: '01', plan: 't01', box: [-5.05, 0, 6.75, 10.1], at: [-2.5, 10.05], az: -0.42 },
+  { fin: '02', plan: 't02', box: [0, 5.05, 6.75, 10.1], at: [2.5, 10.05], az: 0.42 },
+  { fin: '03', plan: 't03', box: [-4.2, 0.15, -6.2, 6.75], at: [-4.15, 0.3], az: -Math.PI / 2 + 0.34 },
+  { fin: '05', plan: 't05', box: [0.15, 4.5, -6.2, 6.75], at: [4.45, 0.3], az: Math.PI / 2 - 0.34 },
+  { fin: '04', plan: 't04', box: [-5.05, 5.05, -11.1, -6.2], at: [0, -11.05], az: Math.PI - 0.34 },
+];
+const SLAB = { 1: 3, 2: 6, 3: 9 };
+const slotOf = (id) => SLOTS.find((s) => s.fin === id.slice(1));
+const ease3 = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2); // power3.inOut
+const clamp01 = (t) => Math.min(1, Math.max(0, t));
 
 function rng(seed) {
   return () => {
@@ -464,15 +485,17 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   foliage.forEach((m) => { m.transparent = true; });
   let fade = 0;
 
-  // áreas clicáveis dos andares
-  const hits = Object.entries(FLOOR_Y).map(([k, y]) => {
-    const g = new THREE.BoxGeometry(10.6, 2.86, 21.4);
+  // áreas clicáveis: uma por unidade (andar + final) e o térreo inteiro (áreas sociais)
+  const hitBox = (k, floor, x0, x1, y0, y1, z0, z1) => {
+    const g = new THREE.BoxGeometry(x1 - x0 + 0.08, y1 - y0 - 0.1, z1 - z0 + 0.08);
     const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0, depthWrite: false }));
-    m.position.set(0, y, -0.5); m.userData.k = k;
-    const e = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: new THREE.Color(0xffdca6).multiplyScalar(2) }));
-    e.visible = false; m.visible = false; m.add(e); scene.add(m);
+    m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); m.userData = { k, floor, a: 0, target: 0 };
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: new THREE.Color(0xffdca6).multiplyScalar(2), transparent: true, opacity: 0 }));
+    m.add(e); m.visible = false; scene.add(m);
     return m;
-  });
+  };
+  const hits = [hitBox('T', 'T', -5.05, 5.05, 0, 3, -11.1, 10.1)];
+  for (const f of [1, 2, 3]) for (const sl of SLOTS) { const [x0, x1, z0, z1] = sl.box; hits.push(hitBox(`${f}${sl.fin}`, String(f), x0, x1, SLAB[f], SLAB[f] + 3, z0, z1)); }
 
   // relevo e variação de rugosidade nos acabamentos, antes de unir as peças por material
   enhanceMaterials(scene, { normalScale: 0.6, anisotropy: renderer.capabilities.getMaxAnisotropy() });
@@ -497,11 +520,14 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   composer.addPass(new OutputPass());
   const film = new ShaderPass(FilmShader); // vinheta e grão de filme, depois da conversão de cor
   film.uniforms.uGrain.value = coarse ? 0.02 : 0.03;
+  film.material.toneMapped = false; // a mesma variante serve para a tela e para o dissolve
   composer.addPass(film);
 
   /* ---------- câmera e interação ---------- */
-  const cur = { az: -0.72, pol: 1.5, rad: 60, ty: HOME_Y, shift: 0 };
+  // a câmera orbita um alvo (tx, ty, tz): o centro do prédio na vista normal, a unidade no voo
+  const cur = { az: -0.72, pol: 1.5, rad: 60, tx: 0, ty: HOME_Y, tz: 0, shift: 0 };
   const goal = { ...cur };
+  const KEYS = Object.keys(cur);
   let baseRad = 50, W = 1, H = 1, hovered = null, selected = null, panelOpen = false;
   let lastTouch = 0, visible = true, raf = 0, prev = performance.now(), dirty = true, lastDraw = 0;
   // shaders compilados em paralelo antes do primeiro quadro: a abertura (letras SOBANSKI) não engasga
@@ -514,12 +540,142 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   (parallel ? renderer.compileAsync(scene, camera).catch(() => {}) : Promise.resolve(renderer.compile(scene, camera))).then(() => { ready = true; dirty = true; });
   const perf = { n: 0, sum: 0, done: false, from: performance.now() + 2500 }; // não mede enquanto a página ainda carrega
 
+  /* ---------- estúdio claro: a planta 3D isolada (cutaway, sem teto) da unidade ----------
+     Fica numa segunda cena, desenhada pelo MESMO renderer e pela mesma câmera: nada de novo
+     contexto WebGL nem tela preta. A troca prédio -> estúdio é um dissolve feito na GPU. */
+  const studio = new THREE.Scene();
+  studio.add(new THREE.HemisphereLight(0xfffaf2, 0xd8c8b0, 0.62));
+  const key = new THREE.DirectionalLight(0xfff1e0, 2.2); // luz principal suave, de cima e da esquerda (~5200 K)
+  key.castShadow = true; key.shadow.mapSize.setScalar(coarse ? 1024 : 2048);
+  key.shadow.radius = 5; key.shadow.bias = -0.0008; key.shadow.normalBias = 0.02;
+  const rimL = new THREE.DirectionalLight(0xe9eefc, 0.55); // contraluz frio, separa as paredes do fundo
+  studio.add(key, key.target, rimL, rimL.target);
+  // chão do estúdio que só recebe sombra (o fundo creme continua limpo) + sombra de contato difusa
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.2 }));
+  catcher.rotation.x = -Math.PI / 2; catcher.receiveShadow = true; studio.add(catcher);
+  const blobTex = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 8, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(0,0,0,.5)'); gr.addColorStop(0.55, 'rgba(0,0,0,.2)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  })();
+  let studioEnvDone = false;
+  const studioEnv = () => { // reflexos de estúdio (softbox) para os materiais PBR da planta
+    if (studioEnvDone) return; studioEnvDone = true;
+    const pm = new THREE.PMREMGenerator(renderer);
+    studio.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+    studio.environmentIntensity = 0.38; pm.dispose();
+  };
+
+  const SCALE = 0.62; // planta em escala de maquete dentro do volume da unidade
+  const apts = new Map();
+  const setOpacity = (a, o) => { a.op = o; a.group.visible = o > 0.003; for (const m of a.mats) m.opacity = o; };
+  function apt(planId) { // monta (uma vez) a maquete da planta; depois só reposiciona
+    if (apts.has(planId)) return apts.get(planId);
+    const b = buildPlanGroup(PLANS[planId]);
+    const g = b.group;
+    mergeStatic(g); // centenas de peças viram poucas malhas
+    const mats = [...new Set(b.mats)];
+    mats.forEach((m) => { m.transparent = true; });
+    const blob = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false }));
+    blob.rotation.x = -Math.PI / 2; blob.scale.set(b.size[0] * 1.22, b.size[1] * 1.22, 1); blob.position.y = -0.335; blob.renderOrder = -1;
+    g.add(blob); mats.push(blob.material);
+    g.scale.setScalar(SCALE);
+    studio.add(g);
+    const a = { id: planId, group: g, mats, size: b.size, op: 0, anim: null };
+    setOpacity(a, 0);
+    apts.set(planId, a);
+    return a;
+  }
+  const unitCenter = (id) => { const [x0, x1, z0, z1] = slotOf(id).box; return new THREE.Vector3((x0 + x1) / 2, SLAB[id[0]], (z0 + z1) / 2); };
+  let studioShadow = false;
+  const place = (a, id) => placeAt(a, unitCenter(id), slotOf(id).az);
+  function placeAt(a, c, az) { // c = ponto do piso da unidade; luzes e chão do estúdio acompanham
+    a.group.position.set(c.x, c.y + 0.34 * SCALE, c.z);
+    a.group.rotation.y = az;
+    const span = Math.hypot(...a.size) * SCALE * 0.75;
+    key.position.set(c.x - 7, c.y + 12, c.z + 6); key.target.position.copy(c);
+    Object.assign(key.shadow.camera, { left: -span, right: span, top: span, bottom: -span, near: 1, far: 40 });
+    key.shadow.camera.updateProjectionMatrix();
+    rimL.position.set(c.x + 9, c.y + 6, c.z - 9); rimL.target.position.copy(c);
+    catcher.position.set(c.x, c.y + 0.001, c.z);
+    studioShadow = true;
+  }
+  const idle = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 60));
+  let studioCompiled = false;
+  function precompileStudio() { // programas do estúdio prontos antes do clique: a transição começa na hora
+    if (studioCompiled) return; studioCompiled = true;
+    studioEnv();
+    const vis = [...apts.values()].map((a) => [a, a.group.visible]);
+    vis.forEach(([a]) => { a.group.visible = true; });
+    if (parallel) renderer.compileAsync(studio, camera).catch(() => {}); else renderer.compile(studio, camera);
+    vis.forEach(([a, v]) => { a.group.visible = v; });
+    idle(warmUp);
+  }
+  // aquecimento: desenha uma vez, fora da tela, tudo o que a transição usa (estúdio, sombras do
+  // estúdio, composição e dissolve). Sem isso esses programas compilavam no primeiro quadro do
+  // dissolve e a animação engasgava justamente no meio da transição.
+  let warmed = false;
+  function warmUp() {
+    if (mode !== 'orbit' || warmed) return;
+    warmed = true;
+    const vis = [...apts.values()].map((a) => [a, a.group.visible, a.op]);
+    vis.forEach(([a]) => { a.group.visible = true; for (const m of a.mats) m.opacity = 0.001; });
+    const any = vis[0]?.[0]; if (any) place(any, `1${slotOf('101').fin}`);
+    renderer.shadowMap.needsUpdate = true;
+    composerB.render();
+    composer.renderToScreen = false; composer.render(); composer.renderToScreen = true; // variantes "fora da tela" do prédio
+    const rt = new THREE.WebGLRenderTarget(4, 4), u = mixQuad.material.uniforms;
+    u.tA.value = composer.readBuffer.texture; u.tB.value = composerB.readBuffer.texture;
+    renderer.setRenderTarget(rt); mixQuad.render(renderer); renderer.setRenderTarget(null);
+    rt.dispose();
+    vis.forEach(([a, v, op]) => { setOpacity(a, op); a.group.visible = v; });
+    dirty = true;
+  }
+
+  // composição: prédio (composer A) e estúdio (composer B) misturados num shader de dissolve
+  const targetB = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: coarse ? 2 : 4 });
+  const composerB = new EffectComposer(renderer, targetB);
+  composerB.addPass(new RenderPass(studio, camera, null, new THREE.Color(0, 0, 0), 0)); // fundo transparente: só a maquete
+  composerB.addPass(new OutputPass());
+  composerB.renderToScreen = false;
+  // RawShaderMaterial: um único programa serve para a tela e para o aquecimento fora dela
+  const mixQuad = new FullScreenQuad(new THREE.RawShaderMaterial({
+    uniforms: { tA: { value: null }, tB: { value: null }, k: { value: 0 }, useA: { value: 1 }, back: { value: 0 }, uTime: { value: 0 }, cream: { value: new THREE.Vector3(241 / 255, 236 / 255, 229 / 255) } },
+    vertexShader: 'precision highp float; attribute vec3 position; attribute vec2 uv; varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+    fragmentShader: `precision highp float; uniform sampler2D tA, tB; uniform float k, useA, back, uTime; uniform vec3 cream; varying vec2 vUv;
+      float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + uTime) * 43758.5453); }
+      void main(){
+        vec4 b = texture2D(tB, vUv);                                   // maquete (cor pré-multiplicada + alfa)
+        vec2 d = vUv - 0.5;
+        vec3 bg = cream * (1.0 - 0.06 * smoothstep(0.2, 0.9, dot(d, d) * 2.2)); // fundo creme com vinheta suave
+        vec3 st = b.rgb + bg * (1.0 - b.a) + (h(vUv * 1024.0) - 0.5) * 0.01;
+        vec3 a = useA > 0.5 ? texture2D(tA, vUv).rgb : st;
+        // ida: a maquete aparece antes e o prédio se dissolve em creme logo depois;
+        // volta: a maquete some primeiro, para não ficar flutuando diante da fachada
+        float wa = mix(smoothstep(0.0, 0.55, k), smoothstep(0.5, 1.0, k), back);
+        float w = mix(smoothstep(0.2, 1.0, k), wa, b.a);
+        gl_FragColor = vec4(mix(a, st, w), 1.0);
+      }`,
+    depthTest: false, depthWrite: false,
+  }));
+
   const paint = () => { dirty = true; hits.forEach((m) => {
-    const sel = m.userData.k === selected, hov = m.userData.k === hovered;
-    m.material.opacity = sel ? 0.2 : hov ? 0.13 : 0;
-    m.children[0].visible = sel || hov;
-    m.visible = sel || hov; // caixa de clique só é desenhada quando destacada (o clique funciona mesmo invisível)
+    const u = m.userData;
+    u.target = u.floor === selected ? 0.2 : (hovered && (u.k === hovered || u.floor === hovered)) ? 0.16 : 0;
   }); };
+  // destaque com fade suave (sobe e desce em ~150 ms)
+  const stepHits = (dt) => {
+    let busy = false;
+    for (const m of hits) {
+      const u = m.userData, t = u.target || 0;
+      if (Math.abs(u.a - t) < 0.002) { if (u.a !== t) { u.a = t; busy = true; } } else { u.a += (t - u.a) * (1 - Math.exp(-dt * 14)); busy = true; }
+      m.material.opacity = u.a; m.children[0].material.opacity = u.a * 4;
+      m.visible = u.a > 0.002; // caixa só é desenhada quando destacada (o clique funciona mesmo invisível)
+    }
+    return busy;
+  };
   const frame = () => {
     goal.rad = baseRad * (selected ? 0.86 : 1);
     goal.ty = selected ? FLOOR_Y[selected] * 0.5 + HOME_Y * 0.5 : HOME_Y;
@@ -528,18 +684,59 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const resize = () => {
     W = container.clientWidth; H = container.clientHeight;
     if (!W || !H) return;
-    renderer.setSize(W, H); composer.setSize(W, H); dirty = true;
+    renderer.setSize(W, H); composer.setSize(W, H); composerB.setSize(W, H); dirty = true;
     camera.aspect = W / H;
     baseRad = 46 / Math.min(1, Math.max(0.5, (W / H) * 1.08));
-    frame();
+    if (mode === 'orbit') frame();
+    else if (mode === 'studio' && unit) Object.assign(cur, studioPose(unit)), Object.assign(goal, cur);
     // mudar o tamanho apaga o canvas: redesenha no mesmo quadro (no celular a barra de endereço
     // muda a altura ao rolar, e isso dava um piscar escuro na maquete)
     if (ready) draw(performance.now());
   };
+  let mode = 'orbit', unit = null, flight = null, mixAnim = null, mix = 0, mixBack = 0, homeAz = 0;
   new ResizeObserver(resize).observe(container);
   resize();
   cur.rad = goal.rad * 1.25;
   let slowUntil = 0;
+
+  /* ---------- voo de câmera (tween) ---------- */
+  function fly(to, dur, { done, progress, radLate = false } = {}) {
+    const from = {}; for (const p of KEYS) from[p] = cur[p];
+    const t = { ...from, ...to };
+    t.az = from.az + Math.atan2(Math.sin(t.az - from.az), Math.cos(t.az - from.az)); // menor caminho
+    flight = { from, to: t, t0: performance.now(), dur: calm ? 1 : dur, done, progress, radLate };
+  }
+  function stepFlight(now) {
+    const f = flight, t = clamp01((now - f.t0) / f.dur), e = ease3(t);
+    // no voo de ida a aproximação se concentra no fim (primeiro orbita, depois mergulha), como no vídeo
+    const er = f.radLate ? ease3(clamp01((t - 0.22) / 0.78)) : e;
+    for (const p of KEYS) cur[p] = f.from[p] + (f.to[p] - f.from[p]) * (p === 'rad' ? er : e);
+    f.progress?.(t);
+    if (t >= 1 && flight === f) { flight = null; f.done?.(); }
+  }
+  const fadeMix = (to, dur) => { mixAnim = { from: mix, to, t0: performance.now(), dur: calm ? 1 : dur }; };
+  const stepMix = (now) => {
+    const m = mixAnim, t = clamp01((now - m.t0) / m.dur);
+    mix = m.from + (m.to - m.from) * t * t * (3 - 2 * t);
+    if (t >= 1) mixAnim = null;
+  };
+  const animOpacity = (a, to, dur, delay = 0) => { a.anim = { from: a.op, to, t0: performance.now() + delay, dur: calm ? 1 : dur }; if (to > 0) a.group.visible = true; };
+  const stepApts = (now) => {
+    let busy = false;
+    for (const a of apts.values()) {
+      if (!a.anim) continue; busy = true;
+      const t = clamp01((now - a.anim.t0) / a.anim.dur);
+      setOpacity(a, a.anim.from + (a.anim.to - a.anim.from) * t * t * (3 - 2 * t));
+      if (t >= 1) a.anim = null;
+    }
+    return busy;
+  };
+  const fit = () => Math.min(1, Math.max(0.45, (W / H) * 1.08));
+  const approachPose = (id) => { const sl = slotOf(id); return { az: sl.az, pol: 1.38, rad: 17 / fit(), tx: sl.at[0], ty: SLAB[id[0]] + 1.5, tz: sl.at[1], shift: 0 }; };
+  const studioPose = (id, c = unitCenter(id), az = slotOf(id).az + 0.62) => {
+    const a = apt(slotOf(id).plan), span = Math.hypot(...a.size) * SCALE;
+    return { az, pol: 0.9, rad: span * (W > 860 ? 2.15 : 2.6) / fit(), tx: c.x, ty: c.y + 0.2, tz: c.z, shift: 1 };
+  };
 
   const ray = new THREE.Raycaster(); const ptr = new THREE.Vector2();
   const pick = (e) => {
@@ -552,49 +749,74 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const touched = () => { lastTouch = performance.now(); };
   canvas.addEventListener('pointerdown', (e) => {
     drag = { x: e.clientX, y: e.clientY, moved: 0 };
-    canvas.setPointerCapture(e.pointerId); touched();
+    try { canvas.setPointerCapture(e.pointerId); } catch { /* ponteiro já liberado */ }
+    touched();
   });
   canvas.addEventListener('pointermove', (e) => {
     if (drag) {
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       drag.moved += Math.abs(dx) + Math.abs(dy); drag.x = e.clientX; drag.y = e.clientY;
+      if (mode === 'fly') return;
       goal.az -= dx * 0.0065;
-      if (e.pointerType === 'mouse') goal.pol = THREE.MathUtils.clamp(goal.pol - dy * 0.004, 1.05, 1.53);
+      if (mode === 'orbit' && e.pointerType === 'mouse') goal.pol = THREE.MathUtils.clamp(goal.pol - dy * 0.004, 1.05, 1.53);
       canvas.classList.add('dragging'); touched();
       if (drag.moved > 6 && hovered) { hovered = null; paint(); onHover(null, e); }
-    } else if (e.pointerType === 'mouse') {
+    } else if (e.pointerType === 'mouse' && mode === 'orbit') {
       const k = pick(e);
-      if (k !== hovered) { hovered = k; paint(); canvas.style.cursor = k ? 'pointer' : ''; }
-      onHover(k, e);
+      if (k) touched(); // parado sobre uma unidade: o giro automático espera
+      if (k !== hovered) { hovered = k; paint(); canvas.style.cursor = k ? 'pointer' : ''; if (k && k !== 'T') apt(slotOf(k).plan); } // já monta a planta no hover
+      onHover(k, e, k ? anchorOf(k) : null);
     }
   });
   const end = (e) => {
     if (!drag) return;
     const click = drag.moved < 7; drag = null; canvas.classList.remove('dragging');
-    if (click && e.type === 'pointerup') { const k = pick(e); if (k) { hovered = null; onHover(null, e); onSelect(k); } }
+    if (click && e.type === 'pointerup' && mode === 'orbit') { const k = pick(e); if (k) { hovered = null; paint(); onHover(null, e); onSelect(k); } }
   };
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
-  canvas.addEventListener('pointerleave', (e) => { if (!drag && hovered) { hovered = null; paint(); onHover(null, e); } });
+  canvas.addEventListener('pointerleave', (e) => { if (!drag && hovered) { hovered = null; paint(); canvas.style.cursor = ''; onHover(null, e); } });
   canvas.addEventListener('keydown', (e) => {
+    if (mode === 'fly') return;
     if (e.key === 'ArrowLeft') goal.az -= 0.35; else if (e.key === 'ArrowRight') goal.az += 0.35; else return;
     e.preventDefault(); touched();
   });
+  // ponto da fachada onde o cartão do hover se ancora (coordenadas da tela)
+  const av = new THREE.Vector3();
+  function anchorOf(k) {
+    if (k === 'T') av.set(0, 1.6, 10.1); else { const sl = slotOf(k); av.set(sl.at[0], SLAB[k[0]] + 1.5, sl.at[1]); }
+    av.project(camera);
+    return { x: (av.x + 1) / 2 * W, y: (1 - av.y) / 2 * H };
+  }
 
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const tick = (now) => {
     raf = requestAnimationFrame(tick);
     const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+    if (!ready || (holdIntro && !dirty)) return; // atrás da abertura: um único quadro pronto, depois espera
+    const hl = stepHits(dt);
+    // voo, dissolve e estúdio: um quadro por atualização de tela (60 fps), sem limitação
+    if (mode !== 'orbit' || flight || mixAnim) {
+      if (flight) stepFlight(now);
+      if (mixAnim) stepMix(now);
+      const fading = stepApts(now);
+      if (mode === 'studio' && !flight) {
+        if (!calm && !drag && now - lastTouch > 3500) goal.az += dt * 0.05; // a maquete gira devagar sozinha
+        cur.az += (goal.az - cur.az) * (1 - Math.exp(-dt * 6));
+      }
+      if (fading) studioShadow = true;
+      draw(now);
+      return;
+    }
     const spinning = !calm && !drag && !selected && now - lastTouch > 5000;
     if (spinning) goal.az += dt * 0.07;
     // desenha só quando algo muda; o giro automático roda a ~30 quadros por segundo
-    let moving = dirty || Math.abs(fade - (selected ? 1 : 0)) > 0.002;
-    for (const p in cur) if (Math.abs(goal[p] - cur[p]) > 1e-4) moving = true;
-    const settling = moving && !(spinning && !dirty);
-    if (!ready || (holdIntro && !dirty)) return; // atrás da abertura: um único quadro pronto, depois espera
+    let moving = dirty || hl || Math.abs(fade - (selected ? 1 : 0)) > 0.002;
+    for (const p of KEYS) if (Math.abs(goal[p] - cur[p]) > 1e-4) moving = true;
+    const settling = moving && !(spinning && !dirty && !hl);
     if (!moving || (!settling && now - lastDraw < 32)) return;
     const k = holdIntro ? 0 : 1 - Math.exp(-dt * (now < slowUntil ? 1.1 : 5.5));
-    for (const p in cur) cur[p] += (goal[p] - cur[p]) * k;
+    for (const p of KEYS) cur[p] += (goal[p] - cur[p]) * k;
     fade += ((selected ? 1 : 0) - fade) * k;
     const gap = now - lastDraw;
     draw(now);
@@ -602,23 +824,35 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       perf.sum += Math.min(gap, 100);
       if (perf.n === 65) {
         perf.done = true;
-        if (perf.sum / 60 > 30 && renderer.getPixelRatio() > 1.5) { const pr = Math.max(1.5, renderer.getPixelRatio() - 0.5); renderer.setPixelRatio(pr); composer.setPixelRatio(pr); bloom.enabled = false; resize(); }
+        if (perf.sum / 60 > 30 && renderer.getPixelRatio() > 1.5) { const pr = Math.max(1.5, renderer.getPixelRatio() - 0.5); renderer.setPixelRatio(pr); composer.setPixelRatio(pr); composerB.setPixelRatio(pr); bloom.enabled = false; resize(); }
       }
     }
   };
   function draw(now) {
     foliage.forEach((m) => { m.opacity = 1 - fade * 0.8; m.depthWrite = fade < 0.5; });
     const s = Math.sin(cur.pol);
-    camera.position.set(cur.rad * s * Math.sin(cur.az), cur.ty + cur.rad * Math.cos(cur.pol), cur.rad * s * Math.cos(cur.az));
-    camera.position.y = Math.max(1.2, camera.position.y);
-    camera.lookAt(0, cur.ty, 0);
-    // abre espaço para o painel: desloca a imagem para a esquerda (desktop) ou para cima (celular)
+    camera.position.set(cur.tx + cur.rad * s * Math.sin(cur.az), cur.ty + cur.rad * Math.cos(cur.pol), cur.tz + cur.rad * s * Math.cos(cur.az));
+    if (mode === 'orbit') camera.position.y = Math.max(1.2, camera.position.y);
+    camera.lookAt(cur.tx, cur.ty, cur.tz);
+    // abre espaço para o painel/cartão: desloca a imagem para a esquerda (desktop) ou para cima (celular)
     const wide = W > 860;
     const ox = wide ? Math.min(480, W * 0.42) / 2 * cur.shift : 0;
-    const oy = wide ? 0 : H * 0.27 * cur.shift;
+    const oy = wide ? 0 : H * 0.24 * cur.shift;
     camera.setViewOffset(W, H, ox, oy, W, H);
-    film.uniforms.uTime.value = (now * 0.001) % 97;
-    composer.render();
+    const tsec = (now * 0.001) % 97;
+    film.uniforms.uTime.value = tsec;
+    if (mix <= 0.0005) { composer.renderToScreen = true; composer.render(); }
+    else {
+      const useA = mix < 0.9995; // estúdio pleno: o prédio nem é desenhado (economia de GPU)
+      if (useA) { composer.renderToScreen = false; composer.render(); }
+      if (studioShadow) { renderer.shadowMap.needsUpdate = true; studioShadow = false; }
+      composerB.render();
+      const u = mixQuad.material.uniforms;
+      u.tA.value = composer.readBuffer.texture; u.tB.value = composerB.readBuffer.texture;
+      u.k.value = mix; u.useA.value = useA ? 1 : 0; u.back.value = mixBack; u.uTime.value = tsec;
+      renderer.setRenderTarget(null); mixQuad.render(renderer);
+    }
+    if (hovered && mode === 'orbit' && (hovered === 'T' || hovered.length === 3)) onHover(hovered, null, anchorOf(hovered)); // o cartão acompanha a unidade (não no destaque de andar)
     dirty = false; lastDraw = now;
     firstFrame();
   }
@@ -628,12 +862,82 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     if (visible) { prev = performance.now(); dirty = true; raf = requestAnimationFrame(tick); }
   }).observe(container);
 
+  /* ---------- pré-carregamento em segundo plano ----------
+     Depois que a maquete aparece, as plantas são montadas uma por vez em momentos ociosos do
+     navegador e os shaders do estúdio são compilados: o clique dispara a transição sem espera. */
+  function preload() {
+    const queue = [...new Set(SLOTS.map((s) => s.plan))];
+    const next = () => { const id = queue.shift(); if (id) { apt(id); idle(next); } else idle(precompileStudio); };
+    idle(next);
+  }
+
   return {
-    select(k) { selected = k; frame(); paint(); touched(); },
-    highlight(k) { hovered = k; paint(); },
-    setPanel(open) { panelOpen = open; frame(); },
+    select(k) { if (mode !== 'orbit') return; selected = k; frame(); paint(); touched(); },
+    highlight(k) { if (mode !== 'orbit') return; hovered = k; paint(); },
+    setPanel(open) { if (mode !== 'orbit') return; panelOpen = open; frame(); },
     rotate(d) { goal.az += d; touched(); },
-    whenReady,
+    whenReady, preload,
+    get unit() { return unit; },
+    // clique numa unidade: orbita e aproxima até ela, dissolve o prédio no estúdio claro e
+    // revela a planta 3D da unidade no mesmo lugar; onStudio avisa a hora de mostrar o cartão
+    focusUnit(id, { onStudio } = {}) {
+      if (mode === 'fly') return false;
+      if (mode === 'studio') return this.switchUnit(id, { onStudio });
+      hovered = null; paint(); onHover(null);
+      homeAz = goal.az; selected = null; panelOpen = false; fade = 0;
+      const a = apt(slotOf(id).plan);
+      precompileStudio();
+      warmUp(); // clique antes do pré-carregamento terminar: prepara tudo agora, antes do voo (nunca no meio do dissolve)
+      unit = id; mode = 'fly';
+      for (const o of apts.values()) if (o !== a) setOpacity(o, 0);
+      place(a, id); setOpacity(a, 1);
+      let mixed = false; mixBack = 0;
+      fly(approachPose(id), 2300, {
+        radLate: true,
+        progress: (t) => { if (!mixed && t > 0.8) { mixed = true; fadeMix(1, 750); } },
+        done: () => {
+          let told = false;
+          fly(studioPose(id), 1100, {
+            progress: (t) => { if (!told && t > 0.35) { told = true; onStudio?.(); } },
+            done: () => { mode = 'studio'; Object.assign(goal, cur); touched(); },
+          });
+        },
+      });
+      return true;
+    },
+    // troca de unidade sem sair do estúdio: a nova planta surge no mesmo lugar, em cross-fade, com um
+    // leve giro de câmera (no estúdio não há prédio de referência, então nada precisa atravessar a tela)
+    switchUnit(id, { onStudio } = {}) {
+      if (!unit || mode === 'fly' || id === unit) return false;
+      const from = apt(slotOf(unit).plan), to = apt(slotOf(id).plan);
+      const c = new THREE.Vector3(cur.tx, cur.ty - 0.2, cur.tz);
+      unit = id; mode = 'fly';
+      if (from === to) { animOpacity(to, 0.15, 260); setTimeout(() => animOpacity(to, 1, 420), 270); } // mesmo modelo, outro andar
+      else { placeAt(to, c, from.group.rotation.y); setOpacity(to, 0); animOpacity(from, 0, 420); animOpacity(to, 1, 620, 140); }
+      fly(studioPose(id, c, cur.az + 0.35), 1000, { done: () => { mode = 'studio'; Object.assign(goal, cur); touched(); onStudio?.(); } });
+      return true;
+    },
+    // volta ao prédio: o caminho inverso, igualmente contínuo
+    exitUnit({ onLanding, onDone } = {}) {
+      if (!unit || mode === 'fly') return false;
+      const id = unit; mode = 'fly';
+      let faded = false; mixBack = 1;
+      fly(approachPose(id), 1000, {
+        progress: (t) => { if (!faded && t > 0.3) { faded = true; fadeMix(0, 700); } },
+        done: () => {
+          let landed = false;
+          fly({ az: homeAz, pol: 1.5, rad: baseRad, tx: 0, ty: HOME_Y, tz: 0, shift: 0 }, 1800, {
+            progress: (t) => { if (!landed && t > 0.5) { landed = true; onLanding?.(); } },
+            done: () => {
+              mode = 'orbit'; unit = null; Object.assign(goal, cur); touched();
+              for (const o of apts.values()) setOpacity(o, 0);
+              onDone?.();
+            },
+          });
+        },
+      });
+      return true;
+    },
     // posiciona a câmera no ponto de partida da abertura e desenha esse quadro por trás da tela
     // preta: quando a abertura some, o prédio já está lá, sem salto de câmera
     prime() {
