@@ -61,8 +61,9 @@ kbd{font:500 .7rem var(--sans);display:inline-grid;place-items:center;min-width:
 .t-joy[hidden]{display:none}
 .t-joy i{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.85);transition:transform .08s}
 
-.t-loading{position:absolute;inset:0;z-index:6;display:grid;place-items:center;background:var(--ink);opacity:0;pointer-events:none;transition:opacity .26s}
-.t-loading.on{opacity:1}
+.t-loading{position:absolute;inset:0;z-index:6;display:grid;place-items:center;background:rgba(14,16,20,.5);opacity:0;pointer-events:none;transition:opacity .35s ease}
+.t-loading.first{background:var(--ink)} /* só na primeira abertura, quando ainda não há quadro para manter */
+.t-loading.on{opacity:1;pointer-events:auto}
 .t-loading span{font:400 .95rem var(--serif);letter-spacing:.3em;text-transform:uppercase;color:var(--gold-soft)}
 .t-noscript{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
 

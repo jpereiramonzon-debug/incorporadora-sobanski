@@ -218,12 +218,14 @@ $('floors').addEventListener('click', (e) => { const b = e.target.closest('butto
 $('floors').addEventListener('pointerover', (e) => viewer?.highlight(e.target.closest('button')?.dataset.k ?? null));
 $('floors').addEventListener('pointerleave', () => viewer?.highlight(null));
 
-/* ---------- Abertura: SOBANSKI INCORPORADORA | APRESENTA, depois o edifício ---------- */
+/* ---------- Abertura: SOBANSKI / INCORPORADORA — APRESENTA, depois o edifício ---------- */
 const intro = $('intro'), introMsg = $('introMsg'), introTitle = $('introTitle');
-let introState = 'off', introTimer = 0, introBuildingReady = false;
+let introState = 'off', introTimer = 0, introBuildingReady = false, introGo;
+const introStarted = new Promise((r) => { introGo = r; });
+const wantContact = location.hash === '#contato'; // vindo do "Tenho interesse" do tour
 (() => {
   // toca sempre que o site é aberto ou atualizado (exceto para quem pede menos movimento)
-  if (calm) return;
+  if (calm) { introGo(); if (wantContact) setTimeout(() => window.SobanskiChat?.open(), 600); return; }
   if (location.hash) { history.replaceState(null, '', location.pathname + location.search); scrollTo(0, 0); }
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   scrollTo(0, 0);
@@ -232,7 +234,12 @@ let introState = 'off', introTimer = 0, introBuildingReady = false;
   document.documentElement.classList.add('intro-on');
   // segura 2 s depois que APRESENTA termina de surgir (com limite de segurança)
   intro.querySelector('.intro-pre').addEventListener('animationend', () => { clearTimeout(introTimer); introTimer = setTimeout(endIntro, 2000); }, { once: true });
-  introTimer = setTimeout(endIntro, 9000);
+  // as letras só começam a entrar com as fontes prontas (no máximo 1,2 s de espera na tela preta):
+  // sem isso a fonte trocava no meio da animação e as letras davam um salto
+  const go = () => { if (intro.classList.contains('go')) return; intro.classList.add('go'); introTimer = setTimeout(endIntro, 9000); introGo(); };
+  const fonts = document.fonts ? Promise.all(['500 48px Cinzel', '500 16px Cinzel', '400 14px Jost'].map((f) => document.fonts.load(f))) : Promise.resolve();
+  fonts.then(go, go);
+  setTimeout(go, 1200);
 })();
 function introReady() { introBuildingReady = true; if (introState === 'waiting') revealBuilding(); }
 function endIntro(skipped = false) {
@@ -252,8 +259,10 @@ function revealBuilding() {
   // cada etapa conta o tempo a partir de quando a anterior de fato apareceu
   // título e mensagem só aparecem com o topo à vista e somem se a pessoa rolar a página
   const away = () => scrollY > innerHeight * 0.25;
-  const hideNow = () => { if (!away()) return; for (const el of [introTitle, introMsg]) { el.classList.remove('on'); el.hidden = true; } removeEventListener('scroll', hideNow); };
+  const titleIn = () => hero.classList.add('title-in');
+  const hideNow = () => { if (!away()) return; for (const el of [introTitle, introMsg]) { el.classList.remove('on'); el.hidden = true; } titleIn(); removeEventListener('scroll', hideNow); };
   addEventListener('scroll', hideNow, { passive: true });
+  if (wantContact) { titleIn(); setTimeout(() => window.SobanskiChat?.open(), 900); return; }
   const show = (el, delay, dur, next) => setTimeout(() => {
     if (away()) return;
     el.hidden = false;
@@ -262,11 +271,15 @@ function revealBuilding() {
       setTimeout(() => { el.classList.remove('on'); setTimeout(() => { el.hidden = true; next?.(); }, 900); }, dur);
     }));
   }, delay);
-  show(introTitle, 300, 3000, () => show(introMsg, 200, 3200)); // SANTA ANA em destaque, depois a mensagem
+  // SANTA ANA em destaque; quando ele sai, entra o título do topo e então a mensagem
+  show(introTitle, 300, 3000, () => { titleIn(); show(introMsg, 500, 3200); });
 }
 
-/* ---------- Maquete 3D ---------- */
-import('./building.js').then(({ createViewer }) => {
+/* ---------- Maquete 3D ----------
+   O módulo já vem baixando em paralelo (modulepreload); só a montagem da cena (trabalho pesado de
+   CPU) espera as letras da abertura começarem. As letras animam no compositor da GPU, então seguem
+   fluidas mesmo enquanto o prédio é montado; antes, a montagem segurava a tela preta por segundos. */
+introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => import('./building.js')).then(({ createViewer }) => {
   viewer = createViewer($('viewer'), {
     onSelect: openFloor,
     onHover: (k, e) => {
@@ -278,10 +291,12 @@ import('./building.js').then(({ createViewer }) => {
     },
   });
   hero.classList.add('ready');
-  introReady();
+  if (introState === 'playing' || introState === 'waiting') viewer.prime();
+  viewer.whenReady.then(introReady); // só revela quando o primeiro quadro do prédio já foi desenhado
 }).catch((err) => {
   console.warn('Maquete 3D indisponível:', err);
   hero.classList.add('no3d');
+  introReady();
 });
 
 /* ---------- Rolagem: menu e etapas do investimento ---------- */

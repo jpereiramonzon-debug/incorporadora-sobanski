@@ -20,10 +20,17 @@ const coarse = matchMedia('(pointer: coarse)').matches;
 RectAreaLightUniformsLib.init();
 const stage = $('stage');
 const modest = coarse || (navigator.hardwareConcurrency || 8) <= 4;
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-// resolução dinâmica: começa no máximo e só baixa se o aparelho não acompanhar
-const PR_MAX = Math.min(devicePixelRatio, modest ? 1.25 : 1.75), PR_MIN = Math.min(PR_MAX, 0.85);
-renderer.setPixelRatio(PR_MAX);
+// O antisserrilhado é feito no alvo interno (MSAA); o canvas final não precisa de MSAA próprio.
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+// A tela fica SEMPRE na resolução nativa do aparelho (até 2x: num monitor 4K com escala 200% o
+// canvas tem 3840 px). O que se adapta ao desempenho é só a resolução interna da cena: mudar o
+// tamanho do canvas apaga o conteúdo dele, e era isso que causava os flashes pretos ao andar.
+const PR = Math.min(devicePixelRatio, 2);
+const Q_MIN = modest ? 0.5 : 0.6;                       // escala interna mínima andando
+const Q_IDLE = modest ? 1 : Math.min(2, Math.max(1, 1.5 / PR)); // parado: nativo (ou supersample em tela 1x)
+let qMove = modest ? 0.75 : 1, qNow = 0;
+renderer.setPixelRatio(PR);
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate = false; // ambientes estáticos: sombra calculada ao entrar
@@ -41,7 +48,7 @@ let roomEnv = null; // reflexos e luz rebatida capturados do próprio cômodo (v
 const hemi = new THREE.HemisphereLight(0xfff6ea, 0x8a7d6c, 0.5);
 const sun = new THREE.DirectionalLight(0xfff1de, 1.6);
 sun.castShadow = true;
-sun.shadow.mapSize.setScalar(coarse ? 1024 : 2048);
+sun.shadow.mapSize.setScalar(2048); // sombra calculada uma vez por ambiente: pode ser nítida também no celular
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
 scene.add(hemi, sun, sun.target);
 const sky = TX.sky();
@@ -60,28 +67,40 @@ composer.addPass(new OutputPass());
 const film = new ShaderPass(FilmShader); // vinheta e grão sutis, como numa foto de interiores
 film.uniforms.uGrain.value = 0.025; film.uniforms.uVignette.value = 0.22;
 composer.addPass(film);
-// todos os quadros passam pelo mesmo caminho de qualidade (andando ou parado)
+// todos os quadros passam pelo mesmo caminho de qualidade (andando ou parado); só a escala
+// interna muda, com histerese, e sem nunca tocar no tamanho do canvas
+const setQuality = (q) => { if (q !== qNow) { qNow = q; composer.setPixelRatio(PR * q); } };
+setQuality(qMove);
 const perf = { avg: 16.7, lastDraw: 0, lastChange: 0, warmUntil: 0 };
 function adaptResolution(now) {
   const gap = now - perf.lastDraw;
   perf.lastDraw = now;
   if (gap > 100 || now < perf.warmUntil) return; // pausa ou shaders compilando: não mede
   perf.avg = perf.avg * 0.9 + gap * 0.1;
-  if (now - perf.lastChange < 1500) return;
-  const pr = renderer.getPixelRatio();
-  let next = pr;
-  if (perf.avg > 24 && pr > PR_MIN) next = Math.max(PR_MIN, pr - 0.15);
-  else if (perf.avg < 17.5 && pr < PR_MAX) next = Math.min(PR_MAX, pr + 0.1);
-  if (next !== pr) { renderer.setPixelRatio(next); perf.lastChange = now; perf.avg = 16.7; resize(); }
+  if (now - perf.lastChange < 2000) return;
+  let next = qMove;
+  if (perf.avg > 24 && qMove > Q_MIN) next = Math.max(Q_MIN, qMove - 0.1);
+  else if (perf.avg < 15.5 && qMove < 1) next = Math.min(1, qMove + 0.05);
+  if (next !== qMove) { qMove = next; perf.lastChange = now; perf.avg = 16.7; setQuality(qMove); }
 }
 
+// campo de visão: no celular em pé garante pelo menos ~46° na horizontal (antes eram ~34°, e
+// qualquer parede a meio metro tomava a tela inteira, parecendo que o passeio tinha travado)
+function updateFov() {
+  const a = camera.aspect, base = shot?.fov ?? 56;
+  const minH = THREE.MathUtils.degToRad(46);
+  const vForH = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(minH / 2) / a));
+  camera.fov = a < 1 ? Math.min(88, Math.max(base + 12, vForH)) : base;
+  camera.updateProjectionMatrix();
+}
 const resize = () => {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return;
-  renderer.setSize(w, h); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); dirty = true;
+  renderer.setSize(w, h); composer.setSize(w, h);
   camera.aspect = w / h;
-  camera.fov = (shot?.fov ?? 56) + (w / h < 1 ? 12 : 0);
-  camera.updateProjectionMatrix();
+  updateFov();
+  dirty = true;
+  draw(performance.now()); // redesenha no mesmo quadro: o navegador nunca exibe o canvas apagado
 };
 new ResizeObserver(resize).observe(stage);
 
@@ -112,9 +131,17 @@ function captureRoomEnv() {
   scene.environment = rt.texture;
 }
 
-function loadEnv(id) {
-  perf.warmUntil = performance.now() + 1500;
+// troca de ambiente sem bloquear a tela: a cena nova é montada, os shaders são compilados em
+// paralelo (KHR_parallel_shader_compile via compileAsync) e só então o quadro é trocado.
+// Enquanto isso o último quadro continua na tela, sob um véu, nunca uma tela preta.
+const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
+const parallel = renderer.extensions.has('KHR_parallel_shader_compile');
+// compila todos os materiais do ambiente de uma vez (não só os visíveis): virar o rosto ou andar
+// nunca mais engasga ao revelar um móvel que ainda não tinha sido desenhado
+const compile = () => (parallel ? renderer.compileAsync(scene, camera).catch(() => {}) : Promise.resolve(renderer.compile(scene, camera)));
+async function loadEnv(id) {
   if (id === envId) return;
+  await nextFrame(); // deixa o véu aparecer antes do trabalho pesado
   if (group) { scene.remove(group); disposeGroup(group); }
   env = ENVS[id]; envId = id;
   group = new THREE.Group();
@@ -149,9 +176,13 @@ function loadEnv(id) {
       if (b.min.y < 1.2 && b.max.x - b.min.x < 6) colliders.push([b.min.x - 0.22, b.min.z - 0.22, b.max.x + 0.22, b.max.z + 0.22]);
     }
   });
-  enhanceMaterials(group, { normalScale: 0.4 }); // relevo e variação de rugosidade nos acabamentos
+  enhanceMaterials(group, { normalScale: 0.4, anisotropy: maxAniso }); // relevo, rugosidade e texturas nítidas em ângulo
   mergeStatic(group); // depois de medir os obstáculos: junta as peças estáticas por material
+  scene.environment = null;
+  await compile();      // variantes sem mapa de ambiente (usadas na captura)
   captureRoomEnv();
+  await compile();      // variantes finais, com o reflexo do cômodo
+  perf.warmUntil = performance.now() + 1200;
 
   poiLayer.innerHTML = '';
   pois = env.pois.map((p) => {
@@ -187,29 +218,35 @@ const lookAngles = (p, l) => {
 };
 const shortest = (a, b) => a + ((((b - a) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
 
-let shot = null;
+let shot = null, busy = false, queue = Promise.resolve(), want = 0;
+function place(s, jump) {
+  const a = lookAngles(s.pos, s.look);
+  vel.set(0, 0);
+  if (jump || calm) { pos.set(...s.pos); yaw = yawT = a.yaw; pitch = pitchT = a.pitch; tween = null; }
+  else { yaw = yawT; pitch = pitchT; tween = { t: 0, from: { p: pos.clone(), yaw, pitch }, to: { p: new THREE.Vector3(...s.pos), yaw: shortest(yaw, a.yaw), pitch: a.pitch } }; }
+  dirty = true;
+}
+const veil = $('loading');
 function goShot(id, instant = false) {
   const s = SHOTS.find((x) => x.id === id) || SHOTS[0];
-  const changing = s.env !== envId;
-  const a = lookAngles(s.pos, s.look);
-  const apply = () => {
-    loadEnv(s.env);
-    vel.set(0, 0);
-    if (instant || changing || calm) { pos.set(...s.pos); yaw = yawT = a.yaw; pitch = pitchT = a.pitch; tween = null; }
-    else { yaw = yawT; pitch = pitchT; tween = { t: 0, from: { p: pos.clone(), yaw, pitch }, to: { p: new THREE.Vector3(...s.pos), yaw: shortest(yaw, a.yaw), pitch: a.pitch } }; }
-  };
   walkTo = null;
   shot = s;
-  resize();
-  if (changing && !instant) fade(apply); else apply();
+  updateFov();
   updateUI();
   history.replaceState(null, '', `#${s.id}`);
-}
-
-function fade(fn) {
-  const l = $('loading');
-  l.classList.add('on');
-  setTimeout(() => { fn(); requestAnimationFrame(() => requestAnimationFrame(() => l.classList.remove('on'))); }, calm ? 0 : 260);
+  const ticket = ++want;
+  if (s.env === envId && !busy) { place(s, instant); return; }
+  // troca de ambiente: o quadro atual fica na tela sob um véu translúcido até o novo estar pronto
+  busy = true;
+  veil.classList.toggle('first', !env);
+  veil.classList.add('on');
+  queue = queue.then(() => loadEnv(s.env)).then(() => {
+    if (ticket !== want) return; // outra troca foi pedida no meio: ela assume
+    place(s, true);
+    busy = false;
+    draw(performance.now());
+    requestAnimationFrame(() => veil.classList.remove('on'));
+  }).catch((err) => { console.error(err); busy = false; veil.classList.remove('on'); });
 }
 
 function onPoi(p) {
@@ -251,7 +288,7 @@ const floorHit = (e) => {
 let drag = null;
 canvas.addEventListener('pointerdown', (e) => {
   drag = { x: e.clientX, y: e.clientY, moved: 0, id: e.pointerId };
-  canvas.setPointerCapture(e.pointerId);
+  try { canvas.setPointerCapture(e.pointerId); } catch { /* ponteiro já liberado */ }
   tween = null;
 });
 canvas.addEventListener('pointermove', (e) => {
@@ -299,21 +336,31 @@ if (coarse) {
     stick.x = x; stick.y = y;
     joy.firstElementChild.style.transform = `translate(${x * R * 0.55}px, ${y * R * 0.55}px)`;
   };
-  joy.addEventListener('pointerdown', (e) => { jid = e.pointerId; joy.setPointerCapture(jid); setStick(e); hideHelp(); walkTo = null; tween = null; });
+  joy.addEventListener('pointerdown', (e) => { jid = e.pointerId; try { joy.setPointerCapture(jid); } catch { /* ponteiro já liberado */ } setStick(e); hideHelp(); walkTo = null; tween = null; });
   joy.addEventListener('pointermove', (e) => { if (e.pointerId === jid) setStick(e); });
   const up = () => { jid = null; stick.x = stick.y = 0; joy.firstElementChild.style.transform = ''; };
   joy.addEventListener('pointerup', up); joy.addEventListener('pointercancel', up);
 }
 
-/* colisão: limites do ambiente e móveis (só impede entrar, nunca prende) */
+/* colisão: limites do ambiente e móveis, com deslizamento.
+   Antes, quem começava dentro da margem de um móvel (vários pontos de foto ficam colados ao sofá)
+   podia atravessar tudo até bater na parede. Agora mede a "profundidade" dentro dos móveis: um
+   passo só é aceito se não aprofunda; assim dá para sair, nunca entrar, e encostar desliza. */
+function depth(x, z) {
+  let d = 0;
+  for (const r of colliders) if (x > r[0] && x < r[2] && z > r[1] && z < r[3]) d = Math.max(d, Math.min(x - r[0], r[2] - x, z - r[1], r[3] - z));
+  return d;
+}
 function moveTo(nx, nz) {
   const [x0, x1, z0, z1] = env.bounds;
-  const outX = (x) => x < x0 || x > x1, outZ = (z) => z < z0 || z > z1;
-  const inside = (x, z) => colliders.some((r) => x > r[0] && x < r[2] && z > r[1] && z < r[3]);
-  const was = inside(pos.x, pos.z);
-  let ok = false;
-  if (!(outX(nx) && Math.abs(nx - (x0 + x1) / 2) > Math.abs(pos.x - (x0 + x1) / 2)) && (was || !inside(nx, pos.z))) { pos.x = nx; ok = true; }
-  if (!(outZ(nz) && Math.abs(nz - (z0 + z1) / 2) > Math.abs(pos.z - (z0 + z1) / 2)) && (was || !inside(pos.x, nz))) { pos.z = nz; ok = true; }
+  const okX = (x) => !((x < x0 && x < pos.x) || (x > x1 && x > pos.x));
+  const okZ = (z) => !((z < z0 && z < pos.z) || (z > z1 && z > pos.z));
+  // dentro da margem (0,22 m) pode andar sem se aprofundar; dentro do móvel em si, só saindo
+  const free = (x, z) => { const d0 = depth(pos.x, pos.z), d = depth(x, z); return d <= d0 + 1e-6 && (d <= 0.22 || d < d0 - 1e-4); };
+  if (okX(nx) && okZ(nz) && free(nx, nz)) { pos.x = nx; pos.z = nz; return true; }
+  let ok = false; // bloqueado: desliza no eixo livre (contorna quinas e acompanha paredes)
+  if (okX(nx) && free(nx, pos.z)) { pos.x = nx; ok = true; }
+  if (okZ(nz) && free(pos.x, nz)) { pos.z = nz; ok = true; }
   return ok;
 }
 
@@ -364,8 +411,10 @@ const last = { p: new THREE.Vector3(NaN), yaw: 0, pitch: 0, ring: new THREE.Vect
 let prev = performance.now();
 function tick(now) {
   requestAnimationFrame(tick);
-  const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
-  if (!env) return;
+  // passo de até 0,1 s: em aparelhos que rodam a 15-20 quadros por segundo a caminhada mantém a
+  // velocidade real em vez de ficar em câmera lenta (antes o limite de 0,05 s freava o passo)
+  const dt = Math.min(0.1, (now - prev) / 1000); prev = now;
+  if (!env || busy) return;
 
   if (tween) {
     tween.t = Math.min(1, tween.t + dt / 1.1);
@@ -396,7 +445,11 @@ function tick(now) {
     }
     vel.lerp(tv, 1 - Math.exp(-dt * (m > 0.05 ? 7 : 10)));
     if (vel.lengthSq() < 1e-5) vel.set(0, 0);
-    if (vel.lengthSq() > 0) { if (!moveTo(pos.x + vel.x * dt, pos.z + vel.y * dt)) vel.multiplyScalar(0.5); }
+    if (vel.lengthSq() > 0) {
+      const ox = pos.x, oz = pos.z;
+      if (!moveTo(pos.x + vel.x * dt, pos.z + vel.y * dt)) vel.multiplyScalar(0.5);
+      else if (dt > 0) vel.set((pos.x - ox) / dt, (pos.z - oz) / dt); // a velocidade acompanha o deslizamento
+    }
     if (m > 0.05) {
       // já tratado acima
     } else if (walkTo) {
@@ -408,8 +461,18 @@ function tick(now) {
   }
   const same = !dirty && pos.equals(last.p) && yaw === last.yaw && pitch === last.pitch && ring.position.equals(last.ring) && ring.visible === last.rv;
   if (same) {
+    // parado: um único quadro refinado na resolução máxima (nítido para olhar com calma)
+    if (!refined && now - movedAt > 260 && Q_IDLE > qNow && !busy) { refined = true; setQuality(Q_IDLE); draw(now); }
     return;
   }
+  movedAt = now;
+  if (refined) { refined = false; setQuality(qMove); }
+  adaptResolution(now);
+  draw(now);
+}
+let movedAt = 0, refined = false;
+function draw(now) {
+  if (!env || busy) return;
   last.p.copy(pos); last.yaw = yaw; last.pitch = pitch; last.ring.copy(ring.position); last.rv = ring.visible;
   dirty = false;
   camera.position.copy(pos);
@@ -426,7 +489,6 @@ function tick(now) {
   }
   film.uniforms.uTime.value = (now * 0.001) % 97;
   composer.render();
-  adaptResolution(now);
 }
 
 /* ---------------- início ---------------- */
@@ -447,5 +509,5 @@ if (!known) {
   });
 }
 resize();
-requestAnimationFrame((t) => { prev = t; tick(t); setTimeout(() => $('loading').classList.remove('on'), 150); });
+requestAnimationFrame((t) => { prev = t; tick(t); });
 addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id !== shot?.id && SHOTS.some((s) => s.id === id)) goShot(id); });

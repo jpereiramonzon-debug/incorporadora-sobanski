@@ -1,5 +1,5 @@
 // Lookdev compartilhado: tira o aspecto "plástico" das cenas 3D sem custo pesado.
-// - relevo (normal map) derivado da própria textura de cor: rejuntes, veios e tramas ganham volume
+// - relevo (bump na GPU) derivado da própria textura de cor: rejuntes, veios e tramas ganham volume
 // - variação de rugosidade: nenhuma superfície fica uniformemente brilhante
 // - ambiente HDR de céu procedural para reflexos coerentes no exterior
 // - vinheta + grão de filme sutil, como numa foto real
@@ -11,12 +11,17 @@ const rnd = (seed) => () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t =
 let roughVar = null;
 export function roughnessVariation() {
   if (roughVar) return roughVar;
-  const s = 256, c = document.createElement('canvas'); c.width = c.height = s;
-  const g = c.getContext('2d'), r = rnd(91);
-  g.fillStyle = 'rgb(232,232,232)'; g.fillRect(0, 0, s, s);
-  g.filter = 'blur(10px)';
-  for (let i = 0; i < 40; i++) { const v = 190 + r() * 65 | 0; g.fillStyle = `rgba(${v},${v},${v},.55)`; g.beginPath(); g.arc(r() * s, r() * s, 12 + r() * 40, 0, 7); g.fill(); }
-  g.filter = 'none';
+  // manchas suaves: ruído em 24 px ampliado com interpolação bilinear (o próprio drawImage suaviza),
+  // sem o filtro blur() do canvas, que custava ~0,5 s de CPU no celular
+  const s = 256, lo = 24, r = rnd(91);
+  const small = document.createElement('canvas'); small.width = small.height = lo;
+  const sg = small.getContext('2d'), sd = sg.createImageData(lo, lo);
+  for (let i = 0; i < sd.data.length; i += 4) { const v = 196 + r() * 59; sd.data[i] = sd.data[i + 1] = sd.data[i + 2] = v; sd.data[i + 3] = 255; }
+  sg.putImageData(sd, 0, 0);
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(small, 0, 0, s, s);
   const d = g.getImageData(0, 0, s, s);
   for (let i = 0; i < d.data.length; i += 4) { const n = (r() - 0.5) * 26; d.data[i] = d.data[i + 1] = d.data[i + 2] = Math.max(150, Math.min(255, d.data[i + 1] + n)); }
   g.putImageData(d, 0, 0);
@@ -26,46 +31,11 @@ export function roughnessVariation() {
   return roughVar;
 }
 
-/* ---------- normal map a partir da luminância da textura (Sobel) ---------- */
-const normalCache = new Map();
-function normalCanvasFrom(img, strength = 2.2) {
-  if (normalCache.has(img)) return normalCache.get(img);
-  const W = Math.min(512, img.width || 256), H = Math.min(512, img.height || 256);
-  const c = document.createElement('canvas'); c.width = W; c.height = H;
-  const g = c.getContext('2d');
-  g.drawImage(img, 0, 0, W, H);
-  const src = g.getImageData(0, 0, W, H).data;
-  const lum = new Float32Array(W * H);
-  for (let i = 0; i < W * H; i++) lum[i] = (src[i * 4] * 0.299 + src[i * 4 + 1] * 0.587 + src[i * 4 + 2] * 0.114) / 255;
-  const out = g.createImageData(W, H), o = out.data;
-  const at = (x, y) => lum[((y + H) % H) * W + ((x + W) % W)];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const dx = (at(x + 1, y - 1) + 2 * at(x + 1, y) + at(x + 1, y + 1)) - (at(x - 1, y - 1) + 2 * at(x - 1, y) + at(x - 1, y + 1));
-    const dy = (at(x - 1, y + 1) + 2 * at(x, y + 1) + at(x + 1, y + 1)) - (at(x - 1, y - 1) + 2 * at(x, y - 1) + at(x + 1, y - 1));
-    let nx = -dx * strength, ny = dy * strength, nz = 1;
-    const l = Math.hypot(nx, ny, nz); nx /= l; ny /= l; nz /= l;
-    const k = (y * W + x) * 4;
-    o[k] = (nx * 0.5 + 0.5) * 255; o[k + 1] = (ny * 0.5 + 0.5) * 255; o[k + 2] = (nz * 0.5 + 0.5) * 255; o[k + 3] = 255;
-  }
-  g.putImageData(out, 0, 0);
-  normalCache.set(img, c);
-  return c;
-}
-const normalTexCache = new Map();
-function normalFor(map) {
-  const key = `${imgId(map.image)}|${map.repeat.x},${map.repeat.y}|${map.offset.x},${map.offset.y}`;
-  if (normalTexCache.has(key)) return normalTexCache.get(key);
-  const t = new THREE.CanvasTexture(normalCanvasFrom(map.image));
-  t.wrapS = map.wrapS; t.wrapT = map.wrapT; t.repeat.copy(map.repeat); t.offset.copy(map.offset);
-  t.anisotropy = 4;
-  normalTexCache.set(key, t);
-  return t;
-}
-const ids = new WeakMap(); let nid = 0;
-const imgId = (img) => { if (!ids.has(img)) ids.set(img, ++nid); return ids.get(img); };
-
 /* ---------- aplica o acabamento a todos os materiais de uma cena ---------- */
-export function enhanceMaterials(root, { normalScale = 0.45, rough = true } = {}) {
+export function enhanceMaterials(root, { normalScale = 0.45, rough = true, anisotropy = 0 } = {}) {
+  // O relevo vem da própria textura de cor, calculado na GPU (bump mapping por derivadas):
+  // custo zero de CPU no carregamento. A versão anterior gerava normal maps com filtro Sobel em
+  // JavaScript e travava a thread principal por ~3,5 s em celulares a cada ambiente aberto.
   const done = new Set();
   root.traverse((o) => {
     if (!o.isMesh) return;
@@ -74,9 +44,8 @@ export function enhanceMaterials(root, { normalScale = 0.45, rough = true } = {}
       done.add(m);
       if (rough && !m.roughnessMap) m.roughnessMap = roughnessVariation();
       const tex = m.map;
-      if (tex && tex.image && !m.normalMap && !m.bumpMap && (tex.image.width || 0) >= 32) {
-        try { m.normalMap = normalFor(tex); m.normalScale = new THREE.Vector2(normalScale, normalScale); } catch { /* imagem sem acesso a pixels */ }
-      }
+      if (tex && !m.normalMap && !m.bumpMap) { m.bumpMap = tex; m.bumpScale = normalScale * 2.2; }
+      if (anisotropy) for (const t of [m.map, m.roughnessMap, m.normalMap]) if (t && t.anisotropy < anisotropy) { t.anisotropy = anisotropy; t.needsUpdate = true; }
       m.needsUpdate = true;
     }
   });

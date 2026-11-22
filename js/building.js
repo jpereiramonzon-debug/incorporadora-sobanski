@@ -475,7 +475,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   });
 
   // relevo e variação de rugosidade nos acabamentos, antes de unir as peças por material
-  enhanceMaterials(scene, { normalScale: 0.6 });
+  enhanceMaterials(scene, { normalScale: 0.6, anisotropy: renderer.capabilities.getMaxAnisotropy() });
   // junta as peças estáticas por material: centenas de chamadas de desenho viram poucas dezenas
   mergeStatic(scene);
 
@@ -504,6 +504,14 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const goal = { ...cur };
   let baseRad = 50, W = 1, H = 1, hovered = null, selected = null, panelOpen = false;
   let lastTouch = 0, visible = true, raf = 0, prev = performance.now(), dirty = true, lastDraw = 0;
+  // shaders compilados em paralelo antes do primeiro quadro: a abertura (letras SOBANSKI) não engasga
+  // enquanto a GPU prepara o prédio, e o primeiro quadro já sai completo, sem "pop"
+  let ready = false, holdIntro = false, firstFrame;
+  const whenReady = new Promise((r) => { firstFrame = r; });
+  const parallel = renderer.extensions.has('KHR_parallel_shader_compile');
+  // compila TODOS os materiais (não só os que estão no enquadramento): sem isso, cada objeto que
+  // entrava na tela pela primeira vez durante a descida da câmera travava a animação
+  (parallel ? renderer.compileAsync(scene, camera).catch(() => {}) : Promise.resolve(renderer.compile(scene, camera))).then(() => { ready = true; dirty = true; });
   const perf = { n: 0, sum: 0, done: false, from: performance.now() + 2500 }; // não mede enquanto a página ainda carrega
 
   const paint = () => { dirty = true; hits.forEach((m) => {
@@ -524,6 +532,9 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     camera.aspect = W / H;
     baseRad = 46 / Math.min(1, Math.max(0.5, (W / H) * 1.08));
     frame();
+    // mudar o tamanho apaga o canvas: redesenha no mesmo quadro (no celular a barra de endereço
+    // muda a altura ao rolar, e isso dava um piscar escuro na maquete)
+    if (ready) draw(performance.now());
   };
   new ResizeObserver(resize).observe(container);
   resize();
@@ -580,10 +591,22 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     let moving = dirty || Math.abs(fade - (selected ? 1 : 0)) > 0.002;
     for (const p in cur) if (Math.abs(goal[p] - cur[p]) > 1e-4) moving = true;
     const settling = moving && !(spinning && !dirty);
+    if (!ready || (holdIntro && !dirty)) return; // atrás da abertura: um único quadro pronto, depois espera
     if (!moving || (!settling && now - lastDraw < 32)) return;
-    const k = 1 - Math.exp(-dt * (now < slowUntil ? 1.1 : 5.5));
+    const k = holdIntro ? 0 : 1 - Math.exp(-dt * (now < slowUntil ? 1.1 : 5.5));
     for (const p in cur) cur[p] += (goal[p] - cur[p]) * k;
     fade += ((selected ? 1 : 0) - fade) * k;
+    const gap = now - lastDraw;
+    draw(now);
+    if (!perf.done && settling && now > perf.from && ++perf.n > 5) { // aparelho lento: reduz resolução e brilho
+      perf.sum += Math.min(gap, 100);
+      if (perf.n === 65) {
+        perf.done = true;
+        if (perf.sum / 60 > 30 && renderer.getPixelRatio() > 1.5) { const pr = Math.max(1.5, renderer.getPixelRatio() - 0.5); renderer.setPixelRatio(pr); composer.setPixelRatio(pr); bloom.enabled = false; resize(); }
+      }
+    }
+  };
+  function draw(now) {
     foliage.forEach((m) => { m.opacity = 1 - fade * 0.8; m.depthWrite = fade < 0.5; });
     const s = Math.sin(cur.pol);
     camera.position.set(cur.rad * s * Math.sin(cur.az), cur.ty + cur.rad * Math.cos(cur.pol), cur.rad * s * Math.cos(cur.az));
@@ -596,16 +619,9 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     camera.setViewOffset(W, H, ox, oy, W, H);
     film.uniforms.uTime.value = (now * 0.001) % 97;
     composer.render();
-    const gap = now - lastDraw;
     dirty = false; lastDraw = now;
-    if (!perf.done && settling && now > perf.from && ++perf.n > 5) { // aparelho lento: reduz resolução e brilho
-      perf.sum += Math.min(gap, 100);
-      if (perf.n === 65) {
-        perf.done = true;
-        if (perf.sum / 60 > 30 && renderer.getPixelRatio() > 1.5) { const pr = Math.max(1.5, renderer.getPixelRatio() - 0.5); renderer.setPixelRatio(pr); composer.setPixelRatio(pr); bloom.enabled = false; resize(); }
-      }
-    }
-  };
+    firstFrame();
+  }
   new IntersectionObserver(([e]) => {
     visible = e.isIntersecting;
     cancelAnimationFrame(raf);
@@ -617,9 +633,17 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     highlight(k) { hovered = k; paint(); },
     setPanel(open) { panelOpen = open; frame(); },
     rotate(d) { goal.az += d; touched(); },
+    whenReady,
+    // posiciona a câmera no ponto de partida da abertura e desenha esse quadro por trás da tela
+    // preta: quando a abertura some, o prédio já está lá, sem salto de câmera
+    prime() {
+      cur.rad = goal.rad * 2.3; cur.pol = 0.62; cur.az = goal.az - 1.5; cur.ty = HOME_Y + 3;
+      holdIntro = true; dirty = true;
+    },
     // abertura: a câmera desce do alto, de longe, girando até o enquadramento normal
     intro(ms = 3600) {
-      cur.rad = goal.rad * 2.3; cur.pol = 0.62; cur.az = goal.az - 1.5; cur.ty = HOME_Y + 3;
+      if (!holdIntro) this.prime();
+      holdIntro = false;
       slowUntil = performance.now() + ms; lastTouch = performance.now(); dirty = true;
     },
   };

@@ -11,6 +11,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Jost:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="tour.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+<link rel="modulepreload" href="vendor/three/three.module.min.js">
+<link rel="modulepreload" href="js/tour/player.js">
+<link rel="modulepreload" href="js/tour/scenes.js">
+<link rel="modulepreload" href="js/tour/kit.js">
+<link rel="modulepreload" href="js/lookdev.js">
+<link rel="modulepreload" href="js/merge.js">
 </head>
 <body class="tour">
 
@@ -67,14 +76,10 @@
       <p class="t-welcome-help coarse">Arraste para olhar · use o controle para andar · toque nos pontos dourados</p>
     </div>
   </div>
-  <div class="t-loading on" id="loading"><span>Carregando ambiente</span></div>
+  <div class="t-loading on first" id="loading"><span>Carregando ambiente</span></div>
   <noscript><p class="t-noscript">Ative o JavaScript para visitar os ambientes em 3D.</p></noscript>
 </main>
 
-<script type="importmap">
-{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
-</script>
 <script type="module" src="js/tour/player.js"></script>
-<script type="module" src="js/chat.js"></script>
 </body>
 </html>
