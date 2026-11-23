@@ -9,9 +9,9 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { mergeStatic } from './merge.js';
-import { enhanceMaterials, skyEnvironment, FilmShader } from './lookdev.js';
-import { buildPlanGroup, PLANS } from './plan3d.js';
+import { mergeStatic } from './merge.js?v=20261123';
+import { enhanceMaterials, skyEnvironment, FilmShader } from './lookdev.js?v=20261123';
+import { buildPlanGroup, PLANS } from './plan3d.js?v=20261123';
 
 // cartão de folhagem: tufo de folhas recortado por transparência (substitui as copas de esferas)
 function leafCardTex() {

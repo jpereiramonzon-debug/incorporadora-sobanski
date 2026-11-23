@@ -29,7 +29,7 @@ const MODELS = {
     specs: [['60,60 m²', 'área total'], ['78,15 m²', 'área equivalente'], ['2', 'quartos'], ['1', 'banheiro'], ['1', 'vaga de garagem']],
     features: ['1 quarto com sacada privativa', 'Sacada com churrasqueira e área de serviço', 'Piso aquecido no banheiro'],
     media: [
-      ['assets/tipo01-planta.webp', 'Planta', 'Planta oficial do Apartamento Tipo 01'],
+      ['assets/planta-tipo01.webp', 'Planta', 'Planta oficial do Apartamento Tipo 01'],
       ['assets/tipo01-sala-cozinha.webp', 'Cozinha e sala', 'Cozinha e sala integradas, com mesa redonda e sofá branco'],
       ['assets/tipo01-cozinha.webp', 'Cozinha', 'Cozinha com aéreos de madeira e geladeira inox embutida'],
       ['assets/tipo01-varanda.webp', 'Varanda e área de serviço', 'Varanda com churrasqueira e área de serviço'],
@@ -48,7 +48,7 @@ const MODELS = {
     specs: [['60,94 m²', 'área total'], ['78,63 m²', 'área equivalente'], ['2', 'quartos'], ['1', 'banheiro'], ['1', 'vaga de garagem']],
     features: ['1 quarto com sacada privativa', 'Sacada com churrasqueira e área de serviço', 'Piso aquecido no banheiro'],
     media: [
-      ['assets/tipo02-planta-oficial.webp', 'Planta', 'Planta oficial do Apartamento Tipo 02'],
+      ['assets/planta-tipo02.webp', 'Planta', 'Planta oficial do Apartamento Tipo 02'],
       ['assets/tipo02-cozinha-sala.webp', 'Cozinha e sala', 'Cozinha e sala integradas, com treliça de madeira e sofá curvo'],
       ['assets/tipo02-cozinha-v2.webp', 'Cozinha', 'Cozinha com nichos de vidro canelado, geladeira inox e dois fornos'],
       ['assets/tipo02-sacadas.webp', 'Sacadas', 'Sacada do quarto 01 e sacada com área de serviço e churrasqueira'],
@@ -67,7 +67,7 @@ const MODELS = {
     specs: [['57,00 m²', 'área total'], ['71,56 m²', 'área equivalente'], ['2', 'quartos'], ['1', 'banheiro'], ['1', 'vaga de garagem']],
     features: ['1 quarto com sacada privativa', 'Área de serviço integrada na cozinha', 'Piso aquecido no banheiro'],
     media: [
-      ['assets/tipo03-05-planta.webp', 'Planta', 'Planta oficial dos Apartamentos Tipo 03 e 05'],
+      ['assets/planta-tipo03-05.webp', 'Planta', 'Planta oficial dos Apartamentos Tipo 03 e 05'],
       ['assets/tipo03-sala-cozinha.webp', 'Estar e cozinha', 'Sala de estar integrada à cozinha com bancada'],
       ['assets/tipo03-cozinha.webp', 'Cozinha', 'Cozinha com área de serviço integrada'],
       ['assets/tipo03-sala-tv.webp', 'Sala de TV', 'Sala de TV com bancada de refeições'],
@@ -87,7 +87,7 @@ const MODELS = {
     tagline: 'Planta otimizada, com área de serviço integrada na cozinha.',
     specs: [['30,85 m²', 'área total'], ['43,50 m²', 'área equivalente'], ['1', 'quarto'], ['1', 'banheiro'], ['Otimizada', 'planta']],
     features: ['Área de serviço integrada na cozinha', 'Planta otimizada', '1 banheiro'],
-    media: [['assets/tipo04-planta.webp', 'Planta', 'Planta oficial do Apartamento Tipo 04']],
+    media: [['assets/planta-tipo04.webp', 'Planta', 'Planta oficial do Apartamento Tipo 04']],
   },
 };
 
@@ -179,7 +179,7 @@ const showMedia = async (i) => {
   if (!String(i).startsWith('3d')) return image(media[+i]);
   const id = state.model, planId = String(i).split(':')[1] || id;
   try {
-    const { createPlan, PLANS } = await import('./plan3d.js');
+    const { createPlan, PLANS } = await import('./plan3d.js?v=20261123');
     if (state.model !== id || !fig.isConnected) return;
     fig.className = 'media is3d';
     fig.innerHTML = '<figcaption>Planta em 3D · arraste para girar</figcaption>';
@@ -443,7 +443,7 @@ function revealBuilding() {
    O módulo já vem baixando em paralelo (modulepreload); só a montagem da cena (trabalho pesado de
    CPU) espera as letras da abertura começarem. As letras animam no compositor da GPU, então seguem
    fluidas mesmo enquanto o prédio é montado; antes, a montagem segurava a tela preta por segundos. */
-introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => import('./building.js')).then(({ createViewer }) => {
+introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => import('./building.js?v=20261123')).then(({ createViewer }) => {
   viewer = createViewer($('viewer'), {
     onSelect: selectFromBuilding,
     onHover: (k, e, at) => {
@@ -552,7 +552,7 @@ let tourWarm = false;
 const warmTour = (e) => {
   if (tourWarm || !e.target.closest?.('a[href^="tour.html"]')) return;
   tourWarm = true;
-  for (const href of ['js/tour/player.js', 'js/tour/scenes.js', 'js/tour/kit.js']) {
+  for (const href of ['js/tour/player.js?v=20261123', 'js/tour/scenes.js?v=20261123', 'js/tour/kit.js?v=20261123']) {
     const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = href; document.head.appendChild(l);
   }
 };
