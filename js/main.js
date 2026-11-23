@@ -257,17 +257,20 @@ const showTip = (k, at) => {
 };
 
 function renderCard(id) {
-  const u = unitInfo(id), m = u.m, sp = u.spec;
+  const u = unitInfo(id), m = u.m, sp = u.spec, plan = m.media[0][0].replace(/\.webp$/, ''); // planta oficial completa
   const rows = [['Andar', u.floorName], ['Quartos', u.beds], ['Banheiro', sp.banheiro], ['Vaga', sp['vaga de garagem']], ['Posição', u.pos], ['Planta', sp.planta || u.tipo]].filter(([, v]) => v);
   unitCard.innerHTML = `<div class="uc-body">
     <p class="uc-status"><i aria-hidden="true"></i>${u.floorName} de 3 · Final ${u.fin}</p>
     <h2>Apartamento ${id}</h2>
     <p class="uc-sub">${u.tipo}${u.bedsTxt ? ` · ${u.bedsTxt}` : ''} · ${sp['área total']}</p>
+    <button type="button" class="uc-plan" data-uc="plan" aria-label="Ampliar a planta oficial do ${m.name}">
+      <img src="${plan}-800.webp" srcset="${plan}-800.webp 800w, ${plan}.webp 2828w" sizes="(max-width:860px) 92vw, 360px" width="2828" height="2000" alt="Planta oficial do ${m.name}" decoding="async">
+      <span>Planta oficial · toque para ampliar</span>
+    </button>
     <div class="uc-area"><b>${sp['área total']}</b><span>área total · ${sp['área equivalente']} de área equivalente</span></div>
     <dl class="uc-grid">${rows.map(([l, v]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('')}</dl>
     <ul class="uc-feats">${m.features.map((t) => `<li>${t}</li>`).join('')}</ul>
     <div class="uc-actions"><button type="button" class="btn" data-uc="interest">Tenho interesse</button>${m.tour ? `<a class="btn btn-ghost" href="tour.html#${m.tour}">Tour 3D</a>` : ''}</div>
-    <button type="button" class="uc-link" data-uc="media">Fotos e planta oficial &rarr;</button>
     <small>Planta 3D ilustrativa, montada a partir da planta de divulgação. Numeração e posição das unidades ilustrativas.</small>
   </div>`;
 }
@@ -342,8 +345,36 @@ unitCard.addEventListener('click', (e) => {
   if (!a || !unitId) return;
   const u = unitInfo(unitId);
   if (a.dataset.uc === 'interest') window.SobanskiChat?.open({ interest: u.model, where: `${u.floorName}, apartamento ${unitId}` });
-  else { state.floor = u.floor; state.model = u.model; render(); } // fotos, planta oficial e mais detalhes
+  else if (a.dataset.uc === 'plan') openPlan(a.querySelector('img'));
 });
+// planta oficial em tela cheia, inteira (sem corte), com a versão em alta definição
+const planView = $('planView'), planImg = planView.querySelector('img'), hint = planView.querySelector('.pv-hint');
+const tapWord = matchMedia('(pointer: fine)').matches ? 'Clique' : 'Toque', dragWord = matchMedia('(pointer: fine)').matches ? 'Role' : 'Arraste';
+let planReturn = null;
+function openPlan(img) {
+  planReturn = document.activeElement;
+  planImg.alt = img.alt; planImg.src = img.src.replace(/-800\.webp$/, '.webp');
+  planView.classList.remove('zoom'); hint.textContent = `${tapWord} na planta para ampliar`;
+  planView.hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => planView.classList.add('on')));
+  planView.querySelector('button').focus();
+}
+function closePlan() {
+  if (planView.hidden) return;
+  planView.classList.remove('on');
+  setTimeout(() => { planView.hidden = true; planView.classList.remove('zoom'); }, 300);
+  planReturn?.focus?.();
+}
+planView.addEventListener('click', (e) => {
+  if (e.target.closest('.pv-close') || (e.target === planView && !planView.classList.contains('zoom'))) return closePlan();
+  if (e.target !== planImg) return;
+  // amplia no ponto tocado (ou volta a caber inteira na tela)
+  const r = planImg.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+  const zoom = planView.classList.toggle('zoom');
+  hint.textContent = zoom ? `${dragWord} para ver · ${tapWord.toLowerCase()} para reduzir` : `${tapWord} na planta para ampliar`;
+  if (zoom) { planView.scrollLeft = fx * planImg.offsetWidth - innerWidth / 2; planView.scrollTop = fy * planImg.offsetHeight - innerHeight / 2; }
+});
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && !planView.hidden) { e.stopImmediatePropagation(); closePlan(); } }, true);
 const selectFromBuilding = (k) => (k === 'T' ? openFloor('T') : enterUnit(k));
 
 $('floors').innerHTML = FLOORS.map((f) => `<button type="button" data-k="${f.k}" aria-pressed="false" aria-label="${f.name}"><b>${f.k}</b><span>${f.name}</span></button>`).join('');

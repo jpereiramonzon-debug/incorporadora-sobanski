@@ -716,6 +716,24 @@ html.no-scroll,html.no-scroll body{overflow:hidden;overscroll-behavior:none}
 .unit-zoom button:hover{background:#f1ebe0}
 .unit-zoom button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 .unit-zoom svg{width:18px;height:18px}
+/* planta oficial dentro do cartão (inteira, sem corte) e em tela cheia */
+.uc-plan{all:unset;box-sizing:border-box;display:block;width:100%;cursor:zoom-in;margin:0 0 14px;border:1px solid #ece5d9;border-radius:14px;overflow:hidden;background:#fff;transition:border-color .2s,box-shadow .2s}
+.uc-plan:hover{border-color:var(--gold);box-shadow:0 8px 22px rgba(70,52,24,.1)}
+.uc-plan:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.uc-plan img{display:block;width:100%;height:auto;aspect-ratio:2828/2000;object-fit:contain;background:#fff}
+.uc-plan span{display:block;padding:7px 12px;border-top:1px solid #ece5d9;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#8d8372;background:#fdfbf7}
+.plan-view{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:clamp(12px,3vw,40px);background:rgba(14,16,20,.9);opacity:0;transition:opacity .3s ease;cursor:zoom-out}
+.plan-view[hidden]{display:none!important}
+.plan-view.on{opacity:1}
+.plan-view img{display:block;max-width:calc(100vw - 2 * clamp(12px,3vw,40px));max-height:calc(100vh - 2 * clamp(12px,3vw,40px));max-height:calc(100dvh - 2 * clamp(12px,3vw,40px));width:auto;height:auto;object-fit:contain;background:#fff;border-radius:10px;box-shadow:0 30px 80px rgba(0,0,0,.5);cursor:zoom-in}
+/* toque/clique na planta: amplia e permite arrastar para ler os detalhes; de novo volta a caber na tela */
+.plan-view.zoom{display:block;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0;cursor:auto}
+.plan-view.zoom img{max-width:none;max-height:none;width:min(2828px,max(260vw,1400px));border-radius:0;cursor:zoom-out}
+.pv-hint{position:fixed;left:50%;bottom:clamp(12px,3vw,26px);transform:translateX(-50%);padding:8px 14px;border-radius:999px;background:rgba(14,16,20,.7);color:#e9e2d4;font:400 .72rem var(--sans);letter-spacing:.12em;text-transform:uppercase;pointer-events:none;white-space:nowrap}
+.pv-close{z-index:2}
+.pv-close{position:fixed;top:clamp(10px,2vw,22px);right:clamp(10px,2vw,22px);width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(14,16,20,.6);color:#fff;font-size:1.6rem;line-height:1;cursor:pointer}
+.pv-close:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
 @media (max-width:860px){
   .tip{min-width:0;padding:9px 13px 8px}
   .tip em{display:none}
