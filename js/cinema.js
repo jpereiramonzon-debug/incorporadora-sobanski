@@ -80,12 +80,14 @@ if (!gsap || !ST || calm) {
       defaults: { ease: 'none' },
       scrollTrigger: { trigger: cine, start: 'top top', end: 'bottom bottom', scrub: 1.2 },
     });
-    tl.fromTo('.cine-frame', { clipPath: narrow ? 'inset(24% 8% 24% 8% round 16px)' : 'inset(17% 26% 17% 26% round 18px)' },
-      { clipPath: 'inset(0% 0% 0% 0% round 0px)', duration: 1 }, 0)
-      .fromTo('.cine-frame img', { scale: 1.28 }, { scale: 1, duration: 1.2 }, 0)
-      .fromTo('.cine-frame', { '--shade': 0 }, { '--shade': 1, duration: 0.5 }, 0.55)
-      .fromTo('.cine-copy .eyebrow', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.3 }, 0.62)
-      .fromTo('.cine-copy .wi', { yPercent: 115 }, { yPercent: 0, duration: 0.45, stagger: 0.05, ease: 'power2.out' }, 0.66);
+    // a vista de Mallet já entra grande e visível; termina de abrir e o título aparece no começo da
+    // rolagem (antes a janela começava pequena e o título só surgia depois de ~60% da seção)
+    tl.fromTo('.cine-frame', { clipPath: narrow ? 'inset(9% 5% 9% 5% round 16px)' : 'inset(9% 12% 9% 12% round 18px)' },
+      { clipPath: 'inset(0% 0% 0% 0% round 0px)', duration: 0.6 }, 0)
+      .fromTo('.cine-frame img', { scale: 1.14 }, { scale: 1, duration: 1 }, 0)
+      .fromTo('.cine-frame', { '--shade': 0.45 }, { '--shade': 1, duration: 0.4 }, 0)
+      .fromTo('.cine-copy .eyebrow', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.2 }, 0.08)
+      .fromTo('.cine-copy .wi', { yPercent: 115 }, { yPercent: 0, duration: 0.35, stagger: 0.04, ease: 'power2.out' }, 0.12);
   }
 
   /* ---------- 2. camadas com profundidade ---------- */

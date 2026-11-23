@@ -558,10 +558,10 @@ html.lenis,html.lenis body{height:auto}
 [data-split] .wi{display:inline-block}
 
 /* 1. expansão da vista do prédio */
-.cine{position:relative;height:260vh;background:var(--ink);color:#fff}
+.cine{position:relative;height:190vh;background:var(--ink);color:#fff}
 .cine-pin{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
 .cine-frame{--shade:1;position:absolute;inset:0;margin:0;overflow:hidden;will-change:clip-path}
-.cine-frame img{width:100%;height:100%;object-fit:cover;object-position:center 40%;will-change:transform}
+.cine-frame img{width:100%;height:100%;object-fit:cover;object-position:center 55%;will-change:transform}
 .cine-frame::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,11,15,.15) 0%,rgba(10,11,15,0) 35%,rgba(10,11,15,.72) 100%);opacity:var(--shade)}
 .cine-copy{position:absolute;left:clamp(20px,6vw,90px);right:clamp(20px,6vw,90px);bottom:clamp(40px,10vh,110px);z-index:2}
 .cine-copy .eyebrow{color:var(--gold-soft);margin-bottom:16px}
