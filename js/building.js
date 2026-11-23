@@ -9,9 +9,9 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { mergeStatic } from './merge.js?v=20261123';
-import { enhanceMaterials, skyEnvironment, FilmShader } from './lookdev.js?v=20261123';
-import { buildPlanGroup, PLANS } from './plan3d.js?v=20261123';
+import { mergeStatic } from './merge.js?v=20261124';
+import { enhanceMaterials, skyEnvironment, FilmShader } from './lookdev.js?v=20261124';
+import { buildPlanGroup, PLANS } from './plan3d.js?v=20261124';
 
 // cartão de folhagem: tufo de folhas recortado por transparência (substitui as copas de esferas)
 function leafCardTex() {
@@ -509,8 +509,9 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
   // oclusão de ambiente (sombras de contato sob beirais, sacadas e junto ao chão) — só no computador
+  let gtaoPass = null; // referência para o governador de qualidade
   if (!coarse) {
-    const gtao = new GTAOPass(scene, camera, 1, 1);
+    const gtao = gtaoPass = new GTAOPass(scene, camera, 1, 1);
     // oclusão em meia resolução: a sombra de contato é suave (baixa frequência), então o resultado é
     // o mesmo à vista, mas o passe de normais (que redesenha a cena inteira) e o cálculo de AO
     // custam ~1/4. A mistura final continua na resolução cheia.
@@ -545,7 +546,6 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   // compila TODOS os materiais (não só os que estão no enquadramento): sem isso, cada objeto que
   // entrava na tela pela primeira vez durante a descida da câmera travava a animação
   (parallel ? renderer.compileAsync(scene, camera).catch(() => {}) : Promise.resolve(renderer.compile(scene, camera))).then(() => { ready = true; dirty = true; });
-  const perf = { n: 0, sum: 0, done: false, from: performance.now() + 2500 }; // não mede enquanto a página ainda carrega
 
   /* ---------- estúdio claro: a planta 3D isolada (cutaway, sem teto) da unidade ----------
      Fica numa segunda cena, desenhada pelo MESMO renderer e pela mesma câmera: nada de novo
@@ -633,12 +633,14 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     vis.forEach(([a]) => { a.group.visible = true; for (const m of a.mats) m.opacity = 0.001; });
     const any = vis[0]?.[0]; if (any) place(any, `1${slotOf('101').fin}`);
     renderer.shadowMap.needsUpdate = true;
+    composerB.setSize(64, 64); // compila tudo num alvo minúsculo: a memória cheia só é usada ao abrir uma unidade
     composerB.render();
     composer.renderToScreen = false; composer.render(); composer.renderToScreen = true; // variantes "fora da tela" do prédio
     const rt = new THREE.WebGLRenderTarget(4, 4), u = mixQuad.material.uniforms;
     u.tA.value = composer.readBuffer.texture; u.tB.value = composerB.readBuffer.texture;
     renderer.setRenderTarget(rt); mixQuad.render(renderer); renderer.setRenderTarget(null);
-    rt.dispose();
+    rt.dispose(); u.tB.value = null;
+    composerB.setSize(W, H); // volta ao tamanho da tela sem alocar: a memória só é usada ao abrir uma unidade
     vis.forEach(([a, v, op]) => { setOpacity(a, op); a.group.visible = v; });
     dirty = true;
   }
@@ -834,7 +836,8 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const tick = (now) => {
     raf = requestAnimationFrame(tick);
-    const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+    const rawDt = now - prev;
+    const dt = Math.min(0.05, rawDt / 1000); prev = now;
     if (!ready || (holdIntro && !dirty)) return; // atrás da abertura: um único quadro pronto, depois espera
     const hl = stepHits(dt);
     // voo, dissolve e estúdio: um quadro por atualização de tela (60 fps), sem limitação
@@ -854,7 +857,9 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     }
     // giro automático só com o topo bem à vista e a página parada: durante a rolagem a GPU fica livre
     // para o navegador (era a principal causa de travadas ao rolar)
-    const spinning = !calm && !drag && !selected && now - lastTouch > 5000 && heroRatio >= 0.5 && now - lastScroll > 220;
+    // giro só com a página parada, o topo à vista e alguém por perto (30 s sem interação: a GPU descansa)
+    const spinning = !calm && !drag && !selected && now - lastTouch > 5000 && heroRatio >= 0.5 && now - lastScroll > 220 && now - lastActive < 30000;
+    if (spinning) govern(now, rawDt);
     // rolando a página: a maquete congela no último quadro (sem nenhum desenho WebGL) até a rolagem parar
     if (now - lastScroll < 220 && !dirty && !drag && !hl) { if (!spinning) goal.az = cur.az; return; }
     if (spinning) goal.az += dt * 0.07;
@@ -866,15 +871,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     const k = holdIntro ? 0 : 1 - Math.exp(-dt * (now < slowUntil ? 1.1 : 5.5));
     for (const p of KEYS) cur[p] += (goal[p] - cur[p]) * k;
     fade += ((selected ? 1 : 0) - fade) * k;
-    const gap = now - lastDraw;
     draw(now);
-    if (!perf.done && settling && now > perf.from && ++perf.n > 5) { // aparelho lento: reduz resolução e brilho
-      perf.sum += Math.min(gap, 100);
-      if (perf.n === 65) {
-        perf.done = true;
-        if (perf.sum / 60 > 30 && renderer.getPixelRatio() > 1.5) { const pr = Math.max(1.5, renderer.getPixelRatio() - 0.5); renderer.setPixelRatio(pr); composer.setPixelRatio(pr); composerB.setPixelRatio(pr); bloom.enabled = false; resize(); }
-      }
-    }
   };
   function draw(now) {
     foliage.forEach((m) => { m.opacity = 1 - fade * 0.8; m.depthWrite = fade < 0.5; });
@@ -906,8 +903,28 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     firstFrame();
   }
   // laço 3D só roda com a maquete na tela e a aba visível; o giro pausa ao rolar
-  let heroRatio = 1, lastScroll = 0, ioFirst = true;
-  const wake = () => { cancelAnimationFrame(raf); if (visible && !document.hidden) { prev = performance.now(); dirty = true; raf = requestAnimationFrame(tick); } };
+  let heroRatio = 1, lastScroll = 0, ioFirst = true, lastActive = performance.now();
+  for (const ev of ['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(ev, () => { lastActive = performance.now(); }, { passive: true });
+
+  /* governador de qualidade: mede o ritmo real da página durante o giro. Se a GPU do aparelho não
+     acompanha (média > 26 ms por quadro, ou seja, a página toda abaixo de ~38 qps), desliga um efeito
+     por vez, do menos para o mais perceptível: brilho (bloom), oclusão (GTAO) e só então resolução.
+     Num computador que acompanha, nada muda. Nunca volta a subir (sem oscilar). */
+  const gov = { avg: 16.7, since: performance.now() + 5000 };
+  const steps = [
+    () => { if (!bloom.enabled) return false; bloom.enabled = false; return true; },
+    () => { if (!gtaoPass?.enabled) return false; gtaoPass.enabled = false; return true; },
+    () => { const pr = renderer.getPixelRatio(); if (pr <= 1.01) return false; const n = Math.max(1, pr - 0.5); renderer.setPixelRatio(n); composer.setPixelRatio(n); composerB.setPixelRatio(n); resize(); return true; },
+  ];
+  let tier = 0;
+  function govern(now, rawDt) {
+    if (now < gov.since || rawDt > 150 || tier >= steps.length) return; // aba voltando / já no mínimo
+    gov.avg = gov.avg * 0.93 + rawDt * 0.07;
+    if (gov.avg < 26) return;
+    gov.avg = 16.7; gov.since = now + 2500; dirty = true;
+    while (tier < steps.length && !steps[tier++]()) { /* pula o que já está desligado */ }
+  }
+  const wake = () => { cancelAnimationFrame(raf); if (visible && !document.hidden) { prev = performance.now(); dirty = true; gov.since = Math.max(gov.since, prev + 1500); raf = requestAnimationFrame(tick); } };
   new IntersectionObserver(([e]) => {
     heroRatio = e.intersectionRatio;
     if (ioFirst || visible !== e.isIntersecting) { ioFirst = false; visible = e.isIntersecting; wake(); } // o 1º aviso dá a partida
@@ -988,6 +1005,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
             done: () => {
               mode = 'orbit'; unit = null; Object.assign(goal, cur); touched();
               for (const o of apts.values()) setOpacity(o, 0);
+              composerB.renderTarget1.dispose(); composerB.renderTarget2.dispose(); // libera a memória do estúdio
               onDone?.();
             },
           });

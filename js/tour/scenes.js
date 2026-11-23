@@ -9,7 +9,7 @@ import {
   slats, lattice, nightstand, bed, headboard, wardrobe, openWardrobe,
   kitchenRun, fridge, ovenTower, washer, barStool, shellChair, brickWall, frameArt, teddy, vase, basket,
   ground, wallBlock, ivyWall, wallLamp, bench, bamboo,
-} from './kit.js?v=20261123';
+} from './kit.js?v=20261124';
 
 const porcelainFloor = (w, d, base = '#e3dfd8') => M(0xffffff, { map: rep(TX.porcelain(base), w / 1.8, d / 1.8), roughness: 0.22, metalness: 0.02 });
 const woodFloor = (w, d, base = '#cfae86') => M(0xffffff, { map: rep(TX.wood(base), w / 1.1, d / 2.2), roughness: 0.55 });

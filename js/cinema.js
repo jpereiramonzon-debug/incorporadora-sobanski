@@ -41,7 +41,9 @@ if (!gsap || !ST || calm) {
   /* ---------- rolagem suave (só no computador; no toque a rolagem nativa é mais leve) ---------- */
   let lenis = null;
   if (fine && Lenis) {
-    lenis = new Lenis({ duration: 1.25, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true });
+    // suavização curta e responsiva: a página acompanha a roda quase na hora (antes 1,25 s de inércia
+    // davam a sensação de site pesado/atrasado)
+    lenis = new Lenis({ lerp: 0.16, smoothWheel: true, wheelMultiplier: 1 });
     lenis.on('scroll', ST.update);
     gsap.ticker.add((t) => lenis.raf(t * 1000));
     gsap.ticker.lagSmoothing(0);
@@ -164,23 +166,17 @@ if (!gsap || !ST || calm) {
   if (fine) {
     const cur = document.createElement('div');
     cur.className = 'cursor'; cur.setAttribute('aria-hidden', 'true');
-    cur.innerHTML = '<span class="cursor-ring"></span><span class="cursor-label"></span>';
+    cur.innerHTML = '<span class="cursor-ring"></span>';
     document.body.appendChild(cur);
-    const label = cur.querySelector('.cursor-label');
-    const xTo = gsap.quickTo(cur, 'x', { duration: 0.55, ease: 'power3' });
-    const yTo = gsap.quickTo(cur, 'y', { duration: 0.55, ease: 'power3' });
+    // anel sem texto, colado ao mouse (antes chegava 0,55 s atrasado e parecia lentidão)
+    const xTo = gsap.quickTo(cur, 'x', { duration: 0.12, ease: 'power2' });
+    const yTo = gsap.quickTo(cur, 'y', { duration: 0.12, ease: 'power2' });
     addEventListener('pointermove', (e) => { xTo(e.clientX); yTo(e.clientY); cur.classList.add('on'); }, { passive: true });
     document.addEventListener('pointerleave', () => cur.classList.remove('on'));
     document.addEventListener('pointerover', (e) => {
-      const t = e.target;
-      const lab = t.closest('[data-cursor]')?.dataset.cursor || (t.closest('#viewer canvas') ? 'Girar' : t.closest('.t-stage canvas') ? 'Olhar' : '');
-      const link = !lab && t.closest('a, button, [role="button"], label');
-      cur.classList.toggle('is-label', !!lab);
-      cur.classList.toggle('is-link', !!link);
-      label.textContent = lab;
+      cur.classList.toggle('is-link', !!e.target.closest('a, button, [role="button"], label'));
     });
-    // a maquete troca o rótulo ao passar sobre uma unidade ("Ver") sem sair do canvas
-    window.SobanskiCursor = { set(lab) { cur.classList.toggle('is-label', !!lab); label.textContent = lab || ''; } };
+    window.SobanskiCursor = { set() {} }; // rótulos removidos
 
     const magnet = (el, k = 0.28) => {
       const mx = gsap.quickTo(el, 'x', { duration: 0.6, ease: 'power3' });

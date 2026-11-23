@@ -5,10 +5,10 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { ENVS, SHOTS } from './scenes.js?v=20261123';
-import { TX } from './kit.js?v=20261123';
-import { mergeStatic } from '../merge.js?v=20261123';
-import { enhanceMaterials, FilmShader } from '../lookdev.js?v=20261123';
+import { ENVS, SHOTS } from './scenes.js?v=20261124';
+import { TX } from './kit.js?v=20261124';
+import { mergeStatic } from '../merge.js?v=20261124';
+import { enhanceMaterials, FilmShader } from '../lookdev.js?v=20261124';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 const $ = (id) => document.getElementById(id);

@@ -179,7 +179,7 @@ const showMedia = async (i) => {
   if (!String(i).startsWith('3d')) return image(media[+i]);
   const id = state.model, planId = String(i).split(':')[1] || id;
   try {
-    const { createPlan, PLANS } = await import('./plan3d.js?v=20261123');
+    const { createPlan, PLANS } = await import('./plan3d.js?v=20261124');
     if (state.model !== id || !fig.isConnected) return;
     fig.className = 'media is3d';
     fig.innerHTML = '<figcaption>Planta em 3D · arraste para girar</figcaption>';
@@ -443,7 +443,7 @@ function revealBuilding() {
    O módulo já vem baixando em paralelo (modulepreload); só a montagem da cena (trabalho pesado de
    CPU) espera as letras da abertura começarem. As letras animam no compositor da GPU, então seguem
    fluidas mesmo enquanto o prédio é montado; antes, a montagem segurava a tela preta por segundos. */
-introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => import('./building.js?v=20261123')).then(({ createViewer }) => {
+introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => import('./building.js?v=20261124')).then(({ createViewer }) => {
   viewer = createViewer($('viewer'), {
     onSelect: selectFromBuilding,
     onHover: (k, e, at) => {
@@ -552,7 +552,7 @@ let tourWarm = false;
 const warmTour = (e) => {
   if (tourWarm || !e.target.closest?.('a[href^="tour.html"]')) return;
   tourWarm = true;
-  for (const href of ['js/tour/player.js?v=20261123', 'js/tour/scenes.js?v=20261123', 'js/tour/kit.js?v=20261123']) {
+  for (const href of ['js/tour/player.js?v=20261124', 'js/tour/scenes.js?v=20261124', 'js/tour/kit.js?v=20261124']) {
     const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = href; document.head.appendChild(l);
   }
 };
