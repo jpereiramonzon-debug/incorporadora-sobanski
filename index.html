@@ -93,6 +93,11 @@
       <div class="us-floor"><button type="button" data-step="-1" aria-label="Andar de baixo">&#8249;</button><b id="usFloor"></b><button type="button" data-step="1" aria-label="Andar de cima">&#8250;</button></div>
       <div class="us-units" id="usUnits" role="group" aria-label="Unidades deste andar"></div>
     </nav>
+    <div class="unit-zoom" id="unitZoom" role="group" aria-label="Zoom da planta" hidden>
+      <button type="button" data-zoom="in" aria-label="Aproximar">+</button>
+      <button type="button" data-zoom="out" aria-label="Afastar">&minus;</button>
+      <button type="button" data-zoom="fit" aria-label="Ver a planta inteira"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
     <aside class="unit-card" id="unitCard" aria-live="polite" aria-label="Detalhes da unidade" hidden></aside>
 
     <aside class="panel" id="panel" aria-label="Detalhes do andar" aria-live="polite" hidden>

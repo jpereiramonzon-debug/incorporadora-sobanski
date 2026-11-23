@@ -688,7 +688,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     camera.aspect = W / H;
     baseRad = 46 / Math.min(1, Math.max(0.5, (W / H) * 1.08));
     if (mode === 'orbit') frame();
-    else if (mode === 'studio' && unit) Object.assign(cur, studioPose(unit)), Object.assign(goal, cur);
+    else if (mode === 'studio' && unit) studioBase = studioRad(unit); // reenquadra sem girar nem pular
     // mudar o tamanho apaga o canvas: redesenha no mesmo quadro (no celular a barra de endereço
     // muda a altura ao rolar, e isso dava um piscar escuro na maquete)
     if (ready) draw(performance.now());
@@ -733,9 +733,25 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   };
   const fit = () => Math.min(1, Math.max(0.45, (W / H) * 1.08));
   const approachPose = (id) => { const sl = slotOf(id); return { az: sl.az, pol: 1.38, rad: 17 / fit(), tx: sl.at[0], ty: SLAB[id[0]] + 1.5, tz: sl.at[1], shift: 0 }; };
+  // área livre da tela para a maquete (px): o que sobra entre o botão de voltar, as pílulas e o
+  // cartão. O main.js mede os elementos reais e informa; aqui há um padrão até a primeira medida.
+  let safe = null, zoom = 1, studioBase = 20;
+  const ZMIN = 0.4, ZMAX = 1.5;
+  const freeBox = () => {
+    const s = safe || (W > 860 ? { t: 70, r: Math.min(460, W * 0.42), b: 80, l: 0 } : { t: 170, r: 0, b: H * 0.47, l: 0 });
+    const fw = Math.max(140, W - s.l - s.r), fh = Math.max(140, H - s.t - s.b);
+    return { fw, fh, cx: s.l + fw / 2, cy: s.t + fh / 2 };
+  };
+  // distância que faz a maquete caber inteira na área livre (largura: diagonal da planta, que é o
+  // pior caso enquanto ela gira; altura: a planta vista de cima a ~52° mais a altura das paredes)
+  const studioRad = (id) => {
+    const a = apt(slotOf(id).plan), span = Math.hypot(...a.size) * SCALE, f = freeBox();
+    const k = H / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+    return Math.max(span * k / (f.fw * 0.92), (span * 0.66 + 0.9) * k / (f.fh * 0.9));
+  };
   const studioPose = (id, c = unitCenter(id), az = slotOf(id).az + 0.62) => {
-    const a = apt(slotOf(id).plan), span = Math.hypot(...a.size) * SCALE;
-    return { az, pol: 0.9, rad: span * (W > 860 ? 2.15 : 2.6) / fit(), tx: c.x, ty: c.y + 0.2, tz: c.z, shift: 1 };
+    studioBase = studioRad(id); zoom = 1;
+    return { az, pol: 0.9, rad: studioBase, tx: c.x, ty: c.y + 0.2, tz: c.z, shift: 1 };
   };
 
   const ray = new THREE.Raycaster(); const ptr = new THREE.Vector2();
@@ -745,20 +761,28 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     ray.setFromCamera(ptr, camera);
     return ray.intersectObjects(hits, false)[0]?.object.userData.k ?? null;
   };
-  let drag = null;
+  let drag = null, pinch = null, lastTap = 0;
+  const pts = new Map(); // dedos na tela (pinça para zoom no estúdio)
   const touched = () => { lastTouch = performance.now(); };
+  const setZoom = (z) => { zoom = THREE.MathUtils.clamp(z, ZMIN, ZMAX); touched(); };
+  const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
   canvas.addEventListener('pointerdown', (e) => {
-    drag = { x: e.clientX, y: e.clientY, moved: 0 };
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { canvas.setPointerCapture(e.pointerId); } catch { /* ponteiro já liberado */ }
     touched();
+    if (pts.size === 2 && mode === 'studio') { pinch = { d: Math.max(20, dist()), z: zoom }; drag = null; return; }
+    if (pts.size === 1) drag = { x: e.clientX, y: e.clientY, moved: 0 };
   });
   canvas.addEventListener('pointermove', (e) => {
+    if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pts.size >= 2) { setZoom(pinch.z * pinch.d / Math.max(20, dist())); return; } // afastar os dedos aproxima
     if (drag) {
       const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
       drag.moved += Math.abs(dx) + Math.abs(dy); drag.x = e.clientX; drag.y = e.clientY;
       if (mode === 'fly') return;
       goal.az -= dx * 0.0065;
       if (mode === 'orbit' && e.pointerType === 'mouse') goal.pol = THREE.MathUtils.clamp(goal.pol - dy * 0.004, 1.05, 1.53);
+      if (mode === 'studio') goal.pol = THREE.MathUtils.clamp(goal.pol - dy * 0.0045, 0.32, 1.25); // arrastar na vertical: ver mais de cima
       canvas.classList.add('dragging'); touched();
       if (drag.moved > 6 && hovered) { hovered = null; paint(); onHover(null, e); }
     } else if (e.pointerType === 'mouse' && mode === 'orbit') {
@@ -769,10 +793,19 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     }
   });
   const end = (e) => {
+    pts.delete(e.pointerId);
+    if (pts.size < 2) pinch = null;
     if (!drag) return;
     const click = drag.moved < 7; drag = null; canvas.classList.remove('dragging');
     if (click && e.type === 'pointerup' && mode === 'orbit') { const k = pick(e); if (k) { hovered = null; paint(); onHover(null, e); onSelect(k); } }
+    if (click && e.type === 'pointerup' && mode === 'studio' && e.pointerType !== 'mouse') { // duplo toque: aproxima / volta
+      const now = performance.now();
+      if (now - lastTap < 320) { setZoom(zoom > 0.8 ? 0.55 : 1); lastTap = 0; } else lastTap = now;
+    }
   };
+  // rodinha do mouse e duplo clique: zoom na maquete (só no estúdio; no prédio a rodinha rola a página)
+  canvas.addEventListener('wheel', (e) => { if (mode !== 'studio') return; e.preventDefault(); setZoom(zoom * Math.exp(e.deltaY * 0.0012)); }, { passive: false });
+  canvas.addEventListener('dblclick', () => { if (mode === 'studio') setZoom(zoom > 0.8 ? 0.55 : 1); });
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
   canvas.addEventListener('pointerleave', (e) => { if (!drag && hovered) { hovered = null; paint(); canvas.style.cursor = ''; onHover(null, e); } });
@@ -801,8 +834,10 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       if (mixAnim) stepMix(now);
       const fading = stepApts(now);
       if (mode === 'studio' && !flight) {
-        if (!calm && !drag && now - lastTouch > 3500) goal.az += dt * 0.05; // a maquete gira devagar sozinha
-        cur.az += (goal.az - cur.az) * (1 - Math.exp(-dt * 6));
+        if (!calm && !drag && !pinch && now - lastTouch > 3500) goal.az += dt * 0.05; // a maquete gira devagar sozinha
+        goal.rad = studioBase * zoom;
+        const ks = 1 - Math.exp(-dt * 6);
+        cur.az += (goal.az - cur.az) * ks; cur.pol += (goal.pol - cur.pol) * ks; cur.rad += (goal.rad - cur.rad) * ks;
       }
       if (fading) studioShadow = true;
       draw(now);
@@ -836,8 +871,9 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     camera.lookAt(cur.tx, cur.ty, cur.tz);
     // abre espaço para o painel/cartão: desloca a imagem para a esquerda (desktop) ou para cima (celular)
     const wide = W > 860;
-    const ox = wide ? Math.min(480, W * 0.42) / 2 * cur.shift : 0;
-    const oy = wide ? 0 : H * 0.24 * cur.shift;
+    let ox = wide ? Math.min(480, W * 0.42) / 2 * cur.shift : 0;
+    let oy = wide ? 0 : H * 0.24 * cur.shift;
+    if (unit) { const f = freeBox(); ox = (W / 2 - f.cx) * cur.shift; oy = (H / 2 - f.cy) * cur.shift; } // centraliza na área livre
     camera.setViewOffset(W, H, ox, oy, W, H);
     const tsec = (now * 0.001) % 97;
     film.uniforms.uTime.value = tsec;
@@ -878,6 +914,10 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     rotate(d) { goal.az += d; touched(); },
     whenReady, preload,
     get unit() { return unit; },
+    // área livre (px) informada pela página; no estúdio a câmera reenquadra suavemente
+    setSafe(s) { safe = s; if (mode === 'studio' && unit) { studioBase = studioRad(unit); touched(); } },
+    zoomBy(f) { if (mode === 'studio') setZoom(zoom * f); },
+    zoomReset() { if (mode === 'studio') { setZoom(1); goal.pol = 0.9; } },
     // clique numa unidade: orbita e aproxima até ela, dissolve o prédio no estúdio claro e
     // revela a planta 3D da unidade no mesmo lugar; onStudio avisa a hora de mostrar o cartão
     focusUnit(id, { onStudio } = {}) {

@@ -232,7 +232,7 @@ $('panelClose').addEventListener('click', closePanel);
 addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if (state.floor) closePanel(); else if (unitId) exitUnit(); });
 
 /* ---------- Vista da unidade: voo até o apartamento, planta 3D isolada e cartão lateral ---------- */
-const unitBack = $('unitBack'), unitCard = $('unitCard'), unitSwitch = $('unitSwitch'), usUnits = $('usUnits'), usFloor = $('usFloor');
+const unitBack = $('unitBack'), unitCard = $('unitCard'), unitSwitch = $('unitSwitch'), usUnits = $('usUnits'), usFloor = $('usFloor'), unitZoom = $('unitZoom');
 let unitId = null;
 const root = document.documentElement;
 const lockScroll = (on) => { root.classList.toggle('no-scroll', on); if (on) window.__lenis?.stop(); else window.__lenis?.start(); };
@@ -278,13 +278,30 @@ function renderSwitch(id) {
   unitSwitch.querySelector('[data-step="1"]').disabled = id[0] === '3';
 }
 const reveal = (el) => { el.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on'))); };
+const UNIT_UI = [unitCard, unitSwitch, unitZoom];
+// mede o espaço que sobra entre o botão de voltar, as pílulas e o cartão e avisa a maquete:
+// ela se centraliza e cabe inteira nessa área (no celular, entre as pílulas e o cartão de baixo)
+function measureSafe() {
+  if (!unitId || !viewer) return;
+  const W = hero.clientWidth, H = hero.clientHeight;
+  // celular: os botões de zoom vão para a linha do andar, fora da faixa da planta
+  const zoomHome = W > 860 ? hero : unitSwitch;
+  if (unitZoom.parentElement !== zoomHome) zoomHome.insertBefore(unitZoom, W > 860 ? unitCard : usUnits);
+  if (W > 860) viewer.setSafe({ t: unitBack.offsetTop + unitBack.offsetHeight + 16, r: W - unitCard.offsetLeft + 24, b: H - unitSwitch.offsetTop + 16, l: unitZoom.offsetLeft + unitZoom.offsetWidth + 8 });
+  else viewer.setSafe({ t: unitSwitch.offsetTop + unitSwitch.offsetHeight + 12, r: 0, b: H - unitCard.offsetTop + 14, l: 0 });
+}
+new ResizeObserver(() => measureSafe()).observe(hero);
 function enterUnit(id) {
   if (!viewer) return;
   if (unitId) return goUnit(id);
   closePanel();
-  // voo até a unidade; o cartão entra quando a câmera assenta no estúdio
-  if (!viewer.focusUnit(id, { onStudio: () => { renderCard(id); renderSwitch(id); reveal(unitCard); reveal(unitSwitch); } })) return;
+  // cartão e pílulas já entram no layout (invisíveis) para a câmera saber onde enquadrar
   unitId = id;
+  renderCard(id); renderSwitch(id);
+  UNIT_UI.forEach((el) => { el.hidden = false; });
+  measureSafe();
+  // voo até a unidade; o cartão entra quando a câmera assenta no estúdio
+  if (!viewer.focusUnit(id, { onStudio: () => UNIT_UI.forEach(reveal) })) { unitId = null; UNIT_UI.forEach((el) => { el.hidden = true; }); return; }
   tip.classList.remove('on'); tip.dataset.cur = ''; window.SobanskiCursor?.set('Girar');
   if (scrollY > 2) (window.__lenis ? window.__lenis.scrollTo(0, { duration: 0.8 }) : scrollTo({ top: 0, behavior: 'smooth' }));
   lockScroll(true);
@@ -297,7 +314,7 @@ function goUnit(id) {
   if (!viewer.switchUnit(id)) return;
   unitId = id;
   unitCard.classList.add('swap');
-  setTimeout(() => { renderCard(id); unitCard.scrollTop = 0; unitCard.classList.remove('swap'); }, 260);
+  setTimeout(() => { renderCard(id); unitCard.scrollTop = 0; unitCard.classList.remove('swap'); measureSafe(); }, 260);
   renderSwitch(id);
 }
 function exitUnit() {
@@ -307,9 +324,13 @@ function exitUnit() {
     onDone: () => { unitBack.hidden = true; unitId = null; lockScroll(false); },
   })) return;
   closePanel();
-  for (const el of [unitCard, unitSwitch]) { el.classList.remove('on'); setTimeout(() => { if (!el.classList.contains('on')) el.hidden = true; }, 600); }
+  for (const el of UNIT_UI) { el.classList.remove('on'); setTimeout(() => { if (!el.classList.contains('on')) el.hidden = true; }, 600); }
 }
 unitBack.addEventListener('click', exitUnit);
+unitZoom.addEventListener('click', (e) => {
+  const z = e.target.closest('[data-zoom]')?.dataset.zoom;
+  if (z === 'in') viewer?.zoomBy(0.75); else if (z === 'out') viewer?.zoomBy(1 / 0.75); else if (z === 'fit') viewer?.zoomReset();
+});
 unitSwitch.addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b || !unitId) return;

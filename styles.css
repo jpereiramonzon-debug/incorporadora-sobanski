@@ -578,6 +578,15 @@ html.no-scroll,html.no-scroll body{overflow:hidden;overscroll-behavior:none}
 .us-units button[aria-pressed=true] b{color:var(--gold-soft)}
 .us-units button[aria-pressed=true] small{color:#cfc6b6}
 
+.unit-card:not(.on),.unit-switch:not(.on),.unit-zoom:not(.on){pointer-events:none}
+.unit-mode .viewer canvas{touch-action:none} /* no estúdio: girar, inclinar e pinça de zoom */
+.unit-zoom{position:absolute;z-index:6;left:clamp(16px,3vw,44px);top:50%;display:grid;gap:6px;padding:5px;background:#fffdf9;border:1px solid rgba(34,30,24,.07);border-radius:999px;box-shadow:0 10px 30px rgba(70,52,24,.12);opacity:0;transform:translate(-8px,-50%);transition:opacity .5s ease .2s,transform .6s cubic-bezier(.2,.7,.2,1) .2s}
+.unit-zoom[hidden]{display:none}
+.unit-zoom.on{opacity:1;transform:translate(0,-50%)}
+.unit-zoom button{all:unset;cursor:pointer;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#2a241c;font:400 1.35rem/1 var(--sans);transition:background .2s}
+.unit-zoom button:hover{background:#f1ebe0}
+.unit-zoom button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.unit-zoom svg{width:18px;height:18px}
 @media (max-width:860px){
   .tip{min-width:0;padding:9px 13px 8px}
   .tip em{display:none}
@@ -594,6 +603,8 @@ html.no-scroll,html.no-scroll body{overflow:hidden;overscroll-behavior:none}
   .us-units::-webkit-scrollbar{display:none}
   .us-units button{padding:5px 10px}
   .us-floor b{min-width:64px}
-  .unit-mode .wa-fab{opacity:0;pointer-events:none} /* o cartão tem o botão de contato; o flutuante não cobre o cartão */
+  .unit-mode .wa-fab{opacity:0;pointer-events:none}
+  .unit-switch .unit-zoom{position:static;grid-auto-flow:column;padding:4px;gap:2px;opacity:1;transform:none;transition:none}
+  .unit-zoom button{width:34px;height:34px;font-size:1.2rem} /* o cartão tem o botão de contato; o flutuante não cobre o cartão */
 }
 @media (prefers-reduced-motion:reduce){.unit-card,.unit-switch,.unit-back,.tip{transition:none}}
