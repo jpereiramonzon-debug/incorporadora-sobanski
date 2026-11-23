@@ -9,9 +9,8 @@
 <meta property="og:description" content="Transformando sonhos, construindo o seu lar.">
 <meta property="og:image" content="assets/fachada.jpg">
 <meta name="theme-color" content="#0e1014">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Jost:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/fonts/cinzel-normal-latin-8vIJ7ww63m.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jost-normal-latin-92zatBhPNq.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
 <script type="importmap">
 { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
@@ -112,7 +111,7 @@
   <!-- O empreendimento: a vista do prédio se abre até a tela cheia -->
   <section class="cine" id="empreendimento" aria-labelledby="cine-title">
     <div class="cine-pin">
-      <figure class="cine-frame"><img src="assets/vista-lateral.webp" srcset="assets/vista-lateral-800.webp 800w, assets/vista-lateral.webp 1400w" sizes="100vw" width="1400" height="1120" alt="Edifício Santa Ana visto da quina dianteira, ao entardecer, com a coluna de tijolos de vidro iluminada" decoding="async" loading="lazy"></figure>
+      <figure class="cine-frame"><img fetchpriority="low" src="assets/vista-lateral.webp" srcset="assets/vista-lateral-800.webp 800w, assets/vista-lateral.webp 1400w" sizes="100vw" width="1400" height="1120" alt="Edifício Santa Ana visto da quina dianteira, ao entardecer, com a coluna de tijolos de vidro iluminada" decoding="async" loading="lazy"></figure>
       <div class="cine-copy">
         <p class="eyebrow">Sinta-se em casa · para morar ou investir</p>
         <h2 id="cine-title" data-split>Um novo conceito de <em>moradia em Mallet</em></h2>
@@ -129,8 +128,8 @@
           <h2 data-split>Pensado em <em>cada detalhe</em></h2>
           <p class="body reveal">Um imóvel para quem quer conforto e bem-estar, com acabamento de alta qualidade. Design, funcionalidade e localização estratégica no mesmo endereço.</p>
         </div>
-        <figure class="ly ly-a" data-speed="-6"><img src="assets/vista-frente.webp" srcset="assets/vista-frente-800.webp 800w, assets/vista-frente.webp 1400w" sizes="(max-width:760px) 92vw, 46vw" width="1400" height="1120" alt="Fachada frontal do Edifício Santa Ana com o letreiro e o portão em arco" decoding="async" loading="lazy"><figcaption>Fachada</figcaption></figure>
-        <figure class="ly ly-b" data-speed="10"><img src="assets/vista-fundos.webp" width="799" height="532" alt="Vista dos fundos do Edifício Santa Ana, com as arcadas e a garagem sob o prédio" decoding="async" loading="lazy"><figcaption>Vista fundos</figcaption></figure>
+        <figure class="ly ly-a" data-speed="-6"><img fetchpriority="low" src="assets/vista-frente.webp" srcset="assets/vista-frente-800.webp 800w, assets/vista-frente.webp 1400w" sizes="(max-width:760px) 92vw, 46vw" width="1400" height="1120" alt="Fachada frontal do Edifício Santa Ana com o letreiro e o portão em arco" decoding="async" loading="lazy"><figcaption>Fachada</figcaption></figure>
+        <figure class="ly ly-b" data-speed="10"><img fetchpriority="low" src="assets/vista-fundos.webp" width="799" height="532" alt="Vista dos fundos do Edifício Santa Ana, com as arcadas e a garagem sob o prédio" decoding="async" loading="lazy"><figcaption>Vista fundos</figcaption></figure>
       </div>
       <ul class="hl">
         <li>Alta qualidade de acabamento</li>
@@ -161,27 +160,27 @@
       </header>
       <div class="g-track">
           <article class="g-slide">
-            <a class="g-media" href="tour.html#t01-sala" data-cursor="Visitar"><img src="assets/tipo01-sala-cozinha.webp" srcset="assets/tipo01-sala-cozinha-800.webp 800w, assets/tipo01-sala-cozinha.webp 2528w" sizes="(max-width:860px) 92vw, 62vw" width="2528" height="1696" alt="Cozinha integrada à sala, com mesa redonda e janelas amplas" decoding="async" loading="lazy"></a>
+            <a class="g-media" href="tour.html#t01-sala" data-cursor="Visitar"><img fetchpriority="low" src="assets/tipo01-sala-cozinha.webp" srcset="assets/tipo01-sala-cozinha-800.webp 800w, assets/tipo01-sala-cozinha.webp 2528w" sizes="(max-width:860px) 92vw, 62vw" width="2528" height="1696" alt="Cozinha integrada à sala, com mesa redonda e janelas amplas" decoding="async" loading="lazy"></a>
             <div class="g-cap"><span class="g-num">01</span><h3>Cozinha e sala</h3><p>Apartamento Tipo 01</p></div>
           </article>
           <article class="g-slide">
-            <a class="g-media" href="tour.html#t02-cozinha" data-cursor="Visitar"><img src="assets/tipo02-cozinha-v2.webp" srcset="assets/tipo02-cozinha-v2-800.webp 800w, assets/tipo02-cozinha-v2.webp 1400w" sizes="(max-width:860px) 92vw, 62vw" width="1400" height="914" alt="Cozinha com nichos de vidro canelado iluminados e dois fornos" decoding="async" loading="lazy"></a>
+            <a class="g-media" href="tour.html#t02-cozinha" data-cursor="Visitar"><img fetchpriority="low" src="assets/tipo02-cozinha-v2.webp" srcset="assets/tipo02-cozinha-v2-800.webp 800w, assets/tipo02-cozinha-v2.webp 1400w" sizes="(max-width:860px) 92vw, 62vw" width="1400" height="914" alt="Cozinha com nichos de vidro canelado iluminados e dois fornos" decoding="async" loading="lazy"></a>
             <div class="g-cap"><span class="g-num">02</span><h3>Cozinha planejada</h3><p>Apartamento Tipo 02</p></div>
           </article>
           <article class="g-slide">
-            <a class="g-media" href="tour.html#t01-quarto-1" data-cursor="Visitar"><img src="assets/tipo01-quarto-1.webp" srcset="assets/tipo01-quarto-1-800.webp 800w, assets/tipo01-quarto-1.webp 1269w" sizes="(max-width:860px) 92vw, 62vw" width="1269" height="1076" alt="Quarto com marcenaria em nogueira e ripado" decoding="async" loading="lazy"></a>
+            <a class="g-media" href="tour.html#t01-quarto-1" data-cursor="Visitar"><img fetchpriority="low" src="assets/tipo01-quarto-1.webp" srcset="assets/tipo01-quarto-1-800.webp 800w, assets/tipo01-quarto-1.webp 1269w" sizes="(max-width:860px) 92vw, 62vw" width="1269" height="1076" alt="Quarto com marcenaria em nogueira e ripado" decoding="async" loading="lazy"></a>
             <div class="g-cap"><span class="g-num">03</span><h3>Quarto em nogueira</h3><p>Apartamento Tipo 01</p></div>
           </article>
           <article class="g-slide">
-            <a class="g-media" href="tour.html#t02-quarto-01" data-cursor="Visitar"><img src="assets/tipo02-quarto-01.webp" srcset="assets/tipo02-quarto-01-800.webp 800w, assets/tipo02-quarto-01.webp 1400w" sizes="(max-width:860px) 92vw, 62vw" width="1400" height="912" alt="Quarto com painel de madeira e cabeceira estofada" decoding="async" loading="lazy"></a>
+            <a class="g-media" href="tour.html#t02-quarto-01" data-cursor="Visitar"><img fetchpriority="low" src="assets/tipo02-quarto-01.webp" srcset="assets/tipo02-quarto-01-800.webp 800w, assets/tipo02-quarto-01.webp 1400w" sizes="(max-width:860px) 92vw, 62vw" width="1400" height="912" alt="Quarto com painel de madeira e cabeceira estofada" decoding="async" loading="lazy"></a>
             <div class="g-cap"><span class="g-num">04</span><h3>Quarto com sacada</h3><p>Apartamento Tipo 02</p></div>
           </article>
           <article class="g-slide">
-            <a class="g-media" href="tour.html#t03-infantil" data-cursor="Visitar"><img src="assets/tipo03-infantil.webp" srcset="assets/tipo03-infantil-800.webp 800w, assets/tipo03-infantil.webp 1400w" sizes="(max-width:860px) 92vw, 62vw" width="1400" height="910" alt="Quarto infantil com painéis estofados e armário de palhinha" decoding="async" loading="lazy"></a>
+            <a class="g-media" href="tour.html#t03-infantil" data-cursor="Visitar"><img fetchpriority="low" src="assets/tipo03-infantil.webp" srcset="assets/tipo03-infantil-800.webp 800w, assets/tipo03-infantil.webp 1400w" sizes="(max-width:860px) 92vw, 62vw" width="1400" height="910" alt="Quarto infantil com painéis estofados e armário de palhinha" decoding="async" loading="lazy"></a>
             <div class="g-cap"><span class="g-num">05</span><h3>Quarto infantil</h3><p>Tipos 03 e 04</p></div>
           </article>
           <article class="g-slide">
-            <a class="g-media" href="tour.html#t01-varanda" data-cursor="Visitar"><img src="assets/tipo01-varanda.webp" srcset="assets/tipo01-varanda-800.webp 800w, assets/tipo01-varanda.webp 1400w" sizes="(max-width:860px) 92vw, 62vw" width="1400" height="985" alt="Varanda com churrasqueira e área de serviço" decoding="async" loading="lazy"></a>
+            <a class="g-media" href="tour.html#t01-varanda" data-cursor="Visitar"><img fetchpriority="low" src="assets/tipo01-varanda.webp" srcset="assets/tipo01-varanda-800.webp 800w, assets/tipo01-varanda.webp 1400w" sizes="(max-width:860px) 92vw, 62vw" width="1400" height="985" alt="Varanda com churrasqueira e área de serviço" decoding="async" loading="lazy"></a>
             <div class="g-cap"><span class="g-num">06</span><h3>Varanda gourmet</h3><p>Apartamento Tipo 01</p></div>
           </article>
       </div>
@@ -270,7 +269,7 @@
 
   <!-- imagem do prédio fixa enquanto a página rola por cima -->
   <section class="still" aria-label="Edifício Santa Ana">
-    <div class="still-img" aria-hidden="true"><img src="assets/vista-lateral.webp" srcset="assets/vista-lateral-800.webp 800w, assets/vista-lateral.webp 1400w" sizes="100vw" loading="lazy" decoding="async" alt=""></div>
+    <div class="still-img" aria-hidden="true"><img fetchpriority="low" src="assets/vista-lateral.webp" srcset="assets/vista-lateral-800.webp 800w, assets/vista-lateral.webp 1400w" sizes="100vw" loading="lazy" decoding="async" alt=""></div>
     <div class="still-copy">
       <p class="eyebrow">Edifício Santa Ana</p>
       <p class="still-title" data-split>Transformando sonhos, <em>construindo o seu lar.</em></p>

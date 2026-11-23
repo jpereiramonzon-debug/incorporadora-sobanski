@@ -448,28 +448,39 @@ plSteps.forEach((el) => {
   word.style.setProperty('--n', i);
 });
 let ticking = false;
+// rolagem: primeiro TODAS as leituras de layout, depois as escritas, e só o que mudou. Antes cada
+// etapa era medida e escrita no mesmo laço (layout forçado várias vezes por quadro) e atributos e
+// classes eram regravados a cada quadro mesmo sem mudança (centenas de recálculos de estilo).
+const plState = plSteps.map(() => ({ m: '', t: '', b: false }));
+let navSolid = null, dotsOn = null, lastActive = null;
 const update = () => {
   ticking = false;
   const vh = innerHeight;
-  nav.classList.toggle('solid', hero.getBoundingClientRect().bottom < 80);
-  // cada etapa: a palavra cresce, sobe e preenche; depois o texto aparece
+  const heroBottom = hero.getBoundingClientRect().bottom;
+  const pr = pillars.getBoundingClientRect();
+  const near = pr.bottom > -vh && pr.top < vh * 2; // etapas longe da tela: nada a calcular
+  const rects = near ? plSteps.map((el) => el.getBoundingClientRect()) : null;
+  // escritas
+  const solid = heroBottom < 80;
+  if (solid !== navSolid) { navSolid = solid; nav.classList.toggle('solid', solid); }
+  if (!near) return;
   let active = -1;
   plSteps.forEach((el, i) => {
-    const r = el.getBoundingClientRect();
+    const r = rects[i], st = plState[i];
     const q = clamp(-r.top / Math.max(1, r.height - vh));
-    // a obra começa quando a etapa ocupa a tela; volta ao canteiro ao rolar de novo para cima
     // constrói quando a etapa ocupa a tela, descendo ou subindo; reinicia quando ela sai da tela
     const inView = r.top < vh * 0.35 && r.bottom > vh * 0.65;
     const gone = r.top > vh * 0.95 || r.bottom < vh * 0.05;
-    if (inView && !el.classList.contains('build')) el.classList.add('build');
-    else if (gone && el.classList.contains('build')) el.classList.remove('build');
-    el.style.setProperty('--m', ease((q - 0.3) / 0.28).toFixed(3));
-    el.style.setProperty('--t', ease((q - 0.5) / 0.22).toFixed(3));
+    if (inView && !st.b) { st.b = true; el.classList.add('build'); }
+    else if (gone && st.b) { st.b = false; el.classList.remove('build'); }
+    const m = ease((q - 0.3) / 0.28).toFixed(3), t = ease((q - 0.5) / 0.22).toFixed(3);
+    if (m !== st.m) { st.m = m; el.style.setProperty('--m', m); }
+    if (t !== st.t) { st.t = t; el.style.setProperty('--t', t); }
     if (r.top < vh * 0.5 && r.bottom > vh * 0.5) active = i;
   });
-  const pr = pillars.getBoundingClientRect();
-  pillars.classList.toggle('dots-on', pr.top < vh * 0.4 && pr.bottom > vh * 0.6 && active >= 0);
-  plDots.forEach((d, i) => d.setAttribute('aria-current', i === active ? 'step' : 'false'));
+  const on = pr.top < vh * 0.4 && pr.bottom > vh * 0.6 && active >= 0;
+  if (on !== dotsOn) { dotsOn = on; pillars.classList.toggle('dots-on', on); }
+  if (active !== lastActive) { lastActive = active; plDots.forEach((d, i) => d.setAttribute('aria-current', i === active ? 'step' : 'false')); }
 };
 // atalhos levam ao ponto em que a etapa já está com o texto visível
 pillars.addEventListener('click', (e) => {
@@ -504,3 +515,14 @@ navMenu.addEventListener('click', (e) => { if (e.target.closest('a')) setNav(fal
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && !navMenu.hidden) setNav(false); });
 
 $('year').textContent = new Date().getFullYear();
+
+/* ---------- Tour 3D: pré-carrega os módulos na intenção (mouse em cima, foco ou toque) ---------- */
+let tourWarm = false;
+const warmTour = (e) => {
+  if (tourWarm || !e.target.closest?.('a[href^="tour.html"]')) return;
+  tourWarm = true;
+  for (const href of ['js/tour/player.js', 'js/tour/scenes.js', 'js/tour/kit.js']) {
+    const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = href; document.head.appendChild(l);
+  }
+};
+for (const ev of ['pointerover', 'focusin', 'touchstart']) document.addEventListener(ev, warmTour, { passive: true });

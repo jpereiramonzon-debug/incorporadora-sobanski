@@ -172,7 +172,9 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const coarse = matchMedia('(pointer: coarse)').matches;
   const modest = coarse || (navigator.hardwareConcurrency || 8) <= 4;
   const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, coarse ? 2 : 1.75)); // celular com tela densa: mais pixels para ficar nítido
+  // celular com tela densa: 2x para ficar nítido (sem GTAO/bloom lá). Desktop: 1,5x com MSAA 4x já é
+  // indistinguível de 1,75x/2x numa tela Retina, e desenha ~27-44% menos pixels por quadro
+  renderer.setPixelRatio(Math.min(devicePixelRatio, coarse ? 2 : 1.5));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false; // a cena é estática: sombras calculadas uma vez
@@ -220,7 +222,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const sun = new THREE.DirectionalLight(0xffc09a, 1.5);
   sun.position.set(-34, 17, 26);
   sun.castShadow = true;
-  sun.shadow.mapSize.setScalar(innerWidth < 860 ? 2048 : 4096);
+  sun.shadow.mapSize.setScalar(innerWidth < 860 ? 2048 : 3072); // 4096² ocupava 64 MB de GPU; 3072² (36 MB) mantém a nitidez da sombra
   Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 26, bottom: -26, near: 1, far: 100 });
   sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04;
   scene.add(sun);
@@ -509,6 +511,11 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   // oclusão de ambiente (sombras de contato sob beirais, sacadas e junto ao chão) — só no computador
   if (!coarse) {
     const gtao = new GTAOPass(scene, camera, 1, 1);
+    // oclusão em meia resolução: a sombra de contato é suave (baixa frequência), então o resultado é
+    // o mesmo à vista, mas o passe de normais (que redesenha a cena inteira) e o cálculo de AO
+    // custam ~1/4. A mistura final continua na resolução cheia.
+    const gtaoSize = gtao.setSize.bind(gtao);
+    gtao.setSize = (w, h) => gtaoSize(Math.max(1, Math.round(w / 2)), Math.max(1, Math.round(h / 2)));
     gtao.updateGtaoMaterial({ radius: 1.6, distanceExponent: 1.2, thickness: 3, scale: 1.15, samples: 12, distanceFallOff: 1 });
     gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 5, rings: 2, samples: 12 });
     gtao.blendIntensity = 0.9;
@@ -617,8 +624,10 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   // estúdio, composição e dissolve). Sem isso esses programas compilavam no primeiro quadro do
   // dissolve e a animação engasgava justamente no meio da transição.
   let warmed = false;
-  function warmUp() {
+  function warmUp(force) {
     if (mode !== 'orbit' || warmed) return;
+    // nunca durante a rolagem nem com o topo fora da tela: espera um momento calmo (o clique força)
+    if (force !== true && (performance.now() - lastScroll < 1200 || heroRatio < 0.5 || document.hidden)) { setTimeout(() => idle(warmUp), 1500); return; }
     warmed = true;
     const vis = [...apts.values()].map((a) => [a, a.group.visible, a.op]);
     vis.forEach(([a]) => { a.group.visible = true; for (const m of a.mats) m.opacity = 0.001; });
@@ -843,13 +852,17 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       draw(now);
       return;
     }
-    const spinning = !calm && !drag && !selected && now - lastTouch > 5000;
+    // giro automático só com o topo bem à vista e a página parada: durante a rolagem a GPU fica livre
+    // para o navegador (era a principal causa de travadas ao rolar)
+    const spinning = !calm && !drag && !selected && now - lastTouch > 5000 && heroRatio >= 0.5 && now - lastScroll > 220;
+    // rolando a página: a maquete congela no último quadro (sem nenhum desenho WebGL) até a rolagem parar
+    if (now - lastScroll < 220 && !dirty && !drag && !hl) { if (!spinning) goal.az = cur.az; return; }
     if (spinning) goal.az += dt * 0.07;
     // desenha só quando algo muda; o giro automático roda a ~30 quadros por segundo
     let moving = dirty || hl || Math.abs(fade - (selected ? 1 : 0)) > 0.002;
     for (const p of KEYS) if (Math.abs(goal[p] - cur[p]) > 1e-4) moving = true;
     const settling = moving && !(spinning && !dirty && !hl);
-    if (!moving || (!settling && now - lastDraw < 32)) return;
+    if (!moving || (!settling && now - lastDraw < 40)) return; // giro lento a 25 qps: suave e mais leve
     const k = holdIntro ? 0 : 1 - Math.exp(-dt * (now < slowUntil ? 1.1 : 5.5));
     for (const p of KEYS) cur[p] += (goal[p] - cur[p]) * k;
     fade += ((selected ? 1 : 0) - fade) * k;
@@ -892,11 +905,15 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     dirty = false; lastDraw = now;
     firstFrame();
   }
+  // laço 3D só roda com a maquete na tela e a aba visível; o giro pausa ao rolar
+  let heroRatio = 1, lastScroll = 0, ioFirst = true;
+  const wake = () => { cancelAnimationFrame(raf); if (visible && !document.hidden) { prev = performance.now(); dirty = true; raf = requestAnimationFrame(tick); } };
   new IntersectionObserver(([e]) => {
-    visible = e.isIntersecting;
-    cancelAnimationFrame(raf);
-    if (visible) { prev = performance.now(); dirty = true; raf = requestAnimationFrame(tick); }
-  }).observe(container);
+    heroRatio = e.intersectionRatio;
+    if (ioFirst || visible !== e.isIntersecting) { ioFirst = false; visible = e.isIntersecting; wake(); } // o 1º aviso dá a partida
+  }, { threshold: [0, 0.5, 1] }).observe(container);
+  document.addEventListener('visibilitychange', wake);
+  addEventListener('scroll', () => { lastScroll = performance.now(); }, { passive: true });
 
   /* ---------- pré-carregamento em segundo plano ----------
      Depois que a maquete aparece, as plantas são montadas uma por vez em momentos ociosos do
@@ -927,7 +944,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       homeAz = goal.az; selected = null; panelOpen = false; fade = 0;
       const a = apt(slotOf(id).plan);
       precompileStudio();
-      warmUp(); // clique antes do pré-carregamento terminar: prepara tudo agora, antes do voo (nunca no meio do dissolve)
+      warmUp(true); // clique antes do pré-carregamento terminar: prepara tudo agora, antes do voo (nunca no meio do dissolve)
       unit = id; mode = 'fly';
       for (const o of apts.values()) if (o !== a) setOpacity(o, 0);
       place(a, id); setOpacity(a, 1);
