@@ -5,10 +5,10 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { ENVS, SHOTS } from './scenes.js?v=20261124';
-import { TX } from './kit.js?v=20261124';
-import { mergeStatic } from '../merge.js?v=20261124';
-import { enhanceMaterials, FilmShader } from '../lookdev.js?v=20261124';
+import { ENVS, SHOTS } from './scenes.js?v=20261124b';
+import { TX } from './kit.js?v=20261124b';
+import { mergeStatic } from '../merge.js?v=20261124b';
+import { enhanceMaterials, FilmShader } from '../lookdev.js?v=20261124b';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 const $ = (id) => document.getElementById(id);
@@ -447,7 +447,7 @@ function tick(now) {
   if (!env || busy) return;
 
   if (tween) {
-    tween.t = Math.min(1, tween.t + dt / 1.1);
+    tween.t = Math.min(1, tween.t + dt / 0.75);
     const e = tween.t < 0.5 ? 4 * tween.t ** 3 : 1 - (-2 * tween.t + 2) ** 3 / 2;
     pos.lerpVectors(tween.from.p, tween.to.p, e);
     yaw = tween.from.yaw + (tween.to.yaw - tween.from.yaw) * e;

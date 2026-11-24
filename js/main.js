@@ -179,7 +179,7 @@ const showMedia = async (i) => {
   if (!String(i).startsWith('3d')) return image(media[+i]);
   const id = state.model, planId = String(i).split(':')[1] || id;
   try {
-    const { createPlan, PLANS } = await import('./plan3d.js?v=20261124');
+    const { createPlan, PLANS } = await import('./plan3d.js?v=20261124b');
     if (state.model !== id || !fig.isConnected) return;
     fig.className = 'media is3d';
     fig.innerHTML = '<figcaption>Planta em 3D · arraste para girar</figcaption>';
@@ -353,7 +353,10 @@ const tapWord = matchMedia('(pointer: fine)').matches ? 'Clique' : 'Toque', drag
 let planReturn = null;
 function openPlan(img) {
   planReturn = document.activeElement;
-  planImg.alt = img.alt; planImg.src = img.src.replace(/-800\.webp$/, '.webp');
+  // abre na hora com a versão do cartão (já baixada) e troca pela alta definição quando ela chegar
+  const small = img.currentSrc || img.src, full = small.replace(/-800\.webp(\?.*)?$/, '.webp');
+  planImg.alt = img.alt; planImg.src = small;
+  if (full !== small) { const hi = new Image(); hi.src = full; hi.decode().then(() => { if (!planView.hidden && planImg.src === small) planImg.src = full; }).catch(() => {}); }
   planView.classList.remove('zoom'); hint.textContent = `${tapWord} na planta para ampliar`;
   planView.hidden = false;
   requestAnimationFrame(() => requestAnimationFrame(() => planView.classList.add('on')));
@@ -417,7 +420,7 @@ function endIntro(skipped = false) {
 }
 function revealBuilding() {
   introState = 'done';
-  viewer?.intro(3600);
+  viewer?.intro(2800);
   document.documentElement.classList.remove('intro-on');
   hero.classList.add('intro-reveal');
   // cada etapa conta o tempo a partir de quando a anterior de fato apareceu
@@ -436,14 +439,14 @@ function revealBuilding() {
     }));
   }, delay);
   // SANTA ANA em destaque; quando ele sai, entra o título do topo e então a mensagem
-  show(introTitle, 300, 3000, () => { titleIn(); show(introMsg, 500, 3200); });
+  show(introTitle, 250, 2400, () => { titleIn(); show(introMsg, 300, 2800); });
 }
 
 /* ---------- Maquete 3D ----------
    O módulo já vem baixando em paralelo (modulepreload); só a montagem da cena (trabalho pesado de
    CPU) espera as letras da abertura começarem. As letras animam no compositor da GPU, então seguem
    fluidas mesmo enquanto o prédio é montado; antes, a montagem segurava a tela preta por segundos. */
-introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => import('./building.js?v=20261124')).then(({ createViewer }) => {
+introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => import('./building.js?v=20261124b')).then(({ createViewer }) => {
   viewer = createViewer($('viewer'), {
     onSelect: selectFromBuilding,
     onHover: (k, e, at) => {
@@ -552,7 +555,7 @@ let tourWarm = false;
 const warmTour = (e) => {
   if (tourWarm || !e.target.closest?.('a[href^="tour.html"]')) return;
   tourWarm = true;
-  for (const href of ['js/tour/player.js?v=20261124', 'js/tour/scenes.js?v=20261124', 'js/tour/kit.js?v=20261124']) {
+  for (const href of ['js/tour/player.js?v=20261124b', 'js/tour/scenes.js?v=20261124b', 'js/tour/kit.js?v=20261124b']) {
     const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = href; document.head.appendChild(l);
   }
 };

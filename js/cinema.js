@@ -69,7 +69,7 @@ if (!gsap || !ST || calm) {
   document.querySelectorAll('[data-split]').forEach((el) => {
     if (el.closest('.cine')) return; // o título da expansão anda junto com a rolagem
     gsap.from(el.querySelectorAll('.wi'), {
-      yPercent: 115, duration: 1.5, ease: 'expo.out', stagger: 0.06,
+      yPercent: 115, duration: 1.0, ease: 'expo.out', stagger: 0.045,
       scrollTrigger: { trigger: el, start: 'top 86%' },
     });
   });
@@ -80,7 +80,7 @@ if (!gsap || !ST || calm) {
     const narrow = innerWidth < 760;
     const tl = gsap.timeline({
       defaults: { ease: 'none' },
-      scrollTrigger: { trigger: cine, start: 'top top', end: 'bottom bottom', scrub: 1.2 },
+      scrollTrigger: { trigger: cine, start: 'top top', end: 'bottom bottom', scrub: 0.4 },
     });
     // a vista de Mallet já entra grande e visível; termina de abrir e o título aparece no começo da
     // rolagem (antes a janela começava pequena e o título só surgia depois de ~60% da seção)
@@ -121,7 +121,7 @@ if (!gsap || !ST || calm) {
       const move = gsap.to(track, {
         x: () => -dist(), ease: 'none',
         scrollTrigger: {
-          trigger: gal, pin: '.g-pin', start: 'top top', end: () => `+=${dist()}`, scrub: 1, invalidateOnRefresh: true,
+          trigger: gal, pin: '.g-pin', start: 'top top', end: () => `+=${dist()}`, scrub: 0.4, invalidateOnRefresh: true,
           onUpdate: (s) => gsap.set(bar, { scaleX: s.progress }),
         },
       });

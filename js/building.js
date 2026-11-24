@@ -9,9 +9,9 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { mergeStatic } from './merge.js?v=20261124';
-import { enhanceMaterials, skyEnvironment, FilmShader } from './lookdev.js?v=20261124';
-import { buildPlanGroup, PLANS } from './plan3d.js?v=20261124';
+import { mergeStatic } from './merge.js?v=20261124b';
+import { enhanceMaterials, skyEnvironment, FilmShader } from './lookdev.js?v=20261124b';
+import { buildPlanGroup, PLANS } from './plan3d.js?v=20261124b';
 
 // cartão de folhagem: tufo de folhas recortado por transparência (substitui as copas de esferas)
 function leafCardTex() {
@@ -966,13 +966,13 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       for (const o of apts.values()) if (o !== a) setOpacity(o, 0);
       place(a, id); setOpacity(a, 1);
       let mixed = false; mixBack = 0;
-      fly(approachPose(id), 2300, {
+      fly(approachPose(id), 1500, {
         radLate: true,
-        progress: (t) => { if (!mixed && t > 0.8) { mixed = true; fadeMix(1, 750); } },
+        progress: (t) => { if (!mixed && t > 0.72) { mixed = true; fadeMix(1, 600); } },
         done: () => {
           let told = false;
-          fly(studioPose(id), 1100, {
-            progress: (t) => { if (!told && t > 0.35) { told = true; onStudio?.(); } },
+          fly(studioPose(id), 800, {
+            progress: (t) => { if (!told && t > 0.2) { told = true; onStudio?.(); } },
             done: () => { mode = 'studio'; Object.assign(goal, cur); touched(); },
           });
         },
@@ -986,9 +986,9 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       const from = apt(slotOf(unit).plan), to = apt(slotOf(id).plan);
       const c = new THREE.Vector3(cur.tx, cur.ty - 0.2, cur.tz);
       unit = id; mode = 'fly';
-      if (from === to) { animOpacity(to, 0.15, 260); setTimeout(() => animOpacity(to, 1, 420), 270); } // mesmo modelo, outro andar
-      else { placeAt(to, c, from.group.rotation.y); setOpacity(to, 0); animOpacity(from, 0, 420); animOpacity(to, 1, 620, 140); }
-      fly(studioPose(id, c, cur.az + 0.35), 1000, { done: () => { mode = 'studio'; Object.assign(goal, cur); touched(); onStudio?.(); } });
+      if (from === to) { animOpacity(to, 0.15, 200); setTimeout(() => animOpacity(to, 1, 320), 210); } // mesmo modelo, outro andar
+      else { placeAt(to, c, from.group.rotation.y); setOpacity(to, 0); animOpacity(from, 0, 300); animOpacity(to, 1, 420, 90); }
+      fly(studioPose(id, c, cur.az + 0.35), 650, { done: () => { mode = 'studio'; Object.assign(goal, cur); touched(); onStudio?.(); } });
       return true;
     },
     // volta ao prédio: o caminho inverso, igualmente contínuo
@@ -996,11 +996,11 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       if (!unit || mode === 'fly') return false;
       const id = unit; mode = 'fly';
       let faded = false; mixBack = 1;
-      fly(approachPose(id), 1000, {
-        progress: (t) => { if (!faded && t > 0.3) { faded = true; fadeMix(0, 700); } },
+      fly(approachPose(id), 650, {
+        progress: (t) => { if (!faded && t > 0.2) { faded = true; fadeMix(0, 500); } },
         done: () => {
           let landed = false;
-          fly({ az: homeAz, pol: 1.5, rad: baseRad, tx: 0, ty: HOME_Y, tz: 0, shift: 0 }, 1800, {
+          fly({ az: homeAz, pol: 1.5, rad: baseRad, tx: 0, ty: HOME_Y, tz: 0, shift: 0 }, 1100, {
             progress: (t) => { if (!landed && t > 0.5) { landed = true; onLanding?.(); } },
             done: () => {
               mode = 'orbit'; unit = null; Object.assign(goal, cur); touched();
