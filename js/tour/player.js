@@ -300,6 +300,7 @@ const veil = $('loading');
 const photoBox = $('photo'), photoImg = $('photoImg'), photoBtn = $('photoBtn');
 let photoOn = false, photoReq = 0;
 async function showPhoto(s) {
+  return; // modo foto em tela cheia desativado (a foto de referência fica só no cantinho)
   const req = ++photoReq;
   await avifReady; // detecção do AVIF (milissegundos; só espera na primeira foto)
   if (req !== photoReq) return;
@@ -339,7 +340,7 @@ function goShot(id, instant = false) {
     if (ticket !== want) return; // outra troca foi pedida no meio: ela assume
     busy = false;
     place(s, true);
-    photoBtn.hidden = false;
+    // botão "Ver foto realista" removido: a foto de referência fica só no cantinho
     draw(performance.now());
     requestAnimationFrame(() => veil.classList.remove('on'));
   }).catch((err) => { console.error(err); busy = false; veil.classList.remove('on'); });

@@ -779,3 +779,7 @@ html.no-scroll,html.no-scroll body{overflow:hidden;overscroll-behavior:none}
 .tour-cta small{font-size:.72rem;color:rgba(255,255,255,.6)}
 @media (max-width:860px){.tour-cta small{display:none}}
 @media (max-width:520px){.tour-cta,.tour-cta:hover,.tour-cta:focus-visible{left:50%;transform:translateX(-50%)}.tour-cta{bottom:28px}}
+
+/* tour 3D: só o texto sublinhado */
+.tour-cta,.tour-cta:hover,.tour-cta:focus-visible{background:none;border:0;padding:6px 2px;gap:0;font:500 .72rem var(--sans);letter-spacing:.28em;text-transform:uppercase;color:#fff;text-decoration:underline;text-decoration-color:var(--gold);text-decoration-thickness:1px;text-underline-offset:7px;text-shadow:0 1px 12px rgba(0,0,0,.6)}
+.tour-cta:hover,.tour-cta:focus-visible{color:var(--gold-soft)}
