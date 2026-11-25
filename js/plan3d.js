@@ -2,106 +2,10 @@
 // Medidas aproximadas (metros), apenas ilustrativas. x = largura, z = profundidade.
 import * as THREE from 'three';
 
-export const PLANS = {
-  // Tipo 05 (planta oficial, escala aproximada): sacada privativa, quarto 1, quarto 2, banheiro e estar com cozinha
-  t05: {
-    rooms: [
-      { n: 'Sacada privativa', x: 0, z: 0, w: 2.61, d: 0.82, f: 'stone', open: true },
-      { n: 'Quarto 1', x: 0, z: 0.82, w: 2.61, d: 3.9, f: 'wood' },
-      { n: 'Quarto 2', x: 2.61, z: 0, w: 2.54, d: 4.72, f: 'wood' },
-      { n: '', x: 0, z: 4.72, w: 3.74, d: 1.33, f: 'tile' },
-      { n: 'Banheiro', x: 3.74, z: 4.72, w: 1.41, d: 1.33, f: 'tile' },
-      { n: 'Estar · jantar · cozinha', x: 0, z: 6.05, w: 5.81, d: 4.83, f: 'tile' },
-    ],
-    openings: [[1.85, 4.72, 2.55, 4.72], [2.75, 4.72, 3.6, 4.72], [3.86, 6.05, 4.49, 6.05], [0, 6.05, 3.74, 6.05], [0.16, 10.88, 1.1, 10.88], [0.98, 0.82, 2.46, 0.82]],
-    rails: [[0, 0, 2.61, 0], [0, 0, 0, 0.82]],
-    items: [
-      ['bed', 0.18, 2.65, 1.3, 1.95, 's'], ['wardrobe', 0.31, 0.94, 0.62, 1.6],
-      ['bed', 3.1, 0.12, 1.4, 1.9, 'n'], ['wardrobe', 3.5, 2.92, 1.56, 0.58],
-      ['wc', 4.65, 5.35], ['sink', 3.95, 4.85, 0.6, 0.42],
-      ['sofa', 0.9, 6.2, 2.0, 0.9], ['rug', 0.6, 7.2, 2.2, 1.6], ['table', 1.6, 8.6, 0.55],
-      ['counter', 5.15, 6.3, 0.6, 3.6], ['fridge', 5.1, 10.05, 0.7, 0.68],
-    ],
-  },
-  // Tipo 01 (planta oficial, escala aproximada): quarto com sacada, banheiro, sala com cozinha, corredor, quarto 2 e sacada com churrasqueira
-  t01: {
-    rooms: [
-      { n: 'Quarto', x: 0, z: 5.25, w: 3.69, d: 2.7, f: 'wood' },
-      { n: 'Sacada', x: 0, z: 7.95, w: 3.69, d: 0.7, f: 'stone', open: true },
-      { n: '', x: 3.69, z: 5.25, w: 1.52, d: 0.98, f: 'tile' },
-      { n: 'Banheiro', x: 3.69, z: 6.23, w: 1.52, d: 2.42, f: 'tile' },
-      { n: 'Estar · jantar · cozinha', x: 5.21, z: 5.25, w: 5.25, d: 3.4, f: 'tile' },
-      { n: 'Entrada', x: 5.21, z: 0, w: 1.1, d: 5.25, f: 'tile' },
-      { n: 'Quarto 2', x: 6.31, z: 1.44, w: 2.51, d: 3.81, f: 'wood' },
-      { n: 'Sacada · churrasqueira', x: 8.82, z: 2.91, w: 1.64, d: 2.34, f: 'stone', open: true },
-    ],
-    openings: [[3.69, 5.35, 3.69, 6.13], [5.21, 5.25, 5.21, 6.23], [3.85, 6.23, 4.7, 6.23], [5.21, 5.25, 6.31, 5.25], [6.31, 3.48, 6.31, 4.43], [8.9, 5.25, 9.76, 5.25], [5.35, 0, 6.2, 0], [2.01, 7.95, 3.57, 7.95]],
-    rails: [[0, 8.65, 3.69, 8.65], [0, 7.95, 0, 8.65], [8.82, 2.91, 10.46, 2.91], [10.46, 2.91, 10.46, 5.25]],
-    items: [
-      ['bed', 1.0, 5.4, 1.6, 2.0, 'n'], ['wardrobe', 0.12, 5.4, 0.55, 2.2],
-      ['wc', 4.75, 6.4], ['sink', 4.45, 7.05, 0.65, 0.45],
-      ['counter', 9.85, 5.35, 0.6, 2.55], ['fridge', 9.75, 7.9, 0.7, 0.68],
-      ['table', 8.2, 6.95, 0.55], ['rug', 5.45, 5.95, 2.1, 2.3], ['sofa', 5.6, 6.0, 1.9, 0.9],
-      ['bed', 7.25, 1.55, 1.4, 1.95, 'n'], ['wardrobe', 6.43, 1.56, 0.42, 1.6], ['wardrobe', 6.48, 4.62, 2.2, 0.55],
-      ['grill', 9.8, 2.95, 0.6, 0.6], ['counter', 10.0, 4.15, 0.42, 0.9],
-    ],
-  },
-  // Tipo 04 (planta oficial, escala aproximada): quarto, circulação com armário, cozinha com estar e banheiro
-  t04: {
-    rooms: [
-      { n: 'Quarto', x: 0, z: 0, w: 3.68, d: 2.13, f: 'wood' },
-      { n: '', x: 1.42, z: 2.13, w: 2.26, d: 1.19, f: 'wood' },
-      { n: 'Cozinha · estar', x: 1.42, z: 3.32, w: 2.26, d: 7.19, f: 'tile' },
-      { n: 'Banheiro', x: 1.11, z: 10.51, w: 2.57, d: 1.58, f: 'tile' },
-    ],
-    openings: [[1.42, 2.13, 3.68, 2.13], [1.6, 3.32, 2.3, 3.32], [1.42, 5.77, 1.42, 6.48], [1.8, 10.51, 2.48, 10.51]],
-    rails: [],
-    items: [
-      ['bed', 1.5, 0.12, 1.4, 1.9, 'n'], ['wardrobe', 0.1, 0.12, 0.5, 1.9], ['wardrobe', 3.15, 2.2, 0.48, 1.05],
-      ['counter', 3.06, 3.45, 0.6, 3.4], ['table', 3.0, 8.1, 0.42], ['rug', 1.7, 8.65, 1.8, 1.4], ['sofa', 1.6, 9.45, 1.9, 0.9],
-      ['wc', 1.25, 11.35], ['sink', 1.9, 11.6, 0.5, 0.4],
-    ],
-  },
-  t02: {
-    rooms: [
-      { n: 'Sacada · churrasqueira', x: 0, z: 0, w: 1.5, d: 2.2, f: 'stone', open: true },
-      { n: 'Estar · jantar · cozinha', x: 1.5, z: 0, w: 4, d: 5.4, f: 'tile' },
-      { n: 'Banheiro', x: 1.5, z: 5.4, w: 2.7, d: 1.5, f: 'tile' },
-      { n: '', x: 4.2, z: 5.4, w: 1.3, d: 5, f: 'wood' },
-      { n: 'Quarto', x: 1.5, z: 6.9, w: 2.7, d: 3.5, f: 'wood' },
-      { n: 'Quarto com sacada', x: 1.5, z: 10.4, w: 4, d: 3.4, f: 'wood' },
-      { n: 'Sacada privativa', x: 0, z: 10.6, w: 1.5, d: 3.2, f: 'stone', open: true },
-    ],
-    openings: [[1.5, 0.4, 1.5, 1.8], [4.3, 5.4, 5.4, 5.4], [4.2, 5.7, 4.2, 6.5], [4.2, 7.3, 4.2, 8.2], [4.3, 10.4, 5.3, 10.4], [1.5, 11.2, 1.5, 13]],
-    rails: [[0, 0, 1.5, 0], [0, 0, 0, 2.2], [0, 2.2, 1.5, 2.2], [0, 10.6, 1.5, 10.6], [0, 10.6, 0, 13.8], [0, 13.8, 1.5, 13.8]],
-    items: [
-      ['grill', 0.15, 0.15, 0.75, 0.6], ['counter', 1.7, 0.1, 2.9, 0.6], ['fridge', 4.65, 0.1, 0.7, 0.7],
-      ['table', 3.4, 2.3, 0.58], ['rug', 1.9, 3.3, 3, 1.9], ['sofa', 2.2, 4.3, 2.2, 0.9, 's'],
-      ['wc', 1.7, 5.6], ['sink', 3.1, 5.5, 0.9, 0.5],
-      ['bed', 1.8, 7.05, 1.5, 2, 'n'], ['wardrobe', 1.65, 9.75, 2.4, 0.55],
-      ['bed', 2.7, 11.65, 1.6, 2, 's'], ['wardrobe', 4.85, 10.6, 0.55, 2.4], ['chair', 0.45, 12.6],
-    ],
-  },
-  t03: {
-    rooms: [
-      { n: 'Quarto 1', x: 0, z: 0, w: 3, d: 4.2, f: 'wood' },
-      { n: 'Sacada privativa', x: 3, z: 0, w: 2.8, d: 0.9, f: 'stone', open: true },
-      { n: 'Quarto 2', x: 3, z: 0.9, w: 2.8, d: 4.6, f: 'wood' },
-      { n: 'Banheiro', x: 0, z: 4.2, w: 1.9, d: 2.8, f: 'tile' },
-      { n: '', x: 1.9, z: 4.2, w: 1.1, d: 1.7, f: 'wood' },
-      { n: 'Estar · jantar · cozinha', x: 1.9, z: 5.9, w: 4.3, d: 6.1, f: 'tile' },
-    ],
-    openings: [[2, 4.2, 2.85, 4.2], [3, 4.4, 3, 5.3], [1.9, 4.6, 1.9, 5.4], [1.95, 5.9, 2.95, 5.9], [3.5, 0.9, 5.3, 0.9]],
-    rails: [[3, 0, 5.8, 0], [5.8, 0, 5.8, 0.9]],
-    items: [
-      ['bed', 0.7, 0.25, 1.6, 2, 'n'], ['wardrobe', 0.15, 3.5, 1.7, 0.55],
-      ['bed', 3.2, 3.3, 1.5, 2, 's'], ['wardrobe', 5.1, 1.1, 0.55, 2.3],
-      ['wc', 0.2, 6.1], ['sink', 0.15, 4.4, 0.5, 0.9],
-      ['table', 3.3, 7.2, 0.58], ['counter', 5.5, 6.05, 0.6, 3.3], ['fridge', 5.4, 9.4, 0.7, 0.7],
-      ['rug', 2.2, 9.5, 2.9, 1.9], ['sofa', 2.5, 10.9, 2.2, 0.9, 's'],
-    ],
-  },
-};
+// Plantas medidas diretamente sobre as plantas oficiais (tools/plantas-3d.py gera plan3d-data.js):
+// paredes, portas e cada móvel na mesma posição, tamanho e orientação do desenho de divulgação.
+import { PLANS } from './plan3d-data.js';
+export { PLANS };
 
 const WALL_H = 1.25, WALL_T = 0.12;
 
@@ -202,18 +106,32 @@ export function buildPlanGroup(plan, { fade = false } = {}) {
   }
 
   const build = {
-    bed(x, z, w, d, head) {
-      const n = head === 'n';
-      box(x, 0, z, w, 0.3, d, 0xd8cbb8); box(x + 0.04, 0.3, z + 0.04, w - 0.08, 0.18, d - 0.08, 0xf6f2ea);
-      box(x, 0, n ? z - 0.1 : z + d, w, 0.95, 0.1, 0xc4ad8e);
-      box(x + 0.02, 0.44, n ? z + d * 0.45 : z + 0.04, w - 0.04, 0.07, d * 0.5, 0xb39f86);
-      for (const px of [x + 0.14, x + w / 2 + 0.06]) box(px, 0.48, n ? z + 0.14 : z + d - 0.5, w / 2 - 0.2, 0.12, 0.36, 0xffffff);
+    // cama: head = lado da cabeceira ('n','s' ao longo de z; 'e','w' ao longo de x), como na planta
+    bed(x, z, w, d, head = 'n') {
+      const alongX = head === 'e' || head === 'w', far = head === 's' || head === 'e';
+      const L = alongX ? w : d, W = alongX ? d : w; // comprimento e largura da cama
+      // monta em coordenadas locais (u ao longo do comprimento, v na largura) e converte para x/z
+      const part = (u, v, lu, lv, y, h, c) => (alongX ? box(x + (far ? L - u - lu : u), y, z + v, lu, h, lv, c) : box(x + v, y, z + (far ? L - u - lu : u), lv, h, lu, c));
+      part(0, 0, L, W, 0, 0.3, 0xd8cbb8); part(0.04, 0.04, L - 0.08, W - 0.08, 0.3, 0.18, 0xf6f2ea);
+      part(-0.1, 0, 0.1, W, 0, 0.95, 0xc4ad8e);                       // cabeceira
+      part(L * 0.45, 0.02, L * 0.5, W - 0.04, 0.44, 0.07, 0xb39f86);  // manta nos pés
+      for (const pv of [0.14, W / 2 + 0.06]) part(0.14, pv, 0.36, W / 2 - 0.2, 0.48, 0.12, 0xffffff); // travesseiros
     },
-    sofa(x, z, w, d) {
-      box(x, 0, z, w, 0.4, d, 0xece6da, 1); box(x, 0.4, z + d - 0.22, w, 0.42, 0.22, 0xe3dccf);
-      box(x, 0.4, z, 0.18, 0.22, d - 0.22, 0xe3dccf); box(x + w - 0.18, 0.4, z, 0.18, 0.22, d - 0.22, 0xe3dccf);
-      box(x + 0.3, 0.4, z + 0.3, 0.42, 0.14, 0.36, 0xc9a45c);
+    // sofá: back = lado do encosto (o assento olha para o lado oposto), como na planta
+    sofa(x, z, w, d, back = 's') {
+      const alongX = back === 'n' || back === 's', far = back === 's' || back === 'e';
+      const L = alongX ? w : d, D = alongX ? d : w;
+      const part = (u, v, lu, lv, y, h, c, r) => (alongX ? box(x + u, y, z + (far ? D - v - lv : v), lu, h, lv, c, r) : box(x + (far ? D - v - lv : v), y, z + u, lv, h, lu, c, r));
+      part(0, 0, L, D, 0, 0.4, 0xece6da, 1);
+      part(0, D - 0.22, L, 0.22, 0.4, 0.42, 0xe3dccf);               // encosto
+      part(0, 0, 0.18, D - 0.22, 0.4, 0.22, 0xe3dccf); part(L - 0.18, 0, 0.18, D - 0.22, 0.4, 0.22, 0xe3dccf); // braços
+      part(0.3, D - 0.6, 0.42, 0.36, 0.4, 0.14, 0xc9a45c);            // almofada
     },
+    desk(x, z, w, d) { box(x, 0.72, z, w, 0.04, d, 0x8a6a55); box(x + 0.03, 0, z + 0.03, 0.04, 0.72, 0.04, 0x6f5442); box(x + w - 0.07, 0, z + d - 0.07, 0.04, 0.72, 0.04, 0x6f5442); box(x + w - 0.07, 0, z + 0.03, 0.04, 0.72, 0.04, 0x6f5442); box(x + 0.03, 0, z + d - 0.07, 0.04, 0.72, 0.04, 0x6f5442); },
+    nightstand(x, z, w, d) { box(x, 0, z, w, 0.5, d, 0xb08b62); },
+    tv(x, z, w, d) { box(x, 0, z, w, 1.15, d, 0xb98b5d); box(x + (w < d ? w : 0.1), 0.75, z + (w < d ? 0.1 : d), w < d ? 0.03 : w - 0.2, 0.45, w < d ? d - 0.2 : 0.03, 0x141416, 0.25); },
+    panel(x, z, w, d) { box(x, 0, z, w, 0.95, d, 0xe8e4dd, 0.35); },
+    shower(x, z, w, d) { box(x + 0.02, 0, z + 0.02, w - 0.04, 0.02, d - 0.04, 0xcfd3d6, 0.4).castShadow = false; },
     table(x, z, r) {
       cyl(x, 0.7, z, r, 0.05, 0xc9a273); cyl(x, 0, z, 0.16, 0.7, 0xb89263);
       for (let i = 0; i < 4; i++) {
@@ -224,18 +142,24 @@ export function buildPlanGroup(plan, { fade = false } = {}) {
       }
     },
     counter(x, z, w, d) {
-      box(x, 0, z, w, 0.86, d, 0xf3eee4); box(x - 0.01, 0.86, z - 0.01, w + 0.02, 0.04, d + 0.02, 0x26262a, 0.3);
+      box(x, 0, z, w, 0.86, d, 0xf3eee4); box(x - 0.01, 0.86, z - 0.01, w + 0.02, 0.04, d + 0.02, 0xdcd8d1, 0.3); // tampo em mármore claro, como nas plantas
       const long = w > d; // cooktop e cuba
       box(long ? x + w * 0.2 : x + 0.1, 0.9, long ? z + 0.1 : z + d * 0.2, long ? 0.6 : d > w ? w - 0.2 : 0.4, 0.015, long ? d - 0.2 : 0.6, 0x0c0c0d, 0.2);
       box(long ? x + w * 0.62 : x + 0.12, 0.895, long ? z + 0.12 : z + d * 0.62, long ? 0.55 : w - 0.24, 0.012, long ? d - 0.24 : 0.55, 0xb9bcc0, 0.3);
     },
     fridge(x, z, w, d) { box(x, 0, z, w, 1.2, d, 0xb4b8bd, 0.32, 0.65); },
     wardrobe(x, z, w, d) { box(x, 0, z, w, 1.2, d, 0xb9966b); box(x + (w > d ? w / 2 - 0.01 : 0), 0, z + (w > d ? 0 : d / 2 - 0.01), w > d ? 0.02 : w + 0.005, 1.205, w > d ? d + 0.005 : 0.02, 0x8f6f48); },
-    wc(x, z) { box(x, 0, z, 0.4, 0.4, 0.55, 0xffffff, 0.3); box(x, 0.4, z, 0.4, 0.3, 0.16, 0xffffff, 0.3); },
+    // vaso: (x,z) = centro; dir = lado da caixa acoplada (parede)
+    wc(x, z, dir = 'n') {
+      const ew = dir === 'e' || dir === 'w', w = ew ? 0.55 : 0.4, d = ew ? 0.4 : 0.55, x0 = x - w / 2, z0 = z - d / 2;
+      box(x0, 0, z0, w, 0.4, d, 0xffffff, 0.3);
+      if (ew) box(dir === 'w' ? x0 : x0 + w - 0.16, 0.4, z0, 0.16, 0.3, d, 0xffffff, 0.3);
+      else box(x0, 0.4, dir === 'n' ? z0 : z0 + d - 0.16, w, 0.3, 0.16, 0xffffff, 0.3);
+    },
     sink(x, z, w, d) { box(x, 0, z, w, 0.8, d, 0xdccfbb); box(x + 0.08, 0.8, z + 0.08, w - 0.16, 0.05, d - 0.16, 0xffffff, 0.3); },
     rug(x, z, w, d) { box(x, 0, z, w, 0.02, d, 0xd9ccb6, 1).castShadow = false; },
     grill(x, z, w, d) { box(x, 0, z, w, 0.9, d, 0x8a5a44); box(x + 0.08, 0.9, z + 0.08, w - 0.16, 0.05, d - 0.16, 0x1c1c1e); },
-    chair(x, z) { cyl(x + 0.3, 0, z + 0.3, 0.3, 0.42, 0xd9ccb6); },
+    chair(x, z) { cyl(x, 0, z, 0.28, 0.42, 0xd9ccb6); },
   };
   for (const [type, ...args] of plan.items) build[type](...args);
   const labels = plan.rooms.filter((r) => r.n).map((r) => ({ n: r.n, p: new THREE.Vector3(r.x + r.w / 2 - maxX / 2, WALL_H + 0.2, r.z + r.d / 2 - maxZ / 2) }));
