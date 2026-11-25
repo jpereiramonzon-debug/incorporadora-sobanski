@@ -9,7 +9,7 @@ import { ENVS, SHOTS } from './scenes.js';
 import { TX } from './kit.js';
 import { mergeStatic } from '../merge.js';
 import { enhanceMaterials, withFilm } from '../lookdev.js';
-import { best, bestSet } from '../media.js';
+import { best, bestSet, avifReady } from '../media.js';
 
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -245,6 +245,8 @@ const photoBox = $('photo'), photoImg = $('photoImg'), photoBtn = $('photoBtn');
 let photoOn = false, photoReq = 0;
 async function showPhoto(s) {
   const req = ++photoReq;
+  await avifReady; // detecção do AVIF (milissegundos; só espera na primeira foto)
+  if (req !== photoReq) return;
   photoImg.alt = `Foto realista: ${s.title}`;
   photoImg.srcset = bestSet(`${s.photo.replace(/\.webp$/, '-800.webp')} 800w, ${s.photo} 2560w`);
   photoImg.src = best(s.photo);

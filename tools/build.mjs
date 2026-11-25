@@ -38,7 +38,7 @@ async function build() {
     chunkNames: '[name]-[hash]',
     legalComments: 'eof',
     // imagens que têm versão AVIF (geradas por tools/avif.py); o resto segue em WebP
-    define: { __AVIF__: JSON.stringify(readdirSync(join(ROOT, 'assets')).filter((f) => f.endsWith('.avif')).map((f) => f.slice(0, -5))) },
+    define: { __AVIF__: JSON.stringify(readdirSync(join(ROOT, 'assets')).filter((f) => f.endsWith('.avif')).map((f) => f.slice(0, -5)).sort()) },
     metafile: true,
     logLevel: 'warning',
   });

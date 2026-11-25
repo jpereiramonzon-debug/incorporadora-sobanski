@@ -117,3 +117,84 @@ Havia três causas somadas:
   - `k`: ms por quadro com 1 pixel interno por pixel CSS;
   - `c`: ms fixos por quadro.
 - Para comparar o visual numa resolução fixa, use `?q3d=2` (ou `1.5`, `1`…) na URL.
+
+## 7. Reengenharia de carregamento e renderização (25/11)
+
+Condições de medição: celular (Pixel 7) com rede 4G lenta (1,6 Mbps, 150 ms) e CPU 4× mais lenta, no site publicado, antes e depois. Roteiro: `node tests/audit-load.js`. A GPU é emulada, então os tempos de 3D e as tarefas longas ficam inflados nas duas medições; os tempos de rede e da abertura são comparáveis.
+
+### Diagnóstico
+
+| Onde | Arquivo / recurso | Custo medido | Causa raiz |
+|---|---|---|---|
+| Entrada | `main.js` (abertura) | Letras só aos **3,8 s** | Script de módulo executa em ordem com GSAP, ScrollTrigger e Lenis (`defer`), que só chegavam aos 3,5 s |
+| Entrada | `mallet-aerea.webp` + `vista-fundos-1600.webp` | **493 KB** baixando desde 0,6 s | Fotos de seções de baixo pedidas no início, disputando a banda com fontes e 3D |
+| Entrada | 27 arquivos JS | 319 KB transferidos (1,07 MB descompactados) | Módulos soltos sem build, Three.js inteiro (675 KB brutos) |
+| Tour | `RectAreaLightTexturesLib.js` | 109 KB pedidos **em cascata** (3 viagens de rede) | Import dentro de import, fora da lista de pré-carregamento |
+| Tour | Troca de ambiente | Compilação de shader síncrona | Pré-compilação na variante "tela" e desenho na variante "textura" |
+| 3D | Buffers de pós-processamento | 80 bytes por pixel (celular em 2×: ~121 MB só no prédio) | O 2º buffer era clonado com MSAA 4×, sem precisar, porque só recebe passes de tela cheia |
+| 3D | Cena do prédio | 55 chamadas de desenho, 23 mil triângulos, 27 texturas (~33 MB) | Saudável: geometria procedural já unida por material |
+| Cache | JS e CSS | Revalidados a cada visita | Sem nomes com hash, não dava para usar cache imutável |
+
+### Stack adotada
+- **esbuild** (build em ~0,2 s):
+  - empacota, minifica e faz tree-shaking;
+  - faz code splitting em entrada, maquete 3D, camada cinematográfica e Tour 3D;
+  - o Three.js fica num pedaço compartilhado: ao ir do site para o tour, ele vem do cache;
+  - nomes com hash de conteúdo e cache imutável de 1 ano.
+- **three@0.170.0, gsap@3.12.5 e lenis@1.1.13 do npm**: as mesmas versões de antes, agora com tree-shaking. O Three.js caiu de 136 para 112 KB comprimidos.
+- **Caminho crítico em 3 ondas:**
+  1. HTML, CSS, as 2 fontes da abertura e a entrada (9 KB);
+  2. a maquete 3D, com todos os pedaços em paralelo, quando as fontes chegam;
+  3. GSAP/Lenis e as fotos de baixo, depois que o 3D chegou.
+- **AVIF com controle de fidelidade** (`tools/avif.py`): a qualidade sobe até o SSIM igualar ou superar o do WebP atual.
+  - Fotos HD do tour, a partir dos originais sem compressão: 30–51% menores e mais fiéis ao original.
+  - Plantas: SSIM 0,999, 13–44% menores.
+  - As outras fotos ficaram em WebP: sem o original, recomprimir só ganharia peso perdendo detalhe.
+  - A detecção de suporte é feita uma vez; navegador sem AVIF recebe o WebP de sempre.
+- **GPU:**
+  - MSAA só no buffer da cena (prédio, estúdio e tour): **−40% de memória nos buffers** (celular em 2×: de 121 para 72 MB no prédio e de 72 para 48 MB no estúdio) e uma resolução de MSAA a menos por quadro;
+  - o tour ganhou o passe único de cor + grão;
+  - os shaders do tour passaram a ser compilados na variante certa;
+  - as texturas do prédio são enviadas à GPU atrás da abertura;
+  - a medição da GPU usa cerca de sincronização (fence), sem bloquear a página.
+
+### O que não foi adotado, e por quê
+| Sugestão | Decisão |
+|---|---|
+| Draco / Meshopt | Não há malhas para comprimir. O prédio, as plantas e os ambientes do tour são gerados por código (21 KB comprimidos). Exportar para GLB criaria centenas de KB a mais para baixar. |
+| KTX2 / Basis | As 27 texturas são procedurais (geradas em ~80 ms com a CPU 4× mais lenta, atrás da abertura) e ocupam ~33 MB. O transcodificador Basis custaria ~200 KB + WASM na entrada. O vilão de memória eram os buffers, que caíram 40%. |
+| React Three Fiber / drei | O site não é React. As técnicas equivalentes já estão aplicadas em Three.js puro: desenho sob demanda, pausa fora da tela, DPR controlado com monitor de desempenho (resolução dinâmica calibrada), `dispose` ao trocar de cena. |
+| Framer Motion | O GSAP já anima só `transform`, `opacity` e `clip-path`. |
+| Web Workers | Não há decodificação nem parsing pesado na hora crítica: o navegador decodifica imagens fora da thread principal e o trabalho 3D de CPU roda atrás da abertura ou com a câmera parada. |
+| InstancedMesh | Depois da união por material, são 55 chamadas por quadro; a repetição restante (árvores) é pequena. |
+
+### Antes vs. depois (site publicado, celular, 4G lenta, CPU 4×)
+
+| Métrica | Antes | Depois |
+|---|---|---|
+| Primeira pintura (FCP) | 1232 ms | **904 ms** |
+| Letras da abertura começam | 3810 ms | **998 ms** (−74%) |
+| `DOMContentLoaded` | 3790 ms | **912 ms** |
+| Evento `load` | 11954 ms | **1106 ms** |
+| Prédio revelado (fim da abertura) | 13818 ms | **6496 ms** (−53%; agora é o tempo da própria coreografia) |
+| JS até o prédio aparecer | 27 arquivos, 319 KB | **8 arquivos, 243 KB** (só 13 KB antes das letras) |
+| Fotos disputando a abertura | 493 KB desde 0,6 s | **0** (pedidas aos 3,3 s, depois do 3D) |
+| Tarefas longas até o prédio (GPU emulada) | 9,6 s | **2,6 s** |
+| Tour: primeiro ambiente pronto | 7423 ms | **4965 ms** (−33%) |
+| Tour: JS | 22 arquivos, 363 KB | **5 arquivos, 289 KB** |
+| Tour: primeira foto HD | 194 KB (WebP) | **133 KB (AVIF, mais fiel ao original)** |
+| Memória de GPU dos buffers (celular, 2×) | 121 MB (prédio) + 72 MB (estúdio) | **72 + 48 MB** |
+| Visita seguinte | 27+ revalidações de JS/CSS | **0** (cache imutável) |
+| Erros e avisos no console | 1 aviso | **0** |
+
+**Qualidade visual:**
+- O prédio no build novo, comparado com o site publicado na mesma resolução, ficou visualmente idêntico, com o mesmo antisserrilhado no zoom de 4×. Restam diferenças de 1 pixel em 0,6% da imagem, só em bordas, com diferença média de brilho zero.
+- As fotos AVIF foram conferidas em 100% de zoom contra o original.
+
+### Como rodar
+- `npm ci` e depois `npm run build` geram `dist/`. O Vercel faz isso sozinho em cada push (`vercel.json`).
+- `npm run dev` serve `dist/` em http://localhost:8080 e recompila ao salvar.
+- `python3 tools/avif.py PASTA_DOS_ORIGINAIS` gera novos AVIF, só quando ganham sem perder fidelidade.
+- Testes:
+  - `node tests/qa-site.js [d|m]`: roteiro de 19 etapas;
+  - `node tests/audit-load.js [URL]`: auditoria de carregamento.
