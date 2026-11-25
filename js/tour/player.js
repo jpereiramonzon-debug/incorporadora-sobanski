@@ -32,8 +32,8 @@ const PR = Math.min(devicePixelRatio, 2);
 // escolhida UMA vez por aparelho (medição da GPU atrás do véu de carregamento) e nunca muda com o
 // movimento. Celular: entre 1,25× e 1,75×; computador: 1,5× numa tela comum (supersample) e 2× em
 // tela Retina, com 1× como piso.
-const E_MAX = coarse ? Math.min(devicePixelRatio, 1.75) : Math.max(1.5, PR);
-const E_MIN = coarse ? Math.min(devicePixelRatio, 1.25) : 1;
+const E_MAX = coarse ? PR : Math.max(1.5, PR);
+const E_MIN = coarse ? Math.min(PR, 1.5) : 1;
 let qNow = 0;
 renderer.setPixelRatio(PR);
 const maxAniso = renderer.capabilities.getMaxAnisotropy();
@@ -79,8 +79,8 @@ const film = withFilm(new OutputPass(), { grain: 0.025, vignette: 0.22 });
 composer.addPass(film);
 // todos os quadros passam pelo MESMO caminho (MSAA, GTAO, cor e grão), andando ou parado, e na mesma
 // resolução: nada é refeito ao parar, então nada "melhora" ao parar nem piora ao andar
-const setQuality = (q) => { if (q !== qNow) { qNow = q; composer.setPixelRatio(q); } };
-const SIG = `${screen.width}x${screen.height}@${devicePixelRatio}|${coarse}|2`; // |2: versão da medição
+const setQuality = (q) => { if (q !== qNow) { qNow = q; composer.setPixelRatio(q); film.uniforms.uSharp.value = q < PR - 0.01 ? Math.min(0.8, (PR - q) / PR * 1.6) : 0; } };
+const SIG = `${screen.width}x${screen.height}@${devicePixelRatio}|${coarse}|3`; // |2: versão da medição
 const savedQ = (() => { try { const o = JSON.parse(localStorage.getItem('sbTourQ') || 'null'); return o?.sig === SIG ? o : null; } catch { return null; } })();
 // alívio da oclusão de ambiente num aparelho fraco: menos amostras, SEMPRE na resolução cheia (em meia
 // resolução ela deixava degraus nas bordas, como na borda da cuba)
@@ -577,6 +577,7 @@ function draw(now) {
     if (vis) p.el.style.transform = `translate(${((v.x + 1) / 2 * W).toFixed(1)}px, ${((1 - v.y) / 2 * H).toFixed(1)}px)`;
   }
   film.uniforms.uTime.value = (now * 0.001) % 97;
+  film.uniforms.uTexel.value.set(1 / composer.renderTarget1.width, 1 / composer.renderTarget1.height);
   if (composer.readBuffer !== composer.renderTarget1) composer.swapBuffers(); // cena sempre no buffer com MSAA
   composer.render();
 }

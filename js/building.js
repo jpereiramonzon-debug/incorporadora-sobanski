@@ -911,9 +911,11 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
      bastante tempo, sobe um degrau. No computador, brilho (bloom) e oclusão (GTAO) saem antes. */
   // ?q3d=1.5 na URL fixa a resolução interna (para comparar visual em testes)
   const FORCE = Math.min(PR, +new URLSearchParams(location.search).get('q3d') || 0);
-  const LV = FORCE ? [FORCE] : (coarse ? [2, 1.75, 1.5, 1.3, 1.15, 1, 0.85, 0.75] : [1.5, 1.3, 1.15, 1, 0.85, 0.75]).filter((q) => q <= PR + 1e-3);
+  // celular: piso de 1,25x (antes descia a 0,75x e a maquete ficava borrada numa tela 2x/3x); se a GPU
+  // não acompanha 60 qps nesse piso, o movimento vai a 30 qps regulares, nunca abaixo do piso
+  const LV = FORCE ? [FORCE] : (coarse ? [2, 1.75, 1.5, 1.25] : [1.5, 1.3, 1.15, 1, 0.85, 0.75]).filter((q) => q <= PR + 1e-3);
   if (!FORCE && (!LV.length || LV[0] < PR - 1e-3)) LV.unshift(PR);
-  const MIN60 = coarse ? 1 : 0.85; // abaixo disso a imagem amolece demais: melhor 30 qps nítidos
+  const MIN60 = coarse ? 1.25 : 0.85; // abaixo disso a imagem amolece demais: melhor 30 qps nítidos
   const B60 = 12, B30 = 22; // ms de GPU por quadro: deixa folga para o navegador compor a página
   const SIG = `${screen.width}x${screen.height}@${devicePixelRatio}|${coarse}`;
   const saved = (() => { try { const o = JSON.parse(localStorage.getItem('sb3d') || 'null'); return o?.sig === SIG ? o : null; } catch { return null; } })();
@@ -931,7 +933,10 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   }
   plan();
   let qNow = 0;
-  const useQ = (q) => { if (q === qNow) return; qNow = q; composer.setPixelRatio(q); composerB.setPixelRatio(q); };
+  const useQ = (q) => {
+    if (q === qNow) return; qNow = q; composer.setPixelRatio(q); composerB.setPixelRatio(q);
+    film.uniforms.uSharp.value = q < PR - 0.01 ? Math.min(0.8, (PR - q) / PR * 1.6) : 0; // nitidez só abaixo da tela
+  };
   // ritmo: mede o intervalo real entre quadros desenhados em sequência
   let cls = 'slow', lastQuick = -1e9, runCls = '', pWin = 0, pLate = 0, okRun = 0, probedAt = -1e9, slowedAt = -1e9;
   function slower(now) {
@@ -1021,6 +1026,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     camera.setViewOffset(W, H, ox, oy, W, H);
     const tsec = (now * 0.001) % 97;
     film.uniforms.uTime.value = tsec;
+    film.uniforms.uTexel.value.set(1 / composer.renderTarget1.width, 1 / composer.renderTarget1.height);
     if (mix <= 0.0005) { composer.renderToScreen = true; sceneFirst(composer).render(); }
     else {
       const useA = mix < 0.9995; // estúdio pleno: o prédio nem é desenhado (economia de GPU)

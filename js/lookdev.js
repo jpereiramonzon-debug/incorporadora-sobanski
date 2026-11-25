@@ -101,10 +101,26 @@ export function skyEnvironment(renderer, { zenith = 0x0a1230, mid = 0x5a5088, ho
 // Conversão de cor (OutputPass) + vinheta e grão de filme num único passe de tela cheia: o grão é
 // aplicado depois da conversão para sRGB, exatamente como o FilmShader em passe separado, mas com
 // uma leitura e uma escrita de tela a menos por quadro.
+// uSharp > 0 liga a nitidez adaptativa ao contraste (CAS, mesma ideia do AMD FidelityFX CAS): quando a
+// cena é desenhada em resolução interna menor que a da tela (celular), a ampliação bilinear amolece as
+// bordas; o CAS devolve o contraste local sem halo e sem realçar ruído. Em resolução cheia fica em 0.
 export function withFilm(outputPass, { grain = 0.03, vignette = FilmShader.uniforms.uVignette.value } = {}) {
-  Object.assign(outputPass.uniforms, { uTime: { value: 0 }, uGrain: { value: grain }, uVignette: { value: vignette } });
+  Object.assign(outputPass.uniforms, { uTime: { value: 0 }, uGrain: { value: grain }, uVignette: { value: vignette }, uSharp: { value: 0 }, uTexel: { value: new THREE.Vector2(1, 1) } });
   outputPass.material.fragmentShader = outputPass.material.fragmentShader
-    .replace('varying vec2 vUv;', 'varying vec2 vUv; uniform float uTime, uGrain, uVignette;\n float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + uTime) * 43758.5453); }')
+    .replace('varying vec2 vUv;', `varying vec2 vUv; uniform float uTime, uGrain, uVignette, uSharp; uniform vec2 uTexel;
+ float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + uTime) * 43758.5453); }
+ vec4 casSample(){
+   vec4 c = texture2D(tDiffuse, vUv);
+   if (uSharp <= 0.0) return c;
+   vec3 n = texture2D(tDiffuse, vUv + vec2(0.0, uTexel.y)).rgb, s = texture2D(tDiffuse, vUv - vec2(0.0, uTexel.y)).rgb;
+   vec3 e = texture2D(tDiffuse, vUv + vec2(uTexel.x, 0.0)).rgb, w = texture2D(tDiffuse, vUv - vec2(uTexel.x, 0.0)).rgb;
+   vec3 C = min(c.rgb, vec3(1.0)), N = min(n, vec3(1.0)), S = min(s, vec3(1.0)), E = min(e, vec3(1.0)), W = min(w, vec3(1.0));
+   vec3 mn = min(C, min(min(N, S), min(E, W))), mx = max(C, max(max(N, S), max(E, W)));
+   vec3 amp = sqrt(clamp(min(mn, 2.0 - mx) / max(mx, vec3(1e-4)), 0.0, 1.0));
+   vec3 wt = amp * (-1.0 / mix(8.0, 5.0, uSharp));
+   return vec4((c.rgb + (n + s + e + w) * wt) / (1.0 + 4.0 * wt), c.a);
+ }`)
+    .replace('gl_FragColor = texture2D( tDiffuse, vUv );', 'gl_FragColor = casSample();')
     .replace(/}\s*$/, `  vec2 d = vUv - 0.5; float v = 1.0 - uVignette * smoothstep(0.25, 0.85, dot(d, d) * 2.2);
       float lum = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));
       gl_FragColor.rgb = gl_FragColor.rgb * v + (h(vUv * 1024.0) - 0.5) * uGrain * (1.0 - lum * 0.6);
