@@ -1,3 +1,8 @@
+// Entrada do site: abertura, andares, unidades e atendimento. O 3D (building.js), a camada de
+// rolagem cinematográfica (cinema.js) e o Tour 3D são pedaços separados, baixados sob demanda.
+import './chat.js';
+import { best, bestSet } from './media.js';
+
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -175,11 +180,11 @@ const showMedia = async (i) => {
   if (!fig) return;
   fig.parentElement.querySelectorAll('.thumbs button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.i === String(i)));
   const media = state.model ? MODELS[state.model].media : SOCIAL;
-  const image = ([src, cap, alt]) => { fig.className = state.model ? 'media' : 'media cover'; fig.innerHTML = `<img src="${src}" alt="${alt}"><figcaption>${cap}</figcaption>`; };
+  const image = ([src, cap, alt]) => { fig.className = state.model ? 'media' : 'media cover'; fig.innerHTML = `<img src="${best(src)}" alt="${alt}" decoding="async"><figcaption>${cap}</figcaption>`; };
   if (!String(i).startsWith('3d')) return image(media[+i]);
   const id = state.model, planId = String(i).split(':')[1] || id;
   try {
-    const { createPlan, PLANS } = await import('./plan3d.js?v=20261125a');
+    const { createPlan, PLANS } = await import('./plan3d.js');
     if (state.model !== id || !fig.isConnected) return;
     fig.className = 'media is3d';
     fig.innerHTML = '<figcaption>Planta em 3D · arraste para girar</figcaption>';
@@ -264,7 +269,7 @@ function renderCard(id) {
     <h2>Apartamento ${id}</h2>
     <p class="uc-sub">${u.tipo}${u.bedsTxt ? ` · ${u.bedsTxt}` : ''} · ${sp['área total']}</p>
     <button type="button" class="uc-plan" data-uc="plan" aria-label="Ampliar a planta oficial do ${m.name}">
-      <img src="${plan}-800.webp" srcset="${plan}-800.webp 800w, ${plan}.webp 2828w" sizes="(max-width:860px) 92vw, 360px" width="2828" height="2000" alt="Planta oficial do ${m.name}" decoding="async">
+      <img src="${best(`${plan}-800.webp`)}" srcset="${bestSet(`${plan}-800.webp 800w, ${plan}.webp 2828w`)}" sizes="(max-width:860px) 92vw, 360px" width="2828" height="2000" alt="Planta oficial do ${m.name}" decoding="async">
       <span>Planta oficial · toque para ampliar</span>
     </button>
     <div class="uc-area"><b>${sp['área total']}</b><span>área total · ${sp['área equivalente']} de área equivalente</span></div>
@@ -354,7 +359,7 @@ let planReturn = null;
 function openPlan(img) {
   planReturn = document.activeElement;
   // abre na hora com a versão do cartão (já baixada) e troca pela alta definição quando ela chegar
-  const small = img.currentSrc || img.src, full = small.replace(/-800\.webp(\?.*)?$/, '.webp');
+  const small = img.currentSrc || img.src, full = small.replace(/-800\.(webp|avif)(\?.*)?$/, '.$1');
   planImg.alt = img.alt; planImg.src = small;
   if (full !== small) { const hi = new Image(); hi.src = full; hi.decode().then(() => { if (!planView.hidden && planImg.src === small) planImg.src = full; }).catch(() => {}); }
   planView.classList.remove('zoom'); hint.textContent = `${tapWord} na planta para ampliar`;
@@ -452,7 +457,25 @@ function revealBuilding() {
    O módulo já vem baixando em paralelo (modulepreload); só a montagem da cena (trabalho pesado de
    CPU) espera as letras da abertura começarem. As letras animam no compositor da GPU, então seguem
    fluidas mesmo enquanto o prédio é montado; antes, a montagem segurava a tela preta por segundos. */
-introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => import('./building.js?v=20261125a')).then(({ createViewer }) => {
+/* ---------- O que não faz parte da abertura vem depois dela ----------
+   A rolagem cinematográfica (GSAP + ScrollTrigger + Lenis) e as fotos grandes das seções de baixo
+   não disputam a rede com as fontes e o 3D: só começam a baixar quando o módulo 3D já chegou (ou
+   depois de 4 s). Durante a abertura a página não rola, então tudo chega antes de ser visto. */
+let lateDone = false;
+function late() {
+  if (lateDone) return; lateDone = true;
+  import('./cinema.js');
+  for (const el of document.querySelectorAll('[data-late]')) {
+    if (el.dataset.srcset) el.srcset = el.dataset.srcset;
+    if (el.dataset.src) el.src = el.dataset.src;
+    el.removeAttribute('data-late');
+  }
+}
+introStarted.then(() => setTimeout(late, 4000));
+addEventListener('scroll', late, { once: true, passive: true });
+
+introStarted.then(() => { preloadChunks('sb-3d'); return import('./building.js'); }).then(({ createViewer }) => {
+  late();
   viewer = createViewer($('viewer'), {
     onSelect: selectFromBuilding,
     onHover: (k, e, at) => {
@@ -460,6 +483,7 @@ introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => impor
       showTip(k, at);
     },
   });
+  if (new URLSearchParams(location.search).has('debug3d')) window.__viewer = viewer;
   hero.classList.add('ready');
   if (introState === 'playing' || introState === 'waiting') viewer.prime();
   viewer.whenReady.then(() => {
@@ -469,6 +493,7 @@ introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => impor
   });
 }).catch((err) => {
   console.warn('Maquete 3D indisponível:', err);
+  late();
   hero.classList.add('no3d');
   introReady();
 });
@@ -559,12 +584,16 @@ addEventListener('keydown', (e) => { if (e.key === 'Escape' && !navMenu.hidden) 
 $('year').textContent = new Date().getFullYear();
 
 /* ---------- Tour 3D: pré-carrega os módulos na intenção (mouse em cima, foco ou toque) ---------- */
+// o build lista em meta tags os arquivos de cada parte (nomes com hash): pedidos todos de uma vez,
+// em paralelo, em vez de um puxar o outro em cascata
+function preloadChunks(name) {
+  const list = document.querySelector(`meta[name="${name}"]`)?.content.split(',').filter(Boolean) || [];
+  for (const href of list) { const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = href; document.head.appendChild(l); }
+}
 let tourWarm = false;
 const warmTour = (e) => {
   if (tourWarm || !e.target.closest?.('a[href^="tour.html"]')) return;
   tourWarm = true;
-  for (const href of ['js/tour/player.js?v=20261125a', 'js/tour/scenes.js?v=20261125a', 'js/tour/kit.js?v=20261125a']) {
-    const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = href; document.head.appendChild(l);
-  }
+  preloadChunks('sb-tour');
 };
 for (const ev of ['pointerover', 'focusin', 'touchstart']) document.addEventListener(ev, warmTour, { passive: true });

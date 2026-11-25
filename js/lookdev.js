@@ -98,6 +98,20 @@ export function skyEnvironment(renderer, { zenith = 0x0a1230, mid = 0x5a5088, ho
 }
 
 /* ---------- vinheta e grão: fecha a imagem como uma lente real ---------- */
+// Conversão de cor (OutputPass) + vinheta e grão de filme num único passe de tela cheia: o grão é
+// aplicado depois da conversão para sRGB, exatamente como o FilmShader em passe separado, mas com
+// uma leitura e uma escrita de tela a menos por quadro.
+export function withFilm(outputPass, { grain = 0.03, vignette = FilmShader.uniforms.uVignette.value } = {}) {
+  Object.assign(outputPass.uniforms, { uTime: { value: 0 }, uGrain: { value: grain }, uVignette: { value: vignette } });
+  outputPass.material.fragmentShader = outputPass.material.fragmentShader
+    .replace('varying vec2 vUv;', 'varying vec2 vUv; uniform float uTime, uGrain, uVignette;\n float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + uTime) * 43758.5453); }')
+    .replace(/}\s*$/, `  vec2 d = vUv - 0.5; float v = 1.0 - uVignette * smoothstep(0.25, 0.85, dot(d, d) * 2.2);
+      float lum = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));
+      gl_FragColor.rgb = gl_FragColor.rgb * v + (h(vUv * 1024.0) - 0.5) * uGrain * (1.0 - lum * 0.6);
+    }`);
+  return outputPass;
+}
+
 export const FilmShader = {
   uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uGrain: { value: 0.035 }, uVignette: { value: 0.28 } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',

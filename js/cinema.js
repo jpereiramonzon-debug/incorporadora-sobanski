@@ -2,7 +2,10 @@
 // expansão de imagem, galeria horizontal, cursor e botões magnéticos.
 // Tudo usa apenas transform, opacity e clip-path; sem GSAP (ou com "reduzir movimento") o site
 // continua completo e estático.
-const gsap = window.gsap, ST = window.ScrollTrigger, Lenis = window.Lenis;
+import gsap from 'gsap';
+import { ScrollTrigger as ST } from 'gsap/ScrollTrigger';
+import Lenis from 'lenis';
+
 const root = document.documentElement;
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;

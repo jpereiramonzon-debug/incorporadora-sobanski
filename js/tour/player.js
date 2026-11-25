@@ -5,11 +5,11 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { ENVS, SHOTS } from './scenes.js?v=20261125a';
-import { TX } from './kit.js?v=20261125a';
-import { mergeStatic } from '../merge.js?v=20261125a';
-import { enhanceMaterials, FilmShader } from '../lookdev.js?v=20261125a';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { ENVS, SHOTS } from './scenes.js';
+import { TX } from './kit.js';
+import { mergeStatic } from '../merge.js';
+import { enhanceMaterials, withFilm } from '../lookdev.js';
+import { best, bestSet } from '../media.js';
 
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -57,15 +57,16 @@ let dirty = true; // só desenha quando algo muda na tela
 
 // quadro refinado: quando a câmera para, o quadro é refeito com oclusão de ambiente (GTAO)
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: modest ? 2 : 4 }));
+// MSAA só no buffer da cena; o segundo só recebe passes de tela cheia (menos memória e banda de GPU)
+composer.renderTarget2.samples = 0;
 composer.addPass(new RenderPass(scene, camera));
 const gtao = new GTAOPass(scene, camera, 1, 1);
 gtao.updateGtaoMaterial({ radius: 0.45, distanceExponent: 1.2, thickness: 1.2, scale: 1.1, samples: modest ? 8 : 12, distanceFallOff: 1 });
 gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: modest ? 8 : 12 });
 gtao.blendIntensity = 0.85;
 composer.addPass(gtao);
-composer.addPass(new OutputPass());
-const film = new ShaderPass(FilmShader); // vinheta e grão sutis, como numa foto de interiores
-film.uniforms.uGrain.value = 0.025; film.uniforms.uVignette.value = 0.22;
+// conversão de cor + vinheta e grão sutis (como numa foto de interiores) num único passe
+const film = withFilm(new OutputPass(), { grain: 0.025, vignette: 0.22 });
 composer.addPass(film);
 // todos os quadros passam pelo mesmo caminho de qualidade (andando ou parado); só a escala
 // interna muda, com histerese, e sem nunca tocar no tamanho do canvas
@@ -138,7 +139,14 @@ const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
 const parallel = renderer.extensions.has('KHR_parallel_shader_compile');
 // compila todos os materiais do ambiente de uma vez (não só os visíveis): virar o rosto ou andar
 // nunca mais engasga ao revelar um móvel que ainda não tinha sido desenhado
-const compile = () => (parallel ? renderer.compileAsync(scene, camera).catch(() => {}) : Promise.resolve(renderer.compile(scene, camera)));
+// a compilação é feita na variante "desenho em textura" (a usada de verdade, pelo pós-processamento
+// e pela captura de reflexos); com o alvo nulo saía outra variante e tudo recompilava na hora,
+// travando a troca de ambiente
+const compile = () => {
+  const t = renderer.getRenderTarget(); renderer.setRenderTarget(composer.renderTarget1);
+  const r = parallel ? renderer.compileAsync(scene, camera).catch(() => {}) : Promise.resolve(renderer.compile(scene, camera));
+  renderer.setRenderTarget(t); return r;
+};
 async function loadEnv(id) {
   if (id === envId) return;
   await nextFrame(); // deixa o véu aparecer antes do trabalho pesado
@@ -238,8 +246,8 @@ let photoOn = false, photoReq = 0;
 async function showPhoto(s) {
   const req = ++photoReq;
   photoImg.alt = `Foto realista: ${s.title}`;
-  photoImg.srcset = `${s.photo.replace(/\.webp$/, '-800.webp')} 800w, ${s.photo} 2560w`;
-  photoImg.src = s.photo;
+  photoImg.srcset = bestSet(`${s.photo.replace(/\.webp$/, '-800.webp')} 800w, ${s.photo} 2560w`);
+  photoImg.src = best(s.photo);
   try { await photoImg.decode(); } catch { return; }
   if (req !== photoReq || shot !== s || busy || tween) return;
   photoOn = true;
@@ -519,6 +527,7 @@ function draw(now) {
     if (vis) p.el.style.transform = `translate(${((v.x + 1) / 2 * W).toFixed(1)}px, ${((1 - v.y) / 2 * H).toFixed(1)}px)`;
   }
   film.uniforms.uTime.value = (now * 0.001) % 97;
+  if (composer.readBuffer !== composer.renderTarget1) composer.swapBuffers(); // cena sempre no buffer com MSAA
   composer.render();
 }
 

@@ -11,34 +11,7 @@
 <meta name="theme-color" content="#0e1014">
 <link rel="preload" href="assets/fonts/cinzel-normal-latin-8vIJ7ww63m.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jost-normal-latin-92zatBhPNq.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=20261125a">
-<script type="importmap">
-{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
-</script>
-<!-- baixa o 3D já no começo, em paralelo, enquanto a abertura toca -->
-<link rel="modulepreload" href="js/main.js?v=20261125a">
-<link rel="modulepreload" href="js/chat.js?v=20261125a">
-<link rel="modulepreload" href="js/building.js?v=20261125a">
-<link rel="modulepreload" href="js/plan3d.js?v=20261125a">
-<link rel="modulepreload" href="vendor/three/addons/environments/RoomEnvironment.js">
-<link rel="modulepreload" href="js/merge.js?v=20261125a">
-<link rel="modulepreload" href="js/lookdev.js?v=20261125a">
-<link rel="modulepreload" href="vendor/three/addons/postprocessing/GTAOPass.js">
-<link rel="modulepreload" href="vendor/three/addons/shaders/GTAOShader.js">
-<link rel="modulepreload" href="vendor/three/addons/shaders/PoissonDenoiseShader.js">
-<link rel="modulepreload" href="vendor/three/addons/math/SimplexNoise.js">
-<link rel="modulepreload" href="vendor/three/three.module.min.js">
-<link rel="modulepreload" href="vendor/three/addons/utils/BufferGeometryUtils.js">
-<link rel="modulepreload" href="vendor/three/addons/postprocessing/EffectComposer.js">
-<link rel="modulepreload" href="vendor/three/addons/postprocessing/RenderPass.js">
-<link rel="modulepreload" href="vendor/three/addons/postprocessing/UnrealBloomPass.js">
-<link rel="modulepreload" href="vendor/three/addons/postprocessing/OutputPass.js">
-<link rel="modulepreload" href="vendor/three/addons/postprocessing/Pass.js">
-<link rel="modulepreload" href="vendor/three/addons/postprocessing/ShaderPass.js">
-<link rel="modulepreload" href="vendor/three/addons/postprocessing/MaskPass.js">
-<link rel="modulepreload" href="vendor/three/addons/shaders/CopyShader.js">
-<link rel="modulepreload" href="vendor/three/addons/shaders/LuminosityHighPassShader.js">
-<link rel="modulepreload" href="vendor/three/addons/shaders/OutputShader.js">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
@@ -111,7 +84,7 @@
   <!-- O empreendimento: a vista do prédio se abre até a tela cheia -->
   <section class="cine" id="empreendimento" aria-labelledby="cine-title">
     <div class="cine-pin">
-      <figure class="cine-frame"><img src="assets/mallet-aerea.webp" srcset="assets/mallet-aerea-800.webp 800w, assets/mallet-aerea.webp 1280w" sizes="100vw" width="1280" height="960" alt="Vista aérea de Mallet (PR), com o centro da cidade, a igreja matriz, o lago e as áreas verdes ao redor" decoding="async" fetchpriority="low"></figure>
+      <figure class="cine-frame"><img data-late data-src="assets/mallet-aerea.webp" data-srcset="assets/mallet-aerea-800.webp 800w, assets/mallet-aerea.webp 1280w" sizes="100vw" width="1280" height="960" alt="Vista aérea de Mallet (PR), com o centro da cidade, a igreja matriz, o lago e as áreas verdes ao redor" decoding="async" fetchpriority="low"></figure>
       <div class="cine-copy">
         <p class="eyebrow">Sinta-se em casa · para morar ou investir</p>
         <h2 id="cine-title" data-split>Um novo conceito de <em>moradia em Mallet</em></h2>
@@ -269,7 +242,7 @@
 
   <!-- imagem do prédio fixa enquanto a página rola por cima -->
   <section class="still" aria-label="Edifício Santa Ana">
-    <div class="still-img" aria-hidden="true"><img fetchpriority="low" src="assets/vista-fundos-1600.webp" srcset="assets/vista-fundos.webp 799w, assets/vista-fundos-1600.webp 1600w" sizes="100vw" decoding="async" alt="" width="1600" height="1065"></div>
+    <div class="still-img" aria-hidden="true"><img data-late data-src="assets/vista-fundos-1600.webp" data-srcset="assets/vista-fundos.webp 799w, assets/vista-fundos-1600.webp 1600w" sizes="100vw" decoding="async" alt="" width="1600" height="1065"></div>
     <div class="still-copy">
       <p class="eyebrow">Edifício Santa Ana</p>
       <p class="still-title" data-split>Transformando sonhos, <em>construindo o seu lar.</em></p>
@@ -290,11 +263,6 @@
   <span class="pv-hint">Toque na planta para ampliar</span>
 </div>
 
-<script defer src="vendor/gsap/gsap.min.js"></script>
-<script defer src="vendor/gsap/ScrollTrigger.min.js"></script>
-<script defer src="vendor/lenis/lenis.min.js"></script>
-<script type="module" src="js/main.js?v=20261125a"></script>
-<script type="module" src="js/cinema.js?v=20261125a"></script>
-<script type="module" src="js/chat.js?v=20261125a"></script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

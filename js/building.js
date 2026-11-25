@@ -8,9 +8,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { mergeStatic } from './merge.js?v=20261125a';
-import { enhanceMaterials, skyEnvironment, FilmShader } from './lookdev.js?v=20261125a';
-import { buildPlanGroup, PLANS } from './plan3d.js?v=20261125a';
+import { mergeStatic } from './merge.js';
+import { enhanceMaterials, skyEnvironment, withFilm } from './lookdev.js';
+import { buildPlanGroup, PLANS } from './plan3d.js';
 
 // cartão de folhagem: tufo de folhas recortado por transparência (substitui as copas de esferas)
 function leafCardTex() {
@@ -508,6 +508,11 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   /* ---------- pós-processamento ---------- */
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
   const composer = new EffectComposer(renderer, target);
+  // só a cena precisa de MSAA. O segundo buffer recebe apenas passes de tela cheia (GTAO, saída),
+  // onde as amostras extras seriam idênticas: sem elas, ~40% menos memória de GPU nos buffers e uma
+  // resolução de MSAA a menos por quadro. A cena sempre é desenhada no buffer com MSAA (sceneFirst).
+  composer.renderTarget2.samples = 0;
+  const sceneFirst = (c) => { if (c.readBuffer !== c.renderTarget1) c.swapBuffers(); return c; };
   composer.addPass(new RenderPass(scene, camera));
   // oclusão de ambiente (sombras de contato sob beirais, sacadas e junto ao chão) — só no computador
   let gtaoPass = null; // referência para o governador de qualidade
@@ -528,14 +533,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   composer.addPass(bloom);
   // conversão de cor + vinheta e grão de filme num único passe (antes eram dois passes de tela cheia):
   // o grão é aplicado depois da conversão para sRGB, exatamente como antes, sobre a imagem final
-  const film = new OutputPass();
-  Object.assign(film.uniforms, { uTime: { value: 0 }, uGrain: { value: coarse ? 0.02 : 0.03 }, uVignette: { value: FilmShader.uniforms.uVignette.value } });
-  film.material.fragmentShader = film.material.fragmentShader
-    .replace('varying vec2 vUv;', 'varying vec2 vUv; uniform float uTime, uGrain, uVignette;\n float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + uTime) * 43758.5453); }')
-    .replace(/}\s*$/, `  vec2 d = vUv - 0.5; float v = 1.0 - uVignette * smoothstep(0.25, 0.85, dot(d, d) * 2.2);
-      float lum = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));
-      gl_FragColor.rgb = gl_FragColor.rgb * v + (h(vUv * 1024.0) - 0.5) * uGrain * (1.0 - lum * 0.6);
-    }`);
+  const film = withFilm(new OutputPass(), { grain: coarse ? 0.02 : 0.03 });
   composer.addPass(film);
 
   /* ---------- câmera e interação ---------- */
@@ -555,7 +553,13 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   // compila já na variante "desenho em textura" (sem tom de cor no material), que é a usada de fato
   // pelo pós-processamento; com o alvo nulo a variante era outra e a compilação se repetia depois
   const asTarget = (rt, fn) => { const t = renderer.getRenderTarget(); renderer.setRenderTarget(rt); const r = fn(); renderer.setRenderTarget(t); return r; };
-  asTarget(composer.renderTarget1, () => (parallel ? renderer.compileAsync(scene, camera).catch(() => {}) : Promise.resolve(renderer.compile(scene, camera)))).then(() => { ready = true; dirty = true; });
+  asTarget(composer.renderTarget1, () => (parallel ? renderer.compileAsync(scene, camera).catch(() => {}) : Promise.resolve(renderer.compile(scene, camera)))).then(() => {
+    // envia já todas as texturas para a GPU (ainda atrás da abertura): o que só entra no quadro no
+    // meio da descida da câmera não causa mais um envio de textura justamente durante o movimento
+    const seen = new Set();
+    scene.traverse((o) => { for (const m of [].concat(o.material || [])) for (const k in m) { const t = m[k]; if (t?.isTexture && !seen.has(t)) { seen.add(t); renderer.initTexture(t); } } });
+    ready = true; dirty = true;
+  });
 
   /* ---------- estúdio claro: a planta 3D isolada (cutaway, sem teto) da unidade ----------
      Fica numa segunda cena, desenhada pelo MESMO renderer e pela mesma câmera: nada de novo
@@ -645,8 +649,8 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     const any = vis[0]?.[0]; if (any) place(any, `1${slotOf('101').fin}`);
     renderer.shadowMap.needsUpdate = true;
     composerB.setSize(64, 64); // compila tudo num alvo minúsculo: a memória cheia só é usada ao abrir uma unidade
-    composerB.render();
-    composer.renderToScreen = false; composer.render(); composer.renderToScreen = true; // variantes "fora da tela" do prédio
+    sceneFirst(composerB).render();
+    composer.renderToScreen = false; sceneFirst(composer).render(); composer.renderToScreen = true; // variantes "fora da tela" do prédio
     const rt = new THREE.WebGLRenderTarget(4, 4), u = mixQuad.material.uniforms;
     u.tA.value = composer.readBuffer.texture; u.tB.value = composerB.readBuffer.texture;
     renderer.setRenderTarget(rt); mixQuad.render(renderer); renderer.setRenderTarget(null);
@@ -660,6 +664,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   // composição: prédio (composer A) e estúdio (composer B) misturados num shader de dissolve
   const targetB = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: coarse ? 2 : 4 });
   const composerB = new EffectComposer(renderer, targetB);
+  composerB.renderTarget2.samples = 0;
   composerB.addPass(new RenderPass(studio, camera, null, new THREE.Color(0, 0, 0), 0)); // fundo transparente: só a maquete
   composerB.addPass(new OutputPass());
   composerB.renderToScreen = false;
@@ -955,9 +960,14 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   }
   // medição do custo da GPU, chamada pela página durante a pausa da abertura (tela preta por cima,
   // nada se mexe): desenha alguns quadros no enquadramento normal em duas resoluções e espera a GPU
-  // terminar cada um (leitura de 1 pixel), o que dá o tempo real de GPU, sem depender do navegador.
+  // terminar cada um (cerca de sincronização da GPU, sem travar a página), o que dá o tempo real de GPU.
   let calibrating = false;
-  const px = new Uint8Array(4), glc = renderer.getContext();
+  const glc = renderer.getContext();
+  const gpuDone = (t0) => new Promise((res) => {
+    const f = glc.fenceSync(glc.SYNC_GPU_COMMANDS_COMPLETE, 0); glc.flush();
+    const poll = () => { if (glc.getSyncParameter(f, glc.SYNC_STATUS) === glc.SIGNALED) { glc.deleteSync(f); res(performance.now() - t0); } else setTimeout(poll, 1); };
+    setTimeout(poll, 0);
+  });
   function calibrate() {
     if (FORCE || !ready || calibrating || mode !== 'orbit' || !holdIntro || document.hidden) return Promise.resolve();
     calibrating = true;
@@ -971,10 +981,12 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       const step = () => {
         // a abertura já saiu (aparelho muito lento): para na hora, sem mostrar os quadros de medição
         if (!holdIntro && !runs[0][1].length) { finish(); res(null); return; }
-        const [q, ts] = runs[r];
+        const [q, ts] = runs[r]; // resolução desta rodada e tempos medidos
         useQ(q); cur.az = goal.az + n * 0.003;
-        const t0 = performance.now(); draw(t0); glc.readPixels(0, 0, 1, 1, glc.RGBA, glc.UNSIGNED_BYTE, px);
-        if (n++ >= 2) ts.push(performance.now() - t0); // os 2 primeiros incluem envio de texturas
+        const t0 = performance.now(); draw(t0);
+        gpuDone(t0).then((dt) => { if (n++ >= 2) ts.push(dt); next(ts); }); // os 2 primeiros incluem envio de texturas
+      };
+      const next = (ts) => {
         const late = (performance.now() > tEnd || !holdIntro) && runs[0][1].length;
         if (ts.length < 3 && !late) { requestAnimationFrame(step); return; }
         if (!late && ++r < runs.length && qb < qa) { n = 0; requestAnimationFrame(step); return; }
@@ -1009,12 +1021,12 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     camera.setViewOffset(W, H, ox, oy, W, H);
     const tsec = (now * 0.001) % 97;
     film.uniforms.uTime.value = tsec;
-    if (mix <= 0.0005) { composer.renderToScreen = true; composer.render(); }
+    if (mix <= 0.0005) { composer.renderToScreen = true; sceneFirst(composer).render(); }
     else {
       const useA = mix < 0.9995; // estúdio pleno: o prédio nem é desenhado (economia de GPU)
-      if (useA) { composer.renderToScreen = false; composer.render(); }
+      if (useA) { composer.renderToScreen = false; sceneFirst(composer).render(); }
       if (studioShadow) { renderer.shadowMap.needsUpdate = true; studioShadow = false; }
-      composerB.render();
+      sceneFirst(composerB).render();
       const u = mixQuad.material.uniforms;
       u.tA.value = composer.readBuffer.texture; u.tB.value = composerB.readBuffer.texture;
       u.k.value = mix; u.useA.value = useA ? 1 : 0; u.back.value = mixBack; u.uTime.value = tsec;
@@ -1065,6 +1077,26 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     setPanel(open) { if (mode !== 'orbit') return; panelOpen = open; frame(); },
     rotate(d) { goal.az += d; touched(); },
     whenReady, preload, calibrate,
+    // diagnóstico (com ?debug3d na URL fica em window.__viewer): chamadas de desenho por quadro,
+    // triângulos, texturas e uma estimativa da memória de GPU ocupada
+    stats() {
+      const tex = new Set(), geo = new Set(), mats = new Set();
+      for (const sc of [scene, studio]) sc.traverse((o) => {
+        if (o.geometry) geo.add(o.geometry);
+        for (const m of [].concat(o.material || [])) { mats.add(m); for (const k in m) if (m[k]?.isTexture) tex.add(m[k]); }
+      });
+      for (const e of [scene.environment, studio.environment]) if (e) tex.add(e);
+      const texBytes = (t) => { const i = t.image; const w = i?.width || 0, h = i?.height || 0; return w * h * (t.type === THREE.HalfFloatType ? 8 : t.type === THREE.FloatType ? 16 : 4) * (t.generateMipmaps !== false && t.minFilter !== THREE.LinearFilter ? 1.33 : 1); };
+      let tb = 0; const tlist = [];
+      for (const t of tex) { const b = texBytes(t); tb += b; tlist.push(`${t.name || t.constructor.name} ${t.image?.width}x${t.image?.height} ${(b / 1048576).toFixed(1)}MB`); }
+      let gb = 0; for (const g of geo) { for (const a of Object.values(g.attributes)) gb += a.array.byteLength; if (g.index) gb += g.index.array.byteLength; }
+      const rt = (c) => [c.renderTarget1, c.renderTarget2].reduce((a, t) => a + t.width * t.height * 8 * (1 + (t.samples || 0)), 0);
+      const sh = sun.shadow.mapSize.x ** 2 * 4 + key.shadow.mapSize.x ** 2 * 4;
+      const ai = renderer.info.autoReset; renderer.info.autoReset = false; renderer.info.reset(); draw(performance.now());
+      const r = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
+      renderer.info.autoReset = ai;
+      return { ...r, meshes: [...geo].length, materials: mats.size, programs: renderer.info.programs.length, textures: tex.size, texMB: +(tb / 1048576).toFixed(1), geoMB: +(gb / 1048576).toFixed(1), targetsMB: +((rt(composer) + rt(composerB)) / 1048576).toFixed(1), shadowMB: +(sh / 1048576).toFixed(1), q: qNow, canvas: [canvas.width, canvas.height], tlist };
+    },
     get unit() { return unit; },
     // área livre (px) informada pela página; no estúdio a câmera reenquadra suavemente
     setSafe(s) { safe = s; if (mode === 'studio' && unit) { studioBase = studioRad(unit); touched(); } },
