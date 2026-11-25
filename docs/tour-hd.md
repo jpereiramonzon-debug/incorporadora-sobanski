@@ -126,4 +126,6 @@ O que foi corrigido:
 
 Restam só linhas de 1 pixel onde duas peças se encostam. Não piscam, e o MSAA as suaviza.
 
+Antes/depois da pia: `docs/tour-hd/pia-antes-depois.png`.
+
 Como rodar: `python3 -m http.server 8123 &` e depois `node tests/zfight-render.js`.
