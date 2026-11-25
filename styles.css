@@ -783,3 +783,24 @@ html.no-scroll,html.no-scroll body{overflow:hidden;overscroll-behavior:none}
 /* tour 3D: só o texto sublinhado */
 .tour-cta,.tour-cta:hover,.tour-cta:focus-visible{background:none;border:0;padding:6px 2px;gap:0;font:500 .72rem var(--sans);letter-spacing:.28em;text-transform:uppercase;color:#fff;text-decoration:underline;text-decoration-color:var(--gold);text-decoration-thickness:1px;text-underline-offset:7px;text-shadow:0 1px 12px rgba(0,0,0,.6)}
 .tour-cta:hover,.tour-cta:focus-visible{color:var(--gold-soft)}
+
+/* transições suaves entre botões */
+.floors{position:absolute;isolation:isolate}
+.fl-ind{position:absolute;left:0;top:0;width:38px;height:38px;border-radius:50%;background:var(--gold);z-index:-1;opacity:0;transition:transform .45s cubic-bezier(.22,1,.36,1),opacity .3s ease;pointer-events:none}
+.floors.has-ind .fl-ind{opacity:1}
+.floors button:hover b,.floors button[aria-pressed=true] b{background:transparent}
+.floors b{transition:color .35s ease,transform .35s cubic-bezier(.22,1,.36,1)}
+.floors button.on b{color:#17130a}
+.floors button:active b{transform:scale(.92)}
+@media (max-width:860px){.fl-ind{width:36px;height:36px}}
+.us-floor button,.us-units button{transition:background .35s ease,color .35s ease,box-shadow .35s ease,transform .3s cubic-bezier(.22,1,.36,1)!important}
+.us-floor button:active,.us-units button:active{transform:scale(.94)}
+.tour-cta{transition:color .35s ease,text-decoration-color .35s ease,text-underline-offset .35s cubic-bezier(.22,1,.36,1)}
+.tour-cta:hover,.tour-cta:focus-visible{text-underline-offset:10px}
+.nav-drawer nav a{transition:color .35s ease,padding .45s cubic-bezier(.22,1,.36,1)}
+.btn{transition:background .35s ease,color .35s ease,transform .3s cubic-bezier(.22,1,.36,1)}
+@media (min-width:861px){
+  .floors button{position:relative}
+  .floors span{position:absolute;right:calc(100% + 16px);top:50%;margin-top:-.6em;white-space:nowrap;pointer-events:none}
+}
+.floors b{border:0!important;box-shadow:none}

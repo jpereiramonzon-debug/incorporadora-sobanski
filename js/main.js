@@ -389,6 +389,24 @@ $('floors').innerHTML = FLOORS.map((f) => `<button type="button" data-k="${f.k}"
 $('floors').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) selectFromBuilding(b.dataset.k === 'T' ? 'T' : `${b.dataset.k}01`); });
 $('floors').addEventListener('pointerover', (e) => viewer?.highlight(e.target.closest('button')?.dataset.k ?? null));
 $('floors').addEventListener('pointerleave', () => viewer?.highlight(null));
+// destaque dourado que desliza entre os andares (em vez de cada botão acender seco)
+{
+  const fl = $('floors'), ind = document.createElement('i');
+  ind.className = 'fl-ind'; ind.setAttribute('aria-hidden', 'true'); fl.prepend(ind);
+  const to = (btn) => {
+    if (!btn) { fl.classList.remove('has-ind'); return; }
+    const b = btn.querySelector('b'), r = b.getBoundingClientRect(), p = fl.getBoundingClientRect();
+    ind.style.transform = `translate(${r.left - p.left - fl.clientLeft}px, ${r.top - p.top - fl.clientTop}px)`;
+    fl.classList.add('has-ind'); fl.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === btn));
+  };
+  const rest = () => to(fl.querySelector('button[aria-pressed="true"]'));
+  fl.addEventListener('pointerover', (e) => { const b = e.target.closest('button'); if (b) to(b); });
+  fl.addEventListener('pointerdown', (e) => to(e.target.closest('button')));
+  fl.addEventListener('focusin', (e) => to(e.target.closest('button')));
+  fl.addEventListener('pointerleave', rest);
+  fl.addEventListener('focusout', rest);
+  new MutationObserver(rest).observe(fl, { subtree: true, attributes: true, attributeFilter: ['aria-pressed'] });
+}
 
 /* ---------- Abertura: SOBANSKI / INCORPORADORA — APRESENTA, depois o edifício ---------- */
 const intro = $('intro'), introMsg = $('introMsg'), introTitle = $('introTitle');
