@@ -1,0 +1,104 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Auditoria de z-fighting do Tour 3D</title>
+<!-- Usado por tests/zfight-audit.js: monta cada ambiente do tour com os módulos-fonte e procura
+     faces coplanares (mesma direção, mesma altura, área sobreposta) de objetos diferentes. -->
+<script type="importmap">
+{ "imports": { "three": "../node_modules/three/build/three.module.js", "three/addons/": "../node_modules/three/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { ENVS } from '../js/tour/scenes.js';
+
+const EPS_D = 0.0004;   // faces a menos de 0,4 mm uma da outra contam como coplanares
+const MIN_AREA = 2e-5;  // sobreposição mínima (0,2 cm²) para contar
+const v = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), n = new THREE.Vector3(), m4 = new THREE.Matrix4(), inst = new THREE.Matrix4();
+const name = (o) => { const p = []; for (let x = o; x && !x.isScene; x = x.parent) if (x.name) p.unshift(x.name); return `${o.geometry.type}${p.length ? ' @' + p.join('/') : ''} (${[...o.getWorldPosition(new THREE.Vector3()).toArray()].map((a) => a.toFixed(3)).join(', ')})`; };
+
+function tris(root) {
+  const out = [];
+  root.traverse((o) => {
+    if (!o.isMesh || !o.visible) return;
+    const mats = [].concat(o.material);
+    if (mats.every((mm) => mm.transparent && mm.opacity < 0.3)) return; // vidro quase invisível
+    const g = o.geometry, pos = g.attributes.position, idx = g.index;
+    const count = o.isInstancedMesh ? o.count : 1;
+    const nTri = (idx ? idx.count : pos.count) / 3;
+    const double = mats.some((mm) => mm.side === THREE.DoubleSide);
+    for (let k = 0; k < count; k++) {
+      m4.copy(o.matrixWorld);
+      if (o.isInstancedMesh) { o.getMatrixAt(k, inst); m4.multiply(inst); }
+      for (let t = 0; t < nTri; t++) {
+        for (let j = 0; j < 3; j++) { const i = idx ? idx.getX(t * 3 + j) : t * 3 + j; v[j].fromBufferAttribute(pos, i).applyMatrix4(m4); }
+        e1.subVectors(v[1], v[0]); e2.subVectors(v[2], v[0]); n.crossVectors(e1, e2);
+        const a2 = n.length(); if (a2 < 1e-10) continue;
+        n.divideScalar(a2);
+        out.push({ o, id: o.id * 1000 + k, n: n.clone(), d: n.dot(v[0]), p: v.map((x) => x.clone()), area: a2 / 2, double });
+      }
+    }
+  });
+  return out;
+}
+// área da interseção de dois triângulos coplanares (recorte de polígono convexo)
+function overlap(a, b) {
+  const nn = a.n, u = new THREE.Vector3(), w = new THREE.Vector3();
+  u.copy(Math.abs(nn.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0)).cross(nn).normalize(); w.crossVectors(nn, u);
+  const P = (pts) => pts.map((p) => [p.dot(u), p.dot(w)]);
+  let poly = P(a.p); const clip = P(b.p);
+  const area2 = (q) => { let s = 0; for (let i = 0; i < q.length; i++) { const [x1, y1] = q[i], [x2, y2] = q[(i + 1) % q.length]; s += x1 * y2 - x2 * y1; } return s / 2; };
+  if (area2(clip) < 0) clip.reverse();
+  for (let i = 0; i < clip.length && poly.length; i++) {
+    const [ax, ay] = clip[i], [bx, by] = clip[(i + 1) % clip.length];
+    const inside = ([x, y]) => (bx - ax) * (y - ay) - (by - ay) * (x - ax) >= -1e-9;
+    const next = [];
+    for (let j = 0; j < poly.length; j++) {
+      const P1 = poly[j], P2 = poly[(j + 1) % poly.length], i1 = inside(P1), i2 = inside(P2);
+      if (i1) next.push(P1);
+      if (i1 !== i2) {
+        const dx = P2[0] - P1[0], dy = P2[1] - P1[1], ex = bx - ax, ey = by - ay;
+        const t = (ex * (P1[1] - ay) - ey * (P1[0] - ax)) / (ey * dx - ex * dy);
+        next.push([P1[0] + dx * t, P1[1] + dy * t]);
+      }
+    }
+    poly = next;
+  }
+  return poly.length >= 3 ? Math.abs(area2(poly)) : 0;
+}
+// a câmera do tour fica entre 1,25 m e 1,65 m: face virada para baixo abaixo disso (ou para cima
+// acima disso) nunca é vista; face com outra superfície a menos de 2 cm na frente está selada
+const EYE_MIN = 1.25, EYE_MAX = 1.65;
+const ray = new THREE.Raycaster();
+const looks = (m) => [m.color?.getHexString(), m.map?.uuid, m.roughness, m.metalness, m.emissive?.getHexString(), m.type, m.side].join('|');
+const centroid = (t) => t.p[0].clone().add(t.p[1]).add(t.p[2]).divideScalar(3);
+const report = {};
+for (const [id, env] of Object.entries(ENVS)) {
+  const g = new THREE.Group(); env.build(g); g.updateMatrixWorld(true);
+  const T = tris(g);
+  // agrupa por direção da normal (arredondada) para comparar só faces paralelas
+  const buckets = new Map();
+  for (const t of T) { const k = [t.n.x, t.n.y, t.n.z].map((x) => Math.round(x * 200)).join(','); (buckets.get(k) || buckets.set(k, []).get(k)).push(t); }
+  const hits = new Map();
+  for (const list of buckets.values()) {
+    list.sort((a, b) => a.d - b.d);
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length && list[j].d - list[i].d < EPS_D; j++) {
+      const a = list[i], b = list[j];
+      if (a.o === b.o && a.id === b.id) continue;
+      if (a.n.y < -0.5 && a.d * -1 < EYE_MIN) continue;      // face de baixo, abaixo dos olhos (d = n·p => altura = -d)
+      if (a.n.y > 0.5 && a.d > EYE_MAX) continue;            // face de cima, acima dos olhos
+      const ar = overlap(a, b);
+      if (ar < MIN_AREA) continue;
+      const c = centroid(a).addScaledVector(a.n, 0.0015);
+      ray.set(c, a.n); ray.far = 0.02;
+      if (ray.intersectObjects(g.children, true).some((h) => h.object !== a.o && h.object !== b.o)) continue; // selada
+      const ma = [].concat(a.o.material)[0], mb = [].concat(b.o.material)[0];
+      const same = looks(ma) === looks(mb) && !ma.map && !mb.map;
+      const key = [name(a.o), name(b.o)].sort().join('  ×  ');
+      const h = hits.get(key) || { area: 0, gap: Math.abs(b.d - a.d), normal: a.n.toArray().map((x) => +x.toFixed(2)), at: +(a.n.y < -0.5 ? -a.d : a.d).toFixed(3), same };
+      h.area += ar; hits.set(key, h);
+    }
+  }
+  report[id] = [...hits.entries()].map(([k, h]) => ({ pair: k, areaCm2: +(h.area * 1e4).toFixed(1), gapMm: +(h.gap * 1000).toFixed(2), normal: h.normal, plane: h.at, same: h.same })).sort((a, b) => b.areaCm2 - a.areaCm2);
+}
+window.__zf = report;
+</script>

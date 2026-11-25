@@ -46,7 +46,7 @@ export const ENVS = {
       // geladeira inox em torre de madeira junto à janela
       fridge(g, { x: -1.66, z: -1.93, ry: Math.PI / 2, w: 0.68, h: 1.82 });
       box(g, woodM('#b98b5d', 0.6, 2), 0.62, H, 0.03, -1.70, 0, -1.575, { solid: true });
-      box(g, woodM('#b98b5d', 0.6, 0.6), 0.62, H - 1.9, 0.72, -1.70, 1.9, -1.93);
+      box(g, woodM('#b98b5d', 0.6, 0.6), 0.62, H - 1.9, 0.70, -1.70, 1.9, -1.94);
       // jantar: mesa redonda de tampo branco, base de madeira, cadeiras terracota com estrutura dourada
       const mesa = solid(grp(g, -0.45, 0, -0.95));
       cyl(mesa, M(0xf3f1ec, { roughness: 0.35 }), 0.56, 0.56, 0.035, 0, 0.72, 0, { seg: 56 });
@@ -111,7 +111,7 @@ export const ENVS = {
       const up = solid(grp(g, -0.75, 1.62, zb + 0.18));
       box(up, M(0xc9ccc6, { roughness: 0.45 }), 1.5, 0.82, 0.36, 0, 0, 0);
       for (const dx of [-0.37, 0.37]) {
-        for (const [w, h, xx, yy] of [[0.62, 0.035, 0, 0.08], [0.62, 0.035, 0, 0.71], [0.035, 0.62, -0.29, 0.1], [0.035, 0.62, 0.29, 0.1]]) box(up, M(0xbfc2bc), w, h, 0.012, dx + xx, yy, 0.186, { cast: false });
+        for (const [w, h, xx, yy] of [[0.545, 0.035, 0, 0.08], [0.545, 0.035, 0, 0.71], [0.035, 0.665, -0.29, 0.08], [0.035, 0.665, 0.29, 0.08]]) box(up, M(0xbfc2bc), w, h, 0.012, dx + xx, yy, 0.186, { cast: false });
         sph(up, metal(), 0.015, dx + (dx < 0 ? 0.28 : -0.28), 0.12, 0.2, { cast: false });
       }
       // pilar com churrasqueira em granito preto
@@ -120,8 +120,8 @@ export const ENVS = {
       const gr = M(0xffffff, { map: rep(TX.granite(), 0.6, 0.6), roughness: 0.25 });
       box(col, gr, 0.56, 0.08, 0.04, 0, 0.94, 0.25);
       box(col, gr, 0.56, 0.08, 0.04, 0, 1.68, 0.25);
-      box(col, gr, 0.08, 0.74, 0.04, -0.24, 0.94, 0.25);
-      box(col, gr, 0.08, 0.74, 0.04, 0.24, 0.94, 0.25);
+      box(col, gr, 0.08, 0.66, 0.04, -0.24, 1.02, 0.25);
+      box(col, gr, 0.08, 0.66, 0.04, 0.24, 1.02, 0.25);
       box(col, M(0xc9b39a, { roughness: 0.9 }), 0.4, 0.58, 0.005, 0, 1.02, 0.19, { cast: false });
       for (const y of [1.18, 1.36]) { box(col, metal(0xcfd2d4, 0.3), 0.46, 0.012, 0.012, 0, y, 0.24, { cast: false }); for (const sx of [-0.1, 0.1]) sph(col, M(0x6b1d12), 0.016, sx, y + 0.006, 0.255, { cast: false }); }
       spots(g, [[-0.6, 0], [0.8, 0]], H);
@@ -147,7 +147,7 @@ export const ENVS = {
       const nog = woodM(walnut, 1.6, 1.4);
       box(mc, nog, 2.1, 1.84, 0.02, 0, 0, 0.01, { cast: false });
       for (const sx of [-1.03, 1.03]) box(mc, nog, 0.04, 1.84, 0.32, sx, 0, 0.16);
-      box(mc, nog, 2.1, 0.05, 0.32, 0, 1.79, 0.16);
+      box(mc, nog, 2.02, 0.05, 0.32, 0, 1.79, 0.16);
       box(mc, nog, 2.02, 0.03, 0.26, 0, 1.42, 0.13);
       const books = [[0x111111, 0.05, 0.24], [0x222222, 0.04, 0.22], [0xe9e4da, 0.06, 0.2], [0x1a1a1a, 0.03, 0.25]];
       books.forEach(([c, w, h], i) => box(mc, M(c, { roughness: 0.7 }), w, h, 0.18, -0.92 + i * 0.06, 1.45, 0.12));
@@ -184,14 +184,14 @@ export const ENVS = {
       const W = 3.0, D = 3.6, H = 2.6;
       shell(g, { w: W, d: D, h: H, floor: M(0xffffff, { map: rep(TX.carpet(), 3, 3), roughness: 1 }), walls: paint(0xd8d1c7) });
       // parede da cabeceira: lambri de madeira e boiserie branca
-      box(g, woodM('#8a5f3e', 2.4, 0.8), 0.03, 1.1, D, -1.485, 0, 0, { cast: false });
+      box(g, woodM('#8a5f3e', 2.4, 0.8), 0.03, 1.1, D - 0.002, -1.484, 0, 0, { cast: false, seg: [1, 1, 12] }); // subdividido: triângulo de 3,6 m perdia precisão de profundidade
       const mold = M(0xf6f4f0, { roughness: 0.5 });
       for (const [zc, w] of [[-1.05, 0.52], [-0.25, 0.85], [0.6, 0.62]]) {
         const y0 = 1.22, hh = 1.18;
         box(g, mold, 0.025, 0.035, w, -1.485, y0, zc, { cast: false });
         box(g, mold, 0.025, 0.035, w, -1.485, y0 + hh, zc, { cast: false });
-        box(g, mold, 0.025, hh, 0.035, -1.485, y0, zc - w / 2, { cast: false });
-        box(g, mold, 0.025, hh, 0.035, -1.485, y0, zc + w / 2, { cast: false });
+        box(g, mold, 0.025, hh - 0.035, 0.035, -1.485, y0 + 0.035, zc - w / 2, { cast: false });
+        box(g, mold, 0.025, hh - 0.035, 0.035, -1.485, y0 + 0.035, zc + w / 2, { cast: false });
       }
       headboard(g, { w: 1.75, h: 1.0, x: -1.42, y: 0.28, z: -0.15, ry: Math.PI / 2, color: 0xb29d8e, channels: false });
       bed(g, { x: -0.45, z: -0.15, ry: Math.PI / 2, w: 1.6, l: 2.0, sheet: 0xf4f2ee, duvet: 0xf2f0ec, throwC: 0x8e8f8d, pillows: [0xb6a699, 0xf4f2ee, 0xe9e6e1], wood: '#a38877' });
@@ -370,7 +370,7 @@ export const ENVS = {
       const nicho = woodM('#b88454', 1, 2);
       box(g, nicho, 0.06, H, 0.62, 0.6, 0, -2.74);
       box(g, nicho, 0.06, H, 0.62, 1.32, 0, -2.74);
-      box(g, nicho, 0.7, H - 0.9, 0.62, 0.96, 0.9, -2.74);
+      box(g, nicho, 0.66, H - 0.9, 0.62, 0.96, 0.9, -2.74);
       washer(g, { x: 0.96, z: -2.72 });
       slats(g, { x: 1.74, z: -3.02, w: 0.82, h: H, dep: 0.04 });
       // bancada com banquetas
@@ -491,7 +491,7 @@ export const ENVS = {
       for (const [x, z, ry] of pn) {
         const pg = grp(g, x, 0, z, ry);
         box(pg, pk, 0.23, 0.98, 0.05, 0, 0, 0, { cast: false });
-        cyl(pg, pk, 0.115, 0.115, 0.05, 0, 0.955, 0, { rx: Math.PI / 2, cast: false }).position.y = 0.98;
+        cyl(pg, pk, 0.115, 0.115, 0.048, 0, 0.955, 0, { rx: Math.PI / 2, cast: false }).position.y = 0.98;
       }
       windowUnit(g, { x: 0.05, z: -1.6, w: 1.25, h: 1.05, sill: 1.2, curtains: false, ceil: H, view: 'trees' });
       bed(g, { x: -0.55, z: -1.0, ry: Math.PI / 2, w: 1.15, l: 1.9, sheet: 0xb8c4a8, duvet: 0xb9c2aa, throwC: 0xbfae95, pillows: [0xa9b89a, 0xe8c6a8, 0xf1d36a], wood: '#b9c2aa' });
@@ -608,7 +608,7 @@ export const ENVS = {
       const st = solid(grp(g, -1.45, 0, 0.6)), stone = M(0xf3f1ec, { roughness: 0.35 }), rise = 0.175, run = 0.28;
       for (let i = 0; i < 11; i++) {
         box(st, stone, 1.1, rise * (i + 1), run, 0, 0, -i * run);
-        box(st, M(0xd8d3ca), 1.1, 0.006, 0.01, 0, rise * (i + 1) - 0.004, -i * run + run / 2, { cast: false });
+        box(st, M(0xd8d3ca), 1.096, 0.006, 0.01, 0, rise * (i + 1) - 0.004, -i * run + run / 2, { cast: false });
       }
       const rl = [];
       for (let i = 0; i < 11; i += 1) rl.push([0.02, 0.9, 0.02, 0.56, rise * (i + 1), -i * run]);
@@ -619,7 +619,7 @@ export const ENVS = {
       const ev = grp(g, 0.9, 0, -2.5), frame = woodM('#a97a50', 1, 2.5), steel = metal(0xc9cbcd, 0.25);
       box(ev, frame, 0.35, H, 0.3, -0.72, 0, 0.15);
       box(ev, frame, 0.35, H, 0.3, 0.72, 0, 0.15);
-      box(ev, frame, 1.8, H - 2.2, 0.3, 0, 2.2, 0.15);
+      box(ev, frame, 1.09, H - 2.2, 0.3, 0, 2.2, 0.15);
       box(ev, M(0xd9c7a8, { roughness: 0.5 }), 1.1, 2.2, 0.02, 0, 0, -0.95);
       box(ev, steel, 0.02, 2.2, 1.0, -0.54, 0, -0.45);
       box(ev, steel, 0.02, 2.2, 1.0, 0.54, 0, -0.45);
@@ -630,7 +630,7 @@ export const ENVS = {
       const cab = new THREE.PointLight(0xfff0d8, 3, 3, 2); cab.position.set(0, 1.9, -0.4); ev.add(cab);
       // fachada de vidro com arcos
       const fr = blackMetal(), arch = grp(g, 0, 0, 1.5);
-      for (const x of [-2, -0.67, 0.67, 2]) box(arch, fr, 0.07, H, 0.08, x, 0, 0);
+      for (const x of [-2, -0.67, 0.67, 2]) box(arch, fr, 0.07, H - 0.08, 0.08, x, 0, 0);
       box(arch, fr, 4.1, 0.08, 0.08, 0, H - 0.08, 0);
       for (const cx of [-1.335, 0, 1.335]) {
         const t = new THREE.Mesh(new THREE.TorusGeometry(0.635, 0.035, 8, 40, Math.PI), fr);

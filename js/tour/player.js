@@ -26,11 +26,18 @@ const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'h
 // canvas tem 3840 px). O que se adapta ao desempenho é só a resolução interna da cena: mudar o
 // tamanho do canvas apaga o conteúdo dele, e era isso que causava os flashes pretos ao andar.
 const PR = Math.min(devicePixelRatio, 2);
-const Q_MIN = modest ? 0.5 : 0.6;                       // escala interna mínima andando
-const Q_IDLE = modest ? 1 : Math.min(2, Math.max(1, 1.5 / PR)); // parado: nativo (ou supersample em tela 1x)
-let qMove = modest ? 0.75 : 1, qNow = 0;
+// Resolução interna FIXA (pixels de cena por pixel CSS): a mesma andando, girando ou parado.
+// Antes a cena caía para 0,5–0,75× ao andar e só era refeita em alta resolução 260 ms depois de
+// parar: era isso que deixava a imagem borrada em movimento e nítida só parada. Agora a resolução é
+// escolhida UMA vez por aparelho (medição da GPU atrás do véu de carregamento) e nunca muda com o
+// movimento. Celular: entre 1,25× e 1,75×; computador: 1,5× numa tela comum (supersample) e 2× em
+// tela Retina, com 1× como piso.
+const E_MAX = coarse ? Math.min(devicePixelRatio, 1.75) : Math.max(1.5, PR);
+const E_MIN = coarse ? Math.min(devicePixelRatio, 1.25) : 1;
+let qNow = 0;
 renderer.setPixelRatio(PR);
 const maxAniso = renderer.capabilities.getMaxAnisotropy();
+const ANISO = Math.min(16, maxAniso); // filtragem anisotrópica: piso e madeira nítidos em ângulo rasante
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate = false; // ambientes estáticos: sombra calculada ao entrar
@@ -42,7 +49,9 @@ canvas.setAttribute('aria-label', 'Ambiente em 3D. Use W, A, S e D para andar e 
 stage.prepend(canvas);
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 200);
+// near 5 cm e far 100 m: escala de apartamento (o céu é fundo, não geometria). Profundidade de 24 bits
+// separa superfícies a menos de 0,01 mm a 3 m; o que restava de z-fighting era geometria coplanar
+const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 100);
 const pmrem = new THREE.PMREMGenerator(renderer);
 let roomEnv = null; // reflexos e luz rebatida capturados do próprio cômodo (ver captureRoomEnv)
 const hemi = new THREE.HemisphereLight(0xfff6ea, 0x8a7d6c, 0.5);
@@ -68,21 +77,49 @@ composer.addPass(gtao);
 // conversão de cor + vinheta e grão sutis (como numa foto de interiores) num único passe
 const film = withFilm(new OutputPass(), { grain: 0.025, vignette: 0.22 });
 composer.addPass(film);
-// todos os quadros passam pelo mesmo caminho de qualidade (andando ou parado); só a escala
-// interna muda, com histerese, e sem nunca tocar no tamanho do canvas
-const setQuality = (q) => { if (q !== qNow) { qNow = q; composer.setPixelRatio(PR * q); } };
-setQuality(qMove);
-const perf = { avg: 16.7, lastDraw: 0, lastChange: 0, warmUntil: 0 };
-function adaptResolution(now) {
-  const gap = now - perf.lastDraw;
-  perf.lastDraw = now;
-  if (gap > 100 || now < perf.warmUntil) return; // pausa ou shaders compilando: não mede
-  perf.avg = perf.avg * 0.9 + gap * 0.1;
-  if (now - perf.lastChange < 2000) return;
-  let next = qMove;
-  if (perf.avg > 24 && qMove > Q_MIN) next = Math.max(Q_MIN, qMove - 0.1);
-  else if (perf.avg < 15.5 && qMove < 1) next = Math.min(1, qMove + 0.05);
-  if (next !== qMove) { qMove = next; perf.lastChange = now; perf.avg = 16.7; setQuality(qMove); }
+// todos os quadros passam pelo MESMO caminho (MSAA, GTAO, cor e grão), andando ou parado, e na mesma
+// resolução: nada é refeito ao parar, então nada "melhora" ao parar nem piora ao andar
+const setQuality = (q) => { if (q !== qNow) { qNow = q; composer.setPixelRatio(q); } };
+const SIG = `${screen.width}x${screen.height}@${devicePixelRatio}|${coarse}|2`; // |2: versão da medição
+const savedQ = (() => { try { const o = JSON.parse(localStorage.getItem('sbTourQ') || 'null'); return o?.sig === SIG ? o : null; } catch { return null; } })();
+// alívio da oclusão de ambiente num aparelho fraco: menos amostras, SEMPRE na resolução cheia (em meia
+// resolução ela deixava degraus nas bordas, como na borda da cuba)
+const GTAO_SAMPLES = modest ? [8, 6, 4] : [12, 8, 6];
+let gtaoLevel = Math.min(2, savedQ?.g ?? 0);
+setQuality(savedQ?.e ?? E_MAX);
+function applyGtao() {
+  const n = GTAO_SAMPLES[gtaoLevel];
+  gtao.updateGtaoMaterial({ samples: n }); gtao.updatePdMaterial({ samples: n });
+}
+if (gtaoLevel) applyGtao();
+// medição da GPU (uma vez por aparelho, atrás do véu do primeiro ambiente): quadro completo em duas
+// resoluções, esperando a GPU terminar cada um por uma cerca de sincronização (não trava a página).
+// Custo = k·E² + fixo. Escolhe a maior resolução que cabe em 12 ms (60 qps com folga); se nem o piso
+// cabe, alivia a oclusão de ambiente, nunca a nitidez.
+const glc = renderer.getContext();
+const gpuFrame = () => new Promise((res) => {
+  const t0 = performance.now();
+  if (composer.readBuffer !== composer.renderTarget1) composer.swapBuffers();
+  composer.render();
+  const f = glc.fenceSync(glc.SYNC_GPU_COMMANDS_COMPLETE, 0); glc.flush();
+  const poll = () => { if (glc.getSyncParameter(f, glc.SYNC_STATUS) === glc.SIGNALED) { glc.deleteSync(f); res(performance.now() - t0); } else setTimeout(poll, 1); };
+  setTimeout(poll, 0);
+});
+const median = (a) => a.slice().sort((x, y) => x - y)[a.length >> 1];
+async function measure(e) { setQuality(e); const t = []; for (let i = 0; i < 5; i++) t.push(await gpuFrame()); return median(t.slice(2)); }
+let calibrated = !!savedQ;
+async function calibrate() {
+  if (calibrated) return; calibrated = true;
+  const B = 12, levels = [];
+  for (let e = E_MAX; e >= E_MIN - 1e-6; e -= 0.125) levels.push(+e.toFixed(3));
+  for (;;) {
+    const ta = await measure(E_MAX), tb = E_MIN < E_MAX ? await measure(E_MIN) : ta;
+    const k = E_MIN < E_MAX ? Math.max(0.1, (ta - tb) / (E_MAX ** 2 - E_MIN ** 2)) : ta / E_MAX ** 2, c = Math.max(0, tb - k * E_MIN ** 2);
+    const fit = levels.find((e) => k * e * e + c <= B);
+    if (fit || gtaoLevel >= 2) { setQuality(fit ?? E_MIN); break; }
+    gtaoLevel++; applyGtao();
+  }
+  try { localStorage.setItem('sbTourQ', JSON.stringify({ sig: SIG, e: qNow, g: gtaoLevel })); } catch { /* sem armazenamento */ }
 }
 
 // campo de visão: no celular em pé garante pelo menos ~46° na horizontal (antes eram ~34°, e
@@ -109,6 +146,20 @@ new ResizeObserver(resize).observe(stage);
 let env = null, envId = null, group = null, colliders = [], floors = [], pois = [];
 const poiLayer = $('pois');
 
+const MAPS = ['map', 'roughnessMap', 'metalnessMap', 'bumpMap', 'normalMap', 'emissiveMap', 'alphaMap', 'aoMap'];
+function sharpen(root) {
+  const seen = new Set();
+  root.traverse((o) => {
+    for (const m of [].concat(o.material || [])) for (const k of MAPS) {
+      const t = m[k];
+      if (!t || seen.has(t) || t.isRenderTargetTexture) continue;
+      seen.add(t);
+      if (t.anisotropy < ANISO || !t.generateMipmaps || t.minFilter !== THREE.LinearMipmapLinearFilter) {
+        t.anisotropy = Math.max(t.anisotropy, ANISO); t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.needsUpdate = true;
+      }
+    }
+  });
+}
 function disposeGroup(g) {
   g.traverse((o) => {
     o.geometry?.dispose();
@@ -184,13 +235,18 @@ async function loadEnv(id) {
       if (b.min.y < 1.2 && b.max.x - b.min.x < 6) colliders.push([b.min.x - 0.22, b.min.z - 0.22, b.max.x + 0.22, b.max.z + 0.22]);
     }
   });
-  enhanceMaterials(group, { normalScale: 0.4, anisotropy: maxAniso }); // relevo, rugosidade e texturas nítidas em ângulo
+  enhanceMaterials(group, { normalScale: 0.4, anisotropy: ANISO }); // relevo e rugosidade
+  sharpen(group); // TODAS as texturas (inclusive vidro, tecidos e peças sem relevo): anisotropia + mipmaps
   mergeStatic(group); // depois de medir os obstáculos: junta as peças estáticas por material
   scene.environment = null;
   await compile();      // variantes sem mapa de ambiente (usadas na captura)
   captureRoomEnv();
   await compile();      // variantes finais, com o reflexo do cômodo
-  perf.warmUntil = performance.now() + 1200;
+  if (!calibrated) { // primeira vez: mede a GPU no primeiro ponto de foto deste ambiente, atrás do véu
+    const s0 = SHOTS.find((x) => x.env === id);
+    if (s0) { camera.position.set(...s0.pos); const a = lookAngles(s0.pos, s0.look); camera.rotation.set(a.pitch, a.yaw, 0, 'YXZ'); camera.updateMatrixWorld(); }
+    await calibrate();
+  }
 
   poiLayer.innerHTML = '';
   pois = env.pois.map((p) => {
@@ -500,18 +556,10 @@ function tick(now) {
     pos.y += (clamp(pos.y, 1.25, 1.65) - pos.y) * Math.min(1, dt * 2);
   }
   const same = !dirty && pos.equals(last.p) && yaw === last.yaw && pitch === last.pitch && ring.position.equals(last.ring) && ring.visible === last.rv;
-  if (same) {
-    // parado: um único quadro refinado na resolução máxima (nítido para olhar com calma)
-    if (!refined && now - movedAt > 260 && Q_IDLE > qNow && !busy) { refined = true; setQuality(Q_IDLE); draw(now); }
-    return;
-  }
-  movedAt = now;
+  if (same) return; // parado: o último quadro já está na qualidade final (não há refino ao parar)
   if (photoOn && !tween && (!pos.equals(last.p) || yaw !== last.yaw || pitch !== last.pitch)) hidePhoto(); // andou ou girou: volta ao 3D
-  if (refined) { refined = false; setQuality(qMove); }
-  adaptResolution(now);
   draw(now);
 }
-let movedAt = 0, refined = false;
 function draw(now) {
   if (!env || busy) return;
   last.p.copy(pos); last.yaw = yaw; last.pitch = pitch; last.ring.copy(ring.position); last.rv = ring.visible;
@@ -532,6 +580,12 @@ function draw(now) {
   if (composer.readBuffer !== composer.renderTarget1) composer.swapBuffers(); // cena sempre no buffer com MSAA
   composer.render();
 }
+
+// diagnóstico (só com ?debug3d na URL): posicionar a câmera e ler a resolução interna em testes
+if (new URLSearchParams(location.search).has('debug3d')) window.__tour = {
+  go(p, l) { pos.set(...p); const a = lookAngles(p, l); yaw = yawT = a.yaw; pitch = pitchT = a.pitch; tween = null; walkTo = null; hidePhoto(); dirty = true; },
+  get q() { return qNow; }, get gtao() { return gtaoLevel; }, get ready() { return !!env && !busy; },
+};
 
 /* ---------------- início ---------------- */
 const start = decodeURIComponent(location.hash.slice(1));

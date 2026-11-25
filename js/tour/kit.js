@@ -334,7 +334,7 @@ function put(p, mesh, x, y, z, o) {
   p.add(mesh);
   return mesh;
 }
-export const box = (p, m, w, h, d, x = 0, y = 0, z = 0, o = {}) => put(p, new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m), x, y + h / 2, z, o);
+export const box = (p, m, w, h, d, x = 0, y = 0, z = 0, o = {}) => put(p, new THREE.Mesh(new THREE.BoxGeometry(w, h, d, ...(o.seg || [1, 1, 1])), m), x, y + h / 2, z, o);
 export const rbox = (p, m, w, h, d, r, x = 0, y = 0, z = 0, o = {}) => put(p, new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2, h / 2, d / 2)), m), x, y + h / 2, z, o);
 export const cyl = (p, m, rt, rb, h, x = 0, y = 0, z = 0, o = {}) => put(p, new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, o.seg ?? 32, 1, o.open ?? false, o.t0 ?? 0, o.tl ?? Math.PI * 2), m), x, y + h / 2, z, o);
 export const sph = (p, m, r, x = 0, y = 0, z = 0, o = {}) => {
@@ -342,7 +342,42 @@ export const sph = (p, m, r, x = 0, y = 0, z = 0, o = {}) => {
   if (o.s) s.scale.set(...o.s);
   return s;
 };
-export const plane = (p, m, w, h, x = 0, y = 0, z = 0, o = {}) => put(p, new THREE.Mesh(new THREE.PlaneGeometry(w, h), m), x, y, z, { cast: false, ...o });
+export const plane = (p, m, w, h, x = 0, y = 0, z = 0, o = {}) => put(p, new THREE.Mesh(new THREE.PlaneGeometry(w, h, ...(o.seg || [1, 1])), m), x, y, z, { cast: false, ...o });
+// caixa sem algumas faces (ordem do BoxGeometry: 0 +x, 1 -x, 2 +y, 3 -y, 4 +z, 5 -z). Serve para peças
+// em que uma face ficaria escondida e, num recorte, apareceria no lugar errado (ex.: topo do gabinete
+// visto pelo buraco da cuba)
+export function boxGeoWithout(w, h, d, faces) {
+  const g = new THREE.BoxGeometry(w, h, d), idx = g.index.array, keep = [];
+  g.groups.forEach((gr, i) => { if (!faces.includes(i)) for (let k = gr.start; k < gr.start + gr.count; k++) keep.push(idx[k]); });
+  g.setIndex(keep); g.clearGroups();
+  return g;
+}
+function roundRect(path, x, z, w, d, r) {
+  path.moveTo(x + r, z); path.lineTo(x + w - r, z); path.quadraticCurveTo(x + w, z, x + w, z + r);
+  path.lineTo(x + w, z + d - r); path.quadraticCurveTo(x + w, z + d, x + w - r, z + d);
+  path.lineTo(x + r, z + d); path.quadraticCurveTo(x, z + d, x, z + d - r);
+  path.lineTo(x, z + r); path.quadraticCurveTo(x, z, x + r, z);
+}
+// cuba: paredes e fundo de um retângulo arredondado extrudado, SEM a tampa de cima (vista por dentro)
+function basinGeo(cx, w, d, r, deep) {
+  const shape = new THREE.Shape(); roundRect(shape, cx - w / 2, -d / 2, w, d, r);
+  const g = new THREE.ExtrudeGeometry(shape, { depth: deep, bevelEnabled: false, curveSegments: 8 });
+  const lids = g.groups[0], half = lids.count / 2; // tampas: a 1ª metade é a de z = 0, que vira a de cima
+  const pos = g.attributes.position, keep = [];
+  for (let i = 0; i < pos.count; i++) if (!(i >= lids.start && i < lids.start + half)) keep.push(i);
+  g.setIndex(keep); g.clearGroups();
+  g.rotateX(Math.PI / 2); g.translate(0, deep, 0);
+  return g;
+}
+// placa horizontal com contorno (e furos) desenhados no plano XZ, espessura t, base em y = 0
+function slabGeo(outer, holes, t) {
+  const shape = new THREE.Shape(); outer(shape);
+  for (const h of holes) { const path = new THREE.Path(); h(path); shape.holes.push(path); }
+  const g = new THREE.ExtrudeGeometry(shape, { depth: t, bevelEnabled: false, curveSegments: 8 });
+  g.rotateX(Math.PI / 2); // forma XY -> plano XZ; a extrusão desce de 0 a -t
+  g.translate(0, t, 0);
+  return g;
+}
 export const grp = (p, x = 0, y = 0, z = 0, ry = 0) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; p.add(g); return g; };
 export const solid = (o) => { o.userData.solid = true; return o; };
 
@@ -371,8 +406,8 @@ export function shell(p, { w, d, h = 2.65, floor, walls, ceil = paint(0xf7f5f1),
     const b = M(baseboard, { roughness: 0.6 });
     box(p, b, w, 0.08, 0.015, 0, 0, -d / 2 + 0.008, { cast: false });
     box(p, b, w, 0.08, 0.015, 0, 0, d / 2 - 0.008, { cast: false });
-    box(p, b, 0.015, 0.08, d, -w / 2 + 0.008, 0, 0, { cast: false });
-    box(p, b, 0.015, 0.08, d, w / 2 - 0.008, 0, 0, { cast: false });
+    box(p, b, 0.015, 0.08, d - 0.031, -w / 2 + 0.008, 0, 0, { cast: false }); // entre os rodapés norte/sul
+    box(p, b, 0.015, 0.08, d - 0.031, w / 2 - 0.008, 0, 0, { cast: false });
   }
   return f;
 }
@@ -416,13 +451,17 @@ export function curtain(p, w, h, x, z, ry = 0, y = 0) {
 export function windowUnit(p, { w = 1.2, h = 1.5, sill = 0.8, x = 0, z = 0, ry = 0, view = 'trees', curtains = true, ceil = 2.65, door = false, lightK = 1 }) {
   const g = grp(p, x, 0, z, ry);
   const y0 = door ? 0 : sill;
-  plane(g, new THREE.MeshBasicMaterial({ map: TX.view(view), color: new THREE.Color(1.05, 1.05, 1.05) }), w, h, 0, y0 + h / 2, 0.004);
-  const f = blackMetal(), t = 0.05;
-  box(g, f, w + t, t, 0.06, 0, y0 + h - t / 2, 0.03, { cast: false });
-  box(g, f, w + t, t, 0.06, 0, y0 - t / 2 + (door ? t : 0), 0.03, { cast: false });
-  box(g, f, t, h, 0.06, -w / 2, y0, 0.03, { cast: false });
-  box(g, f, t, h, 0.06, w / 2, y0, 0.03, { cast: false });
-  box(g, f, 0.035, h, 0.05, 0, y0, 0.035, { cast: false });
+  // vista pela janela: subdividida para que triângulos enormes cortados pelo plano da câmera não percam
+  // precisão de profundidade junto ao guarda-corpo/caixilho (encontrado pela auditoria de z-fighting)
+  plane(g, new THREE.MeshBasicMaterial({ map: TX.view(view), color: new THREE.Color(1.05, 1.05, 1.05) }), w, h, 0, y0 + h / 2, 0.004, { seg: [4, 6] });
+  // caixilho: montantes laterais na altura toda; travessas e montante central encaixados entre eles
+  // (antes as peças se sobrepunham nos cantos com a face da frente no mesmo plano: z-fighting)
+  const f = blackMetal(), t = 0.05, yb = y0 - t / 2 + (door ? t : 0), yt = y0 + h - t / 2;
+  box(g, f, t, yt + t - yb, 0.06, -w / 2, yb, 0.03, { cast: false });
+  box(g, f, t, yt + t - yb, 0.06, w / 2, yb, 0.03, { cast: false });
+  box(g, f, w - t, t, 0.06, 0, yt, 0.03, { cast: false });
+  box(g, f, w - t, t, 0.06, 0, yb, 0.03, { cast: false });
+  box(g, f, 0.035, yt - yb - t, 0.05, 0, yb + t, 0.035, { cast: false });
   if (!door) box(g, M(0xeeeae2, { roughness: 0.5 }), w + 0.1, 0.03, 0.14, 0, sill - 0.03, 0.07, { cast: false });
   if (curtains) {
     const ch = ceil - 0.04;
@@ -450,8 +489,8 @@ export function sofa(p, { len = 2.1, dep = 0.92, color = 0xefebe3, x = 0, z = 0,
   const g = solid(grp(p, x, 0, z, ry)), f = fabric(color);
   for (const s of [-1, 1]) for (const t of [-1, 1]) cyl(g, woodM('#6b4a2e'), 0.02, 0.016, 0.08, s * (len / 2 - 0.08), 0, t * (dep / 2 - 0.08));
   rbox(g, f, len, 0.3, dep, 0.05, 0, 0.08, 0);
-  rbox(g, f, len, 0.42, 0.24, 0.08, 0, 0.3, -dep / 2 + 0.12);
-  for (const s of [-1, 1]) rbox(g, f, 0.2, 0.26, dep, 0.08, s * (len / 2 - 0.1), 0.3, 0);
+  rbox(g, f, len - 0.012, 0.42, 0.24, 0.08, 0, 0.3, -dep / 2 + 0.126); // 6 mm para dentro da base
+  for (const s of [-1, 1]) rbox(g, f, 0.2, 0.26, dep - 0.006, 0.08, s * (len / 2 - 0.103), 0.3, 0); // 3 mm
   const n = len > 1.8 ? 2 : 1, cw = (len - 0.4) / n;
   for (let i = 0; i < n; i++) {
     const cx = -len / 2 + 0.2 + cw * (i + 0.5);
@@ -541,14 +580,15 @@ export function ac(p, { x, y = 2.2, z, ry = 0, w = 0.85 }) {
 export function plant(p, { x, z, h = 1.1, pot = 0xd9d2c5, potR = 0.18, leaf = 'broad', seed = 1, y = 0 }) {
   const g = grp(p, x, y, z), r = rng(seed * 97 + 3);
   cyl(g, M(pot, { roughness: 0.7 }), potR, potR * 0.82, potR * 1.6, 0, 0, 0);
-  cyl(g, M(0x3a2c22, { roughness: 1 }), potR * 0.95, potR * 0.95, 0.01, 0, potR * 1.55, 0, { cast: false });
+  cyl(g, M(0x3a2c22, { roughness: 1 }), potR * 0.95, potR * 0.95, 0.004, 0, potR * 1.6 + 0.001, 0, { cast: false });
   const n = leaf === 'bamboo' ? 220 : Math.round(40 + h * 40), k = Math.min(1, 0.35 + h * 0.55);
   const geo = leaf === 'bamboo' ? new THREE.PlaneGeometry(0.035, 0.16) : new THREE.SphereGeometry(1, 16, 10);
   const im = new THREE.InstancedMesh(geo, M(0xffffff, { roughness: 0.75, side: THREE.DoubleSide }), n);
   const o = new THREE.Object3D(), c = new THREE.Color();
   const stemM = M(0x5a4632);
   const stems = leaf === 'bamboo' ? 7 : 4;
-  for (let s = 0; s < stems; s++) cyl(g, leaf === 'bamboo' ? M(0x8c9a5a) : stemM, 0.008, 0.012, h * (0.6 + r() * 0.4), (r() - 0.5) * potR, potR * 1.5, (r() - 0.5) * potR, { cast: false });
+  const spread = Math.max(potR, 0.05);
+  for (let s = 0; s < stems; s++) cyl(g, leaf === 'bamboo' ? M(0x8c9a5a) : stemM, 0.008, 0.012, h * (0.6 + r() * 0.4), (r() - 0.5) * spread, potR * 1.5, (r() - 0.5) * spread, { cast: false });
   for (let i = 0; i < n; i++) {
     const t = r(), a = r() * 7, rad = (leaf === 'bamboo' ? 0.08 : 0.32 * k) * Math.sin(t * Math.PI) + 0.03 * k;
     o.position.set(Math.cos(a) * rad, potR * 1.6 + h * (0.25 + t * 0.75), Math.sin(a) * rad);
@@ -597,7 +637,7 @@ export function bed(p, { w = 1.6, l = 2.0, x, z, ry = 0, sheet = 0xf4f1ea, duvet
   box(g, woodM(wood, 1, 1), w + 0.04, 0.28, l + 0.02, 0, 0, 0);
   rbox(g, fabric(sheet, 3), w, 0.24, l, 0.06, 0, 0.26, 0);
   rbox(g, fabric(duvet, 3), w + 0.06, 0.08, l * 0.72, 0.04, 0, 0.47, l * 0.14);
-  box(g, fabric(duvet, 3), w + 0.06, 0.24, 0.04, 0, 0.28, l * 0.5 - 0.04 + 0.02);
+  box(g, fabric(duvet, 3), w + 0.06, 0.24, 0.04, 0, 0.28, l * 0.5 - 0.02 + 0.003);
   rbox(g, fabric(throwC, 2), w + 0.1, 0.05, 0.5, 0.025, 0, 0.53, l / 2 - 0.3);
   for (const s of [-1, 1]) box(g, fabric(throwC, 2), 0.03, 0.3, 0.5, s * (w / 2 + 0.05), 0.25, l / 2 - 0.3);
   pillows.forEach((c, i) => {
@@ -631,11 +671,14 @@ export function wardrobe(p, { w, h = 2.45, d = 0.6, x, z, ry = 0, color = 0xf1ed
 // guarda-roupa aberto com cabideiro, roupas e gavetas (quarto do Tipo 02)
 export function openWardrobe(p, { w = 1.2, h = 2.45, d = 0.58, x, z, ry = 0, wood = '#c49a6c' }) {
   const g = solid(grp(p, x, 0, z, ry)), carc = M(0xf2efe8, { roughness: 0.5 });
-  box(g, carc, w, h, 0.02, 0, 0, -d / 2 + 0.01);
+  // fundo, prateleiras e gaveteiro encaixados ENTRE as laterais (antes atravessavam as laterais e
+  // as faces externas coincidiam)
+  const wi = w - 0.05;
+  box(g, carc, wi, h, 0.02, 0, 0, -d / 2 + 0.01);
   for (const s of [-1, 1]) box(g, carc, 0.025, h, d, s * (w / 2 - 0.0125), 0, 0);
-  box(g, carc, w, 0.025, d, 0, h - 0.025, 0);
-  box(g, carc, w, 0.025, d, 0, 1.95, 0);
-  box(g, carc, w, 0.72, d - 0.02, 0, 0, 0.01);
+  box(g, carc, wi, 0.025, d - 0.02, 0, h - 0.025, 0.01);
+  box(g, carc, wi, 0.025, d - 0.02, 0, 1.95, 0.01);
+  box(g, carc, wi, 0.72, d - 0.022, 0, 0, 0.009);
   for (let i = 0; i < 3; i++) { box(g, M(0x8c867c), w - 0.06, 0.003, 0.002, 0, 0.24 * (i + 1), d / 2 + 0.002, { cast: false }); box(g, brass(), 0.18, 0.012, 0.02, 0, 0.24 * i + 0.13, d / 2 + 0.01, { cast: false }); }
   box(g, brass(), w - 0.06, 0.015, 0.015, 0, 1.82, 0);
   const r = rng(5), cols = [0xd8c7b0, 0x8c6b52, 0xefe9de, 0x5f6b72, 0xc79a7a, 0x3d3a37, 0xb7aa98];
@@ -652,15 +695,27 @@ export function kitchenRun(p, { len, x, z, ry = 0, base = 0xf0ebe2, counter = 0x
   const g = solid(grp(p, x, 0, z, ry));
   const baseM = M(base, { roughness: 0.45 });
   box(g, M(0x2a2a2a), len, 0.1, 0.52, 0, 0, -0.02, { cast: false });
-  box(g, baseM, len, 0.78, 0.58, 0, 0.1, 0);
+  // gabinete sem a face de cima: ela fica sob o tampo e, pelo recorte da cuba, apareceria dentro da pia
+  put(g, new THREE.Mesh(boxGeoWithout(len, 0.78, 0.58, [2]), baseM), 0, 0.1 + 0.39, 0, {});
   const n = Math.max(1, Math.round(len / 0.6));
   for (let i = 1; i < n; i++) box(g, M(0xb5aea3), 0.003, 0.76, 0.002, -len / 2 + (len / n) * i, 0.11, 0.291, { cast: false });
-  box(g, M(counter, { roughness: 0.2, metalness: 0.05 }), len + 0.02, 0.03, 0.62, 0, 0.88, 0.01);
+  // tampo: placa única com recorte real para a cuba (antes a "cuba" era uma chapa de 5 mm com a face
+  // de cima exatamente no plano do tampo: as duas disputavam a profundidade e a cuba sumia/serrilhava)
+  const SW = 0.52, SD = 0.38, TOP = 0.91; // recorte da cuba (m) e altura do tampo
+  const cut = sinkAt !== null ? [(path) => roundRect(path, sinkAt - SW / 2, -SD / 2, SW, SD, 0.03)] : [];
+  put(g, new THREE.Mesh(slabGeo((sh) => { sh.moveTo(-len / 2 - 0.01, -0.3); sh.lineTo(len / 2 + 0.01, -0.3); sh.lineTo(len / 2 + 0.01, 0.32); sh.lineTo(-len / 2 - 0.01, 0.32); sh.closePath(); }, cut, 0.03), M(counter, { roughness: 0.2, metalness: 0.05 })), 0, TOP - 0.03, 0, {});
   const bs = backsplash === 'subway' ? M(0xffffff, { map: rep(TX.subway(), len / 1.2, 0.5), roughness: 0.25 }) : backsplash === 'marble' ? M(0xffffff, { map: rep(TX.concrete('#cfc9c1'), len / 1.5, 0.6), roughness: 0.3 }) : M(0xe8dfd0, { map: rep(TX.concrete('#e4d9c6'), len, 1), roughness: 0.5 });
   plane(g, bs, len, upperFrom - 0.91, 0, 0.91 + (upperFrom - 0.91) / 2, -0.285);
   if (sinkAt !== null) {
-    box(g, metal(0xbfc2c5, 0.3), 0.55, 0.005, 0.4, sinkAt, 0.905, 0, { cast: false });
-    const f = grp(g, sinkAt, 0.91, -0.22);
+    const steel = metal(0xbfc2c5, 0.3), DEEP = 0.19;
+    // cuba: caixa aberta em cima, vista por dentro (BackSide), 19 cm de fundo, 2 mm para dentro do
+    // recorte; borda de inox de 1,5 mm APOIADA sobre o tampo (acima dele, nunca no mesmo plano),
+    // cobrindo a junta; ralo 1 mm acima do fundo
+    const basin = put(g, new THREE.Mesh(basinGeo(sinkAt, SW - 0.004, SD - 0.004, 0.028, DEEP), M(0xc9ccd0, { metalness: 0.6, roughness: 0.36 })), 0, TOP - DEEP - 0.001, 0, { cast: false });
+    basin.material.side = THREE.BackSide;
+    put(g, new THREE.Mesh(slabGeo((sh) => roundRect(sh, sinkAt - SW / 2 - 0.015, -SD / 2 - 0.015, SW + 0.03, SD + 0.03, 0.04), [(path) => roundRect(path, sinkAt - SW / 2 + 0.004, -SD / 2 + 0.004, SW - 0.008, SD - 0.008, 0.026)], 0.0015), steel), 0, TOP, 0, { cast: false });
+    cyl(g, M(0x2b2b2d, { metalness: 0.8, roughness: 0.4 }), 0.035, 0.035, 0.003, sinkAt, TOP - DEEP + 0.0005, 0.04, { cast: false });
+    const f = grp(g, sinkAt, TOP, -0.22);
     cyl(f, metal(0x2b2b2d, 0.3), 0.015, 0.015, 0.3, 0, 0, 0);
     box(f, metal(0x2b2b2d, 0.3), 0.02, 0.02, 0.18, 0, 0.3, 0.08);
   }
@@ -715,7 +770,7 @@ export function fridge(p, { x, z, ry = 0, w = 0.7, h = 1.86 }) {
   const g = solid(grp(p, x, 0, z, ry)), s = metal(0xc4c7ca, 0.32);
   rbox(g, s, w, h, 0.68, 0.02, 0, 0, 0);
   box(g, M(0x2a2a2c), w - 0.02, 0.006, 0.002, 0, h * 0.38, 0.341, { cast: false });
-  box(g, M(0x2a2a2c), 0.004, h * 0.62, 0.002, 0, h * 0.38, 0.341, { cast: false });
+  box(g, M(0x2a2a2c), 0.004, h * 0.62 - 0.036, 0.002, 0, h * 0.38 + 0.006, 0.341, { cast: false });
   for (const sx of [-0.04, 0.04]) box(g, metal(0x9a9da0, 0.3), 0.02, 0.5, 0.03, sx, h * 0.55, 0.35, { cast: false });
   box(g, M(0x0e0e10, { roughness: 0.2 }), 0.1, 0.18, 0.003, -w / 4, h * 0.7, 0.342, { cast: false });
   return g;

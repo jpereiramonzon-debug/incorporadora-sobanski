@@ -1,0 +1,89 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Auditoria de z-fighting por renderização</title>
+<!-- Usado por tests/zfight-render.js. Para cada ambiente do tour, desenha de muitos pontos de vista
+     (todos os pontos de foto + uma grade de posições onde a pessoa pode andar, 8 direções, olhando
+     reto e para baixo) com cada objeto numa cor única, duas vezes: na ordem normal e na inversa.
+     Onde duas superfícies empatam na profundidade, a vencedora troca com a ordem: esse pixel é
+     z-fighting visível. Câmera igual à do tour (mesmo campo de visão, near e far). -->
+<script type="importmap">
+{ "imports": { "three": "../node_modules/three/build/three.module.js", "three/addons/": "../node_modules/three/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+// anota em cada objeto a linha do código que o criou (scenes.js e kit.js), para achar a correção
+const add0 = THREE.Object3D.prototype.add;
+THREE.Object3D.prototype.add = function (...objs) {
+  const st = new Error().stack.split('\n').map((l) => (l.match(/\/(scenes|kit)\.js:(\d+)/) || [])).filter((m) => m[0]).map((m) => `${m[1]}:${m[2]}`);
+  for (const o of objs) if (o && !o.userData.src) o.userData.src = [...new Set(st)].slice(0, 3).reverse().join('>');
+  return add0.apply(this, objs);
+};
+const { ENVS, SHOTS } = await import('../js/tour/scenes.js');
+THREE.ColorManagement.enabled = false; // cores de ID cruas, sem conversão sRGB/linear
+const q = new URLSearchParams(location.search);
+const NEAR = +(q.get('near') || 0.05), FAR = +(q.get('far') || 100), W = 320, H = 200;
+const renderer = new THREE.WebGLRenderer({ antialias: false });
+renderer.setSize(W, H, false);
+const rt = new THREE.WebGLRenderTarget(W, H);
+const camera = new THREE.PerspectiveCamera(56, W / H, NEAR, FAR);
+const a = new Uint8Array(W * H * 4), b = new Uint8Array(W * H * 4);
+const out = {}, dbg = [];
+const only = q.get('only')?.split(',');
+for (const [id, env] of Object.entries(ENVS)) {
+  if (only && !only.includes(id)) continue;
+  const scene = new THREE.Scene(), g = new THREE.Group(); env.build(g); scene.add(g); scene.updateMatrixWorld(true);
+  const meshes = [], solids = [];
+  g.traverse((o) => {
+    if (o.userData.solid) { const bb = new THREE.Box3().setFromObject(o); if (bb.min.y < 1.2) solids.push(bb); }
+    if (!o.isMesh) return;
+    const m0 = [].concat(o.material)[0];
+    if (m0.transparent && m0.opacity < 0.95 || m0.visible === false) { o.visible = false; return; }
+    const i = meshes.length + 1; meshes.push(o);
+    o.material = new THREE.MeshBasicMaterial({ color: new THREE.Color().setHex(i * 2654435 & 0xffffff | 0x010101), side: m0.side });
+    o.userData.zid = (i * 2654435 & 0xffffff | 0x010101);
+    if (o.isInstancedMesh) o.instanceColor = null;
+  });
+  const byColor = new Map(meshes.map((o) => [o.userData.zid, o]));
+  const label = (o) => { const p = o.getWorldPosition(new THREE.Vector3()); let s = o.userData.src; for (let x = o.parent; !s && x; x = x.parent) s = x.userData.src; return `${o.geometry.type.replace('Geometry', '')}(${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)})[${s || '?'}]`; };
+  // pontos de vista: fotos do ambiente + grade dentro dos limites, fora dos móveis
+  const views = [];
+  for (const s of SHOTS.filter((s) => s.env === id)) views.push([s.pos[0], s.pos[1], s.pos[2]]);
+  const [x0, x1, z0, z1] = env.bounds;
+  for (let x = x0; x <= x1 + 1e-6; x += 0.5) for (let z = z0; z <= z1 + 1e-6; z += 0.5) {
+    if (solids.some((bb) => x > bb.min.x - 0.2 && x < bb.max.x + 0.2 && z > bb.min.z - 0.2 && z < bb.max.z + 0.2)) continue;
+    views.push([x, 1.45, z]);
+  }
+  const pairs = new Map(); let bad = 0, total = 0, seam = 0;
+  for (const [x, y, z] of views) for (let k = 0; k < 8; k++) for (const pitch of [0, -0.5]) {
+    camera.position.set(x, y, z); camera.rotation.set(pitch, k * Math.PI / 4, 0, 'YXZ'); camera.updateMatrixWorld();
+    meshes.forEach((o, i) => { o.renderOrder = i; });
+    renderer.setRenderTarget(rt); renderer.render(scene, camera); renderer.readRenderTargetPixels(rt, 0, 0, W, H, a);
+    meshes.forEach((o, i) => { o.renderOrder = -i; });
+    renderer.render(scene, camera); renderer.readRenderTargetPixels(rt, 0, 0, W, H, b);
+    total += W * H;
+    // pixel em disputa = vencedor diferente entre as duas ordens. Só conta como z-fighting o pixel
+    // cercado de outros em disputa (área), não as linhas de 1 px onde duas peças apenas se encostam
+    const dif = new Uint8Array(W * H);
+    for (let i = 0, p = 0; i < W * H; i++, p += 4) dif[i] = a[p] !== b[p] || a[p + 1] !== b[p + 1] || a[p + 2] !== b[p + 2] ? 1 : 0;
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x, p = i * 4;
+      if (!dif[i]) continue;
+      seam++;
+      if (!(dif[i - 1] && dif[i + 1] && dif[i - W] && dif[i + W])) continue;
+      bad++;
+      if (q.has('debug') && dbg.length < 12) { // raio pelo pixel: as duas primeiras superfícies e a distância entre elas
+        const rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2((x + 0.5) / W * 2 - 1, (y + 0.5) / H * 2 - 1), camera);
+        const hs = rc.intersectObjects(meshes, false).slice(0, 3).map((h) => `${label(h.object)} d=${h.distance.toFixed(5)} n=${h.face ? h.face.normal.toArray().map((v) => v.toFixed(2)) : ''} inst=${h.instanceId ?? ''}`);
+        dbg.push(`${id} cam(${camera.position.toArray().map((v) => v.toFixed(2))}) yaw ${k} pitch ${pitch} px(${x},${y}): ${hs.join(' | ')}`);
+      }
+      const ca = (a[p] << 16) | (a[p + 1] << 8) | a[p + 2], cb = (b[p] << 16) | (b[p + 1] << 8) | b[p + 2];
+      const oa = byColor.get(ca), ob = byColor.get(cb);
+      const key = [oa ? label(oa) : 'fundo', ob ? label(ob) : 'fundo'].sort().join(' × ');
+      pairs.set(key, (pairs.get(key) || 0) + 1);
+    }
+  }
+  out[id] = { views: views.length * 16, badPixels: bad, seamPixels: seam - bad, ppm: +(bad / total * 1e6).toFixed(1), pairs: [...pairs].sort((p, r) => r[1] - p[1]).slice(0, 25) };
+}
+out.__dbg = dbg;
+window.__zr = out;
+</script>
