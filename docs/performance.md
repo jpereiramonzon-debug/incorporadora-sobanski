@@ -68,3 +68,52 @@ Já existiam de rodadas anteriores:
 ## 5. Próximo passo (exige etapa de build)
 
 Empacotar com esbuild ou Vite, com tree-shaking do Three.js, reduziria o JS 3D em ~40%. Isso muda a forma de publicar o site (gera uma pasta `dist/`), por isso não foi feito sem combinar antes.
+
+## 6. Rodada 3: análise do vídeo gravado no celular (25/11)
+
+### O que o vídeo mostrou
+O gravador de tela do Android só registra um quadro novo quando a tela muda, então o intervalo entre quadros do vídeo é o ritmo real da tela.
+
+| Trecho do vídeo | Quadros por segundo | Leitura |
+|---|---|---|
+| Abertura SOBANSKI / APRESENTA | 60 | Animação no compositor, fluida |
+| Descida da câmera até o prédio + título SANTA ANA (7–12 s) | **7–12** (um quadro a cada 80–140 ms, cadência constante) | GPU do aparelho no limite: cada quadro do prédio custava ~80 ms em 2× de densidade |
+| Rolagem de todas as seções (14–29 s) | 60 (2 engasgos isolados de ~100 ms) | Rolagem saudável; o 3D já congelava ao rolar |
+
+Havia três causas somadas:
+1. **Resolução fixa em 2× no celular.** O governador antigo só agia durante o giro automático, 5 s depois da abertura e um degrau a cada 2,5 s. A descida inteira rodava na resolução máxima.
+2. **Trabalho de fundo em cima da descida.** Montar as plantas, gerar os reflexos do estúdio e compilar shaders começava 4,5 s depois do primeiro quadro, exatamente durante a descida e o título. O perfil de CPU mostrou que quase todo esse tempo é compilação de shader síncrona (`getProgramInfoLog`): a pré-compilação era feita na variante errada (desenho direto na tela) e o aquecimento não esperava a compilação paralela terminar.
+3. **Giro a 25 qps** em tela de 60 Hz: os quadros alternavam 2 e 3 atualizações de tela, o que dá uma cadência irregular.
+
+### O que foi feito
+- **Resolução dinâmica.**
+  - O canvas fica fixo na densidade da tela, e só a resolução interna muda. Trocar o tamanho do canvas apaga a imagem; trocar a resolução interna não.
+  - Níveis no celular: 2 → 1,75 → 1,5 → 1,3 → 1,15 → 1 → 0,85 → 0,75. No desktop: 1,5 → 1,3 → 1,15 → 1 → 0,85 → 0,75.
+  - O último passe amplia a imagem, e o grão de filme continua na resolução da tela.
+- **Medição da GPU durante a pausa da abertura.**
+  - Com a tela preta por cima, o prédio é desenhado em duas resoluções e o tempo de GPU é lido de forma síncrona (leitura de 1 pixel), num máximo de 0,9 s.
+  - Disso sai o custo por pixel e o custo fixo, e então a maior resolução que cabe em:
+    - 12 ms por quadro no movimento rápido (60 qps);
+    - 22 ms por quadro no giro (30 qps).
+  - Uma GPU fraca demais para 60 qps em 1× faz a descida a 30 qps regulares, na resolução maior.
+  - A medida fica guardada no aparelho para a próxima visita.
+- **Conferência contínua.**
+  - Se 4 de 8 quadros seguidos atrasam, a resolução desce um degrau na hora. No desktop, bloom e GTAO saem antes.
+  - Depois de ~3 s de folga, tenta subir um degrau, uma vez só.
+- **Cadência uniforme.**
+  - Giro e rotação do estúdio a 30 qps exatos, sempre a cada 2 atualizações de tela (a cada 4 em telas de 120 Hz).
+  - Movimento rápido até 60 qps.
+  - Estúdio parado não redesenha (antes redesenhava 60 vezes por segundo a mesma imagem), e a rotação automática do estúdio para depois de 30 s sem interação.
+- **Trabalho de fundo só quando não aparece.**
+  - Roda atrás da abertura, depois da medição, ou com a câmera já pousada. Nunca durante a descida nem com uma unidade aberta.
+  - O giro automático espera esse trabalho terminar.
+  - A pré-compilação agora usa a variante certa ("desenho em textura") e o aquecimento espera a compilação paralela.
+- **Um passe de tela cheia a menos.** A conversão de cor (OutputPass) e a vinheta e o grão de filme viraram um único passe. Comparação com o site publicado: diferença média de 1,9/255 por canal, que é só o grão aleatório.
+- **Galeria no celular.** Foi criada a versão de 1400 px da primeira foto: o celular baixava e decodificava a de 2528 px (4,3 MP).
+
+### Para conferir no aparelho
+- Abra o site e veja a descida da câmera depois do APRESENTA: ela deve ser contínua, sem saltos.
+- A medida da GPU fica em `localStorage` → `sb3d`:
+  - `k`: ms por quadro com 1 pixel interno por pixel CSS;
+  - `c`: ms fixos por quadro.
+- Para comparar o visual numa resolução fixa, use `?q3d=2` (ou `1.5`, `1`…) na URL.

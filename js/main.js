@@ -179,7 +179,7 @@ const showMedia = async (i) => {
   if (!String(i).startsWith('3d')) return image(media[+i]);
   const id = state.model, planId = String(i).split(':')[1] || id;
   try {
-    const { createPlan, PLANS } = await import('./plan3d.js?v=20261124b');
+    const { createPlan, PLANS } = await import('./plan3d.js?v=20261125a');
     if (state.model !== id || !fig.isConnected) return;
     fig.className = 'media is3d';
     fig.innerHTML = '<figcaption>Planta em 3D · arraste para girar</figcaption>';
@@ -387,7 +387,13 @@ $('floors').addEventListener('pointerleave', () => viewer?.highlight(null));
 
 /* ---------- Abertura: SOBANSKI / INCORPORADORA — APRESENTA, depois o edifício ---------- */
 const intro = $('intro'), introMsg = $('introMsg'), introTitle = $('introTitle');
-let introState = 'off', introTimer = 0, introBuildingReady = false, introGo;
+let introState = 'off', introTimer = 0, introBuildingReady = false, introGo, holdUntil = 0, viewerReady = false, calibrated = false;
+// mede a GPU do aparelho durante a pausa da abertura (o prédio é desenhado por trás da tela preta):
+// assim a descida da câmera já começa na resolução que o aparelho sustenta sem perder quadros
+const calibrate = () => {
+  if (calibrated || !viewerReady || introState !== 'playing' || !holdUntil || holdUntil - performance.now() < 1000) return;
+  calibrated = true; viewer.calibrate();
+};
 const introStarted = new Promise((r) => { introGo = r; });
 const wantContact = location.hash === '#contato'; // vindo do "Tenho interesse" do tour
 (() => {
@@ -400,7 +406,7 @@ const wantContact = location.hash === '#contato'; // vindo do "Tenho interesse" 
   intro.hidden = false;
   document.documentElement.classList.add('intro-on');
   // segura 2 s depois que APRESENTA termina de surgir (com limite de segurança)
-  intro.querySelector('.intro-pre').addEventListener('animationend', () => { clearTimeout(introTimer); introTimer = setTimeout(endIntro, 2000); }, { once: true });
+  intro.querySelector('.intro-pre').addEventListener('animationend', () => { clearTimeout(introTimer); introTimer = setTimeout(endIntro, 2000); holdUntil = performance.now() + 2000; calibrate(); }, { once: true });
   // as letras só começam a entrar com as fontes prontas (no máximo 1,2 s de espera na tela preta):
   // sem isso a fonte trocava no meio da animação e as letras davam um salto
   const go = () => { if (intro.classList.contains('go')) return; intro.classList.add('go'); introTimer = setTimeout(endIntro, 9000); introGo(); };
@@ -446,7 +452,7 @@ function revealBuilding() {
    O módulo já vem baixando em paralelo (modulepreload); só a montagem da cena (trabalho pesado de
    CPU) espera as letras da abertura começarem. As letras animam no compositor da GPU, então seguem
    fluidas mesmo enquanto o prédio é montado; antes, a montagem segurava a tela preta por segundos. */
-introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => import('./building.js?v=20261124b')).then(({ createViewer }) => {
+introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => import('./building.js?v=20261125a')).then(({ createViewer }) => {
   viewer = createViewer($('viewer'), {
     onSelect: selectFromBuilding,
     onHover: (k, e, at) => {
@@ -456,9 +462,11 @@ introStarted.then(() => new Promise((r) => setTimeout(r, 150))).then(() => impor
   });
   hero.classList.add('ready');
   if (introState === 'playing' || introState === 'waiting') viewer.prime();
-  viewer.whenReady.then(introReady); // só revela quando o primeiro quadro do prédio já foi desenhado
-  // plantas 3D e shaders do estúdio preparados em segundo plano, depois que a abertura terminou
-  viewer.whenReady.then(() => setTimeout(() => viewer.preload(), 4500));
+  viewer.whenReady.then(() => {
+    viewerReady = true; calibrate(); introReady(); // só revela com o primeiro quadro do prédio desenhado
+    // plantas 3D e shaders do estúdio preparados em segundo plano, nos momentos em que não aparece
+    viewer.preload();
+  });
 }).catch((err) => {
   console.warn('Maquete 3D indisponível:', err);
   hero.classList.add('no3d');
@@ -555,7 +563,7 @@ let tourWarm = false;
 const warmTour = (e) => {
   if (tourWarm || !e.target.closest?.('a[href^="tour.html"]')) return;
   tourWarm = true;
-  for (const href of ['js/tour/player.js?v=20261124b', 'js/tour/scenes.js?v=20261124b', 'js/tour/kit.js?v=20261124b']) {
+  for (const href of ['js/tour/player.js?v=20261125a', 'js/tour/scenes.js?v=20261125a', 'js/tour/kit.js?v=20261125a']) {
     const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = href; document.head.appendChild(l);
   }
 };

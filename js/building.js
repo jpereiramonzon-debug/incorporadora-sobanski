@@ -6,12 +6,11 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { mergeStatic } from './merge.js?v=20261124b';
-import { enhanceMaterials, skyEnvironment, FilmShader } from './lookdev.js?v=20261124b';
-import { buildPlanGroup, PLANS } from './plan3d.js?v=20261124b';
+import { mergeStatic } from './merge.js?v=20261125a';
+import { enhanceMaterials, skyEnvironment, FilmShader } from './lookdev.js?v=20261125a';
+import { buildPlanGroup, PLANS } from './plan3d.js?v=20261125a';
 
 // cartão de folhagem: tufo de folhas recortado por transparência (substitui as copas de esferas)
 function leafCardTex() {
@@ -172,9 +171,11 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const coarse = matchMedia('(pointer: coarse)').matches;
   const modest = coarse || (navigator.hardwareConcurrency || 8) <= 4;
   const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-  // celular com tela densa: 2x para ficar nítido (sem GTAO/bloom lá). Desktop: 1,5x com MSAA 4x já é
-  // indistinguível de 1,75x/2x numa tela Retina, e desenha ~27-44% menos pixels por quadro
-  renderer.setPixelRatio(Math.min(devicePixelRatio, coarse ? 2 : 1.5));
+  // densidade da TELA (fixa: mudar o tamanho do canvas apaga a imagem). Celular até 2x, desktop 1,5x
+  // com MSAA 4x (indistinguível de 2x numa tela Retina). A resolução em que a cena é de fato
+  // desenhada é escolhida à parte, conforme o aparelho aguenta (ver "resolução dinâmica").
+  const PR = Math.min(devicePixelRatio, coarse ? 2 : 1.5);
+  renderer.setPixelRatio(PR);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false; // a cena é estática: sombras calculadas uma vez
@@ -525,10 +526,16 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.22, 0.4, 1.0);
   bloom.enabled = !coarse;
   composer.addPass(bloom);
-  composer.addPass(new OutputPass());
-  const film = new ShaderPass(FilmShader); // vinheta e grão de filme, depois da conversão de cor
-  film.uniforms.uGrain.value = coarse ? 0.02 : 0.03;
-  film.material.toneMapped = false; // a mesma variante serve para a tela e para o dissolve
+  // conversão de cor + vinheta e grão de filme num único passe (antes eram dois passes de tela cheia):
+  // o grão é aplicado depois da conversão para sRGB, exatamente como antes, sobre a imagem final
+  const film = new OutputPass();
+  Object.assign(film.uniforms, { uTime: { value: 0 }, uGrain: { value: coarse ? 0.02 : 0.03 }, uVignette: { value: FilmShader.uniforms.uVignette.value } });
+  film.material.fragmentShader = film.material.fragmentShader
+    .replace('varying vec2 vUv;', 'varying vec2 vUv; uniform float uTime, uGrain, uVignette;\n float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + uTime) * 43758.5453); }')
+    .replace(/}\s*$/, `  vec2 d = vUv - 0.5; float v = 1.0 - uVignette * smoothstep(0.25, 0.85, dot(d, d) * 2.2);
+      float lum = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));
+      gl_FragColor.rgb = gl_FragColor.rgb * v + (h(vUv * 1024.0) - 0.5) * uGrain * (1.0 - lum * 0.6);
+    }`);
   composer.addPass(film);
 
   /* ---------- câmera e interação ---------- */
@@ -545,7 +552,10 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const parallel = renderer.extensions.has('KHR_parallel_shader_compile');
   // compila TODOS os materiais (não só os que estão no enquadramento): sem isso, cada objeto que
   // entrava na tela pela primeira vez durante a descida da câmera travava a animação
-  (parallel ? renderer.compileAsync(scene, camera).catch(() => {}) : Promise.resolve(renderer.compile(scene, camera))).then(() => { ready = true; dirty = true; });
+  // compila já na variante "desenho em textura" (sem tom de cor no material), que é a usada de fato
+  // pelo pós-processamento; com o alvo nulo a variante era outra e a compilação se repetia depois
+  const asTarget = (rt, fn) => { const t = renderer.getRenderTarget(); renderer.setRenderTarget(rt); const r = fn(); renderer.setRenderTarget(t); return r; };
+  asTarget(composer.renderTarget1, () => (parallel ? renderer.compileAsync(scene, camera).catch(() => {}) : Promise.resolve(renderer.compile(scene, camera)))).then(() => { ready = true; dirty = true; });
 
   /* ---------- estúdio claro: a planta 3D isolada (cutaway, sem teto) da unidade ----------
      Fica numa segunda cena, desenhada pelo MESMO renderer e pela mesma câmera: nada de novo
@@ -610,20 +620,21 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     studioShadow = true;
   }
   const idle = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 60));
-  let studioCompiled = false;
+  let studioCompiled = null;
   function precompileStudio() { // programas do estúdio prontos antes do clique: a transição começa na hora
-    if (studioCompiled) return; studioCompiled = true;
+    if (studioCompiled) return studioCompiled;
     studioEnv();
     const vis = [...apts.values()].map((a) => [a, a.group.visible]);
     vis.forEach(([a]) => { a.group.visible = true; });
-    if (parallel) renderer.compileAsync(studio, camera).catch(() => {}); else renderer.compile(studio, camera);
+    // compilação em paralelo (a página não espera) e na variante usada no estúdio (desenho em textura)
+    studioCompiled = asTarget(composerB.renderTarget1, () => (parallel ? renderer.compileAsync(studio, camera).catch(() => {}) : Promise.resolve(renderer.compile(studio, camera))));
     vis.forEach(([a, v]) => { a.group.visible = v; });
-    idle(warmUp);
+    return studioCompiled;
   }
   // aquecimento: desenha uma vez, fora da tela, tudo o que a transição usa (estúdio, sombras do
   // estúdio, composição e dissolve). Sem isso esses programas compilavam no primeiro quadro do
   // dissolve e a animação engasgava justamente no meio da transição.
-  let warmed = false;
+  let warmed = false, onWarm = null;
   function warmUp(force) {
     if (mode !== 'orbit' || warmed) return;
     // nunca durante a rolagem nem com o topo fora da tela: espera um momento calmo (o clique força)
@@ -643,6 +654,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     composerB.setSize(W, H); // volta ao tamanho da tela sem alocar: a memória só é usada ao abrir uma unidade
     vis.forEach(([a, v, op]) => { setOpacity(a, op); a.group.visible = v; });
     dirty = true;
+    onWarm?.(); onWarm = null;
   }
 
   // composição: prédio (composer A) e estúdio (composer B) misturados num shader de dissolve
@@ -838,41 +850,151 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     raf = requestAnimationFrame(tick);
     const rawDt = now - prev;
     const dt = Math.min(0.05, rawDt / 1000); prev = now;
-    if (!ready || (holdIntro && !dirty)) return; // atrás da abertura: um único quadro pronto, depois espera
+    if (!ready || calibrating || (holdIntro && !dirty)) return; // atrás da abertura: um único quadro pronto, depois espera
     const hl = stepHits(dt);
-    // voo, dissolve e estúdio: um quadro por atualização de tela (60 fps), sem limitação
+    // voo, dissolve e estúdio. O estado avança a cada atualização de tela; o desenho segue a cadência
+    // do tipo de movimento (ver frameDraw)
     if (mode !== 'orbit' || flight || mixAnim) {
       if (flight) stepFlight(now);
       if (mixAnim) stepMix(now);
       const fading = stepApts(now);
+      let quick = !!(flight || mixAnim || fading || drag || pinch), spinS = false, moving = quick;
       if (mode === 'studio' && !flight) {
-        if (!calm && !drag && !pinch && now - lastTouch > 3500) goal.az += dt * 0.05; // a maquete gira devagar sozinha
+        spinS = !calm && !drag && !pinch && now - lastTouch > 3500 && now - lastActive < 30000;
+        if (spinS) goal.az += dt * 0.05; // a maquete gira devagar sozinha (para depois de 30 s sem ninguém)
         goal.rad = studioBase * zoom;
         const ks = 1 - Math.exp(-dt * 6);
+        if (Math.abs(goal.rad - cur.rad) > cur.rad * 0.004 || Math.abs(goal.pol - cur.pol) > 0.002 || Math.abs(goal.az - cur.az) > 0.02) quick = true;
+        for (const p of ['az', 'pol', 'rad']) if (Math.abs(goal[p] - cur[p]) > 1e-4) moving = true;
         cur.az += (goal.az - cur.az) * ks; cur.pol += (goal.pol - cur.pol) * ks; cur.rad += (goal.rad - cur.rad) * ks;
       }
       if (fading) studioShadow = true;
-      draw(now);
+      if (!moving && !spinS && !dirty && !hl && !studioShadow) return; // estúdio parado: nada a redesenhar
+      frameDraw(now, quick);
       return;
     }
-    // giro automático só com o topo bem à vista e a página parada: durante a rolagem a GPU fica livre
-    // para o navegador (era a principal causa de travadas ao rolar)
-    // giro só com a página parada, o topo à vista e alguém por perto (30 s sem interação: a GPU descansa)
-    const spinning = !calm && !drag && !selected && now - lastTouch > 5000 && heroRatio >= 0.5 && now - lastScroll > 220 && now - lastActive < 30000;
-    if (spinning) govern(now, rawDt);
+    // giro automático só com o topo bem à vista, a página parada e alguém por perto (30 s sem
+    // interação: a GPU descansa); espera também o pré-carregamento em segundo plano terminar
+    const spinning = !calm && !drag && !selected && !preloading && now - lastTouch > 5000 && heroRatio >= 0.5 && now - lastScroll > 220 && now - lastActive < 30000;
     // rolando a página: a maquete congela no último quadro (sem nenhum desenho WebGL) até a rolagem parar
     if (now - lastScroll < 220 && !dirty && !drag && !hl) { if (!spinning) goal.az = cur.az; return; }
     if (spinning) goal.az += dt * 0.07;
-    // desenha só quando algo muda; o giro automático roda a ~30 quadros por segundo
     let moving = dirty || hl || Math.abs(fade - (selected ? 1 : 0)) > 0.002;
     for (const p of KEYS) if (Math.abs(goal[p] - cur[p]) > 1e-4) moving = true;
-    const settling = moving && !(spinning && !dirty && !hl);
-    if (!moving || (!settling && now - lastDraw < 40)) return; // giro lento a 25 qps: suave e mais leve
+    if (!moving) return;
     const k = holdIntro ? 0 : 1 - Math.exp(-dt * (now < slowUntil ? 1.1 : 5.5));
     for (const p of KEYS) cur[p] += (goal[p] - cur[p]) * k;
     fade += ((selected ? 1 : 0) - fade) * k;
-    draw(now);
+    // movimento rápido (descida da abertura, arrastar, enquadrar um andar) ou só o giro lento
+    let quick = !!drag || Math.abs(fade - (selected ? 1 : 0)) > 0.01;
+    for (const p of KEYS) if (Math.abs(goal[p] - cur[p]) > QUICK[p]) { quick = true; break; }
+    frameDraw(now, quick);
   };
+  // diferença entre onde a câmera está e para onde vai que conta como movimento rápido (no giro
+  // automático a câmera fica ~0,013 rad atrás do alvo: isso é movimento lento)
+  const QUICK = { az: 0.025, pol: 0.003, rad: 0.05, tx: 0.02, ty: 0.02, tz: 0.02, shift: 0.01 };
+
+  /* ---------- resolução dinâmica e cadência uniforme ----------
+     O canvas fica sempre na densidade da tela; o que muda é a resolução INTERNA em que a cena é
+     desenhada (o último passe amplia com filtro, já com o grão de filme na resolução da tela).
+     Cada aparelho recebe a maior resolução que sustenta sem perder quadros:
+       - movimento rápido (descida da abertura, arrastar, voos até a unidade): 60 qps
+       - movimento lento (giro automático): 30 qps, sempre a cada 2 atualizações de tela (sem tranco)
+     Numa GPU fraca, 30 qps nítidos e regulares no lugar de 60 qps borrados.
+     O custo da GPU é medido durante a abertura (atrás da tela preta, invisível) e conferido a cada
+     quadro: se quadros começam a atrasar, a resolução desce um degrau na hora; se sobra folga por
+     bastante tempo, sobe um degrau. No computador, brilho (bloom) e oclusão (GTAO) saem antes. */
+  // ?q3d=1.5 na URL fixa a resolução interna (para comparar visual em testes)
+  const FORCE = Math.min(PR, +new URLSearchParams(location.search).get('q3d') || 0);
+  const LV = FORCE ? [FORCE] : (coarse ? [2, 1.75, 1.5, 1.3, 1.15, 1, 0.85, 0.75] : [1.5, 1.3, 1.15, 1, 0.85, 0.75]).filter((q) => q <= PR + 1e-3);
+  if (!FORCE && (!LV.length || LV[0] < PR - 1e-3)) LV.unshift(PR);
+  const MIN60 = coarse ? 1 : 0.85; // abaixo disso a imagem amolece demais: melhor 30 qps nítidos
+  const B60 = 12, B30 = 22; // ms de GPU por quadro: deixa folga para o navegador compor a página
+  const SIG = `${screen.width}x${screen.height}@${devicePixelRatio}|${coarse}`;
+  const saved = (() => { try { const o = JSON.parse(localStorage.getItem('sb3d') || 'null'); return o?.sig === SIG ? o : null; } catch { return null; } })();
+  let kCost = saved?.k ?? (coarse ? 6 : 2); // ms de GPU por quadro com 1 px interno por px de CSS (∝ q²)
+  let cFix = saved?.c ?? 0; // ms fixos por quadro (não dependem da resolução interna)
+  let noProbe = false;
+  // a medida fica guardada no aparelho: se a abertura não der tempo de medir, já começa certo
+  const keep = () => { try { localStorage.setItem('sb3d', JSON.stringify({ sig: SIG, k: kCost, c: cFix })); } catch { /* sem armazenamento */ } };
+  const CLS = { fast: { q: PR, int: 1000 / 60 }, slow: { q: PR, int: 1000 / 30 } };
+  const pickQ = (budget) => LV.find((q) => kCost * q * q + cFix <= budget) ?? LV[LV.length - 1];
+  function plan() {
+    const q60 = pickQ(B60), q30 = pickQ(B30);
+    CLS.slow.q = q30;
+    if (q60 >= MIN60 || q60 === LV[0]) { CLS.fast.q = q60; CLS.fast.int = 1000 / 60; } else { CLS.fast.q = q30; CLS.fast.int = 1000 / 30; }
+  }
+  plan();
+  let qNow = 0;
+  const useQ = (q) => { if (q === qNow) return; qNow = q; composer.setPixelRatio(q); composerB.setPixelRatio(q); };
+  // ritmo: mede o intervalo real entre quadros desenhados em sequência
+  let cls = 'slow', lastQuick = -1e9, runCls = '', pWin = 0, pLate = 0, okRun = 0, probedAt = -1e9, slowedAt = -1e9;
+  function slower(now) {
+    if (FORCE) return;
+    if (bloom.enabled) bloom.enabled = false; // computador: primeiro os efeitos, do menos perceptível
+    else if (gtaoPass?.enabled) gtaoPass.enabled = false;
+    else { if (probedAt > slowedAt) noProbe = true; kCost *= 1.3; plan(); keep(); } // subida que não se sustentou: não tenta de novo
+    slowedAt = now;
+  }
+  function frameDraw(now, quick) {
+    if (quick) lastQuick = now;
+    const c = now - lastQuick < 350 ? 'fast' : 'slow'; // volta ao lento só depois de um respiro
+    const I = CLS[c].int;
+    if (now - lastDraw < I - 4) return; // cadência uniforme (60 qps ou 30 qps exatos)
+    const d = now - lastDraw;
+    if (runCls === c && d < I * 3 + 30) { // quadro seguido do anterior: dá para medir o ritmo
+      pWin++;
+      if (d > I + 8) { pLate++; okRun = 0; } else okRun++;
+      if (pWin >= 8) { if (pLate >= 4 && now - slowedAt > 300) slower(now); pWin = 0; pLate = 0; }
+      // folga mantida por ~3 s de movimento: tenta um degrau acima (uma vez por vez)
+      if (okRun >= (c === 'fast' ? 180 : 100) && !noProbe && CLS[c].q < LV[0] && now - slowedAt > 4000) { okRun = 0; probedAt = now; kCost /= 1.3; plan(); }
+    } else { pWin = 0; pLate = 0; }
+    runCls = c; cls = c;
+    useQ(CLS[c].q);
+    draw(now);
+  }
+  // medição do custo da GPU, chamada pela página durante a pausa da abertura (tela preta por cima,
+  // nada se mexe): desenha alguns quadros no enquadramento normal em duas resoluções e espera a GPU
+  // terminar cada um (leitura de 1 pixel), o que dá o tempo real de GPU, sem depender do navegador.
+  let calibrating = false;
+  const px = new Uint8Array(4), glc = renderer.getContext();
+  function calibrate() {
+    if (FORCE || !ready || calibrating || mode !== 'orbit' || !holdIntro || document.hidden) return Promise.resolve();
+    calibrating = true;
+    const save = { ...cur }, qa = LV[0], qb = LV[LV.length - 1];
+    Object.assign(cur, goal);
+    const runs = [[qa, []], [qb, []]];
+    let r = 0, n = 0;
+    const tEnd = performance.now() + 900; // GPU muito lenta: encerra com o que já mediu
+    return new Promise((res) => {
+      const finish = () => { Object.assign(cur, save); calibrating = false; dirty = true; useQ(CLS.fast.q); draw(performance.now()); };
+      const step = () => {
+        // a abertura já saiu (aparelho muito lento): para na hora, sem mostrar os quadros de medição
+        if (!holdIntro && !runs[0][1].length) { finish(); res(null); return; }
+        const [q, ts] = runs[r];
+        useQ(q); cur.az = goal.az + n * 0.003;
+        const t0 = performance.now(); draw(t0); glc.readPixels(0, 0, 1, 1, glc.RGBA, glc.UNSIGNED_BYTE, px);
+        if (n++ >= 2) ts.push(performance.now() - t0); // os 2 primeiros incluem envio de texturas
+        const late = (performance.now() > tEnd || !holdIntro) && runs[0][1].length;
+        if (ts.length < 3 && !late) { requestAnimationFrame(step); return; }
+        if (!late && ++r < runs.length && qb < qa) { n = 0; requestAnimationFrame(step); return; }
+        const med = (a) => a.slice().sort((x, y) => x - y)[a.length >> 1];
+        const ta = med(runs[0][1]), tb = runs[1][1].length ? med(runs[1][1]) : ta;
+        // custo = parte que cresce com os pixels (k·q²) + parte fixa (passe final na tela, sombras...)
+        kCost = qb < qa && runs[1][1].length ? Math.max(0.2, (ta - tb) / (qa * qa - qb * qb)) : ta / (qa * qa);
+        cFix = Math.max(0, Math.min(ta - kCost * qa * qa, tb - kCost * qb * qb));
+        // computador que não acompanha com os efeitos: desliga brilho e oclusão e mede de novo
+        if (!coarse && !late && (bloom.enabled || gtaoPass?.enabled) && pickQ(B60) < LV[0]) {
+          bloom.enabled = false; if (gtaoPass) gtaoPass.enabled = false;
+          runs.forEach((x) => { x[1].length = 0; }); r = 0; n = 0; requestAnimationFrame(step); return;
+        }
+        plan(); keep();
+        finish(); // o quadro inicial da abertura, já na resolução certa
+        res({ k: kCost, c: cFix, fast: CLS.fast, slow: CLS.slow });
+      };
+      requestAnimationFrame(step);
+    });
+  }
   function draw(now) {
     foliage.forEach((m) => { m.opacity = 1 - fade * 0.8; m.depthWrite = fade < 0.5; });
     const s = Math.sin(cur.pol);
@@ -903,28 +1025,10 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     firstFrame();
   }
   // laço 3D só roda com a maquete na tela e a aba visível; o giro pausa ao rolar
-  let heroRatio = 1, lastScroll = 0, ioFirst = true, lastActive = performance.now();
+  let heroRatio = 1, lastScroll = 0, ioFirst = true, lastActive = performance.now(), preloading = false;
   for (const ev of ['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(ev, () => { lastActive = performance.now(); }, { passive: true });
 
-  /* governador de qualidade: mede o ritmo real da página durante o giro. Se a GPU do aparelho não
-     acompanha (média > 26 ms por quadro, ou seja, a página toda abaixo de ~38 qps), desliga um efeito
-     por vez, do menos para o mais perceptível: brilho (bloom), oclusão (GTAO) e só então resolução.
-     Num computador que acompanha, nada muda. Nunca volta a subir (sem oscilar). */
-  const gov = { avg: 16.7, since: performance.now() + 5000 };
-  const steps = [
-    () => { if (!bloom.enabled) return false; bloom.enabled = false; return true; },
-    () => { if (!gtaoPass?.enabled) return false; gtaoPass.enabled = false; return true; },
-    () => { const pr = renderer.getPixelRatio(); if (pr <= 1.01) return false; const n = Math.max(1, pr - 0.5); renderer.setPixelRatio(n); composer.setPixelRatio(n); composerB.setPixelRatio(n); resize(); return true; },
-  ];
-  let tier = 0;
-  function govern(now, rawDt) {
-    if (now < gov.since || rawDt > 150 || tier >= steps.length) return; // aba voltando / já no mínimo
-    gov.avg = gov.avg * 0.93 + rawDt * 0.07;
-    if (gov.avg < 26) return;
-    gov.avg = 16.7; gov.since = now + 2500; dirty = true;
-    while (tier < steps.length && !steps[tier++]()) { /* pula o que já está desligado */ }
-  }
-  const wake = () => { cancelAnimationFrame(raf); if (visible && !document.hidden) { prev = performance.now(); dirty = true; gov.since = Math.max(gov.since, prev + 1500); raf = requestAnimationFrame(tick); } };
+  const wake = () => { cancelAnimationFrame(raf); if (visible && !document.hidden) { prev = performance.now(); dirty = true; raf = requestAnimationFrame(tick); } };
   new IntersectionObserver(([e]) => {
     heroRatio = e.intersectionRatio;
     if (ioFirst || visible !== e.isIntersecting) { ioFirst = false; visible = e.isIntersecting; wake(); } // o 1º aviso dá a partida
@@ -935,10 +1039,24 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   /* ---------- pré-carregamento em segundo plano ----------
      Depois que a maquete aparece, as plantas são montadas uma por vez em momentos ociosos do
      navegador e os shaders do estúdio são compilados: o clique dispara a transição sem espera. */
+  /* Cada etapa ocupa o processador por alguns instantes (montar uma planta, gerar os reflexos do
+     estúdio, compilar shaders). Elas só rodam quando isso não aparece na tela: atrás da abertura
+     (depois da medição da GPU) ou com a câmera já pousada; nunca durante a descida da câmera nem
+     com uma unidade aberta. O giro automático espera terminar (no máximo 12 s). */
+  let preloaded = false, quietAt = 0;
   function preload() {
-    const queue = [...new Set(SLOTS.map((s) => s.plan))];
-    const next = () => { const id = queue.shift(); if (id) { apt(id); idle(next); } else idle(precompileStudio); };
-    idle(next);
+    if (preloaded) return; preloaded = preloading = true;
+    const done = () => { preloading = false; };
+    setTimeout(done, 12000);
+    const steps = [...new Set(SLOTS.map((s) => s.plan))].map((id) => () => { apt(id); });
+    steps.push(studioEnv, precompileStudio, () => (warmed ? null : new Promise((r) => { onWarm = r; warmUp(); })));
+    const ok = () => !calibrating && mode === 'orbit' && (holdIntro || performance.now() > quietAt);
+    const run = () => {
+      if (!steps.length) { done(); return; }
+      if (!ok()) { setTimeout(() => idle(run), 300); return; }
+      Promise.resolve(steps.shift()()).then(() => idle(run));
+    };
+    idle(run);
   }
 
   return {
@@ -946,7 +1064,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     highlight(k) { if (mode !== 'orbit') return; hovered = k; paint(); },
     setPanel(open) { if (mode !== 'orbit') return; panelOpen = open; frame(); },
     rotate(d) { goal.az += d; touched(); },
-    whenReady, preload,
+    whenReady, preload, calibrate,
     get unit() { return unit; },
     // área livre (px) informada pela página; no estúdio a câmera reenquadra suavemente
     setSafe(s) { safe = s; if (mode === 'studio' && unit) { studioBase = studioRad(unit); touched(); } },
@@ -1024,6 +1142,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       if (!holdIntro) this.prime();
       holdIntro = false;
       slowUntil = performance.now() + ms; lastTouch = performance.now(); dirty = true;
+      quietAt = performance.now() + ms + 600; // trabalho de fundo só depois que a câmera pousa
     },
   };
 }
