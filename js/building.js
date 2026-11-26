@@ -542,6 +542,9 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
   const goal = { ...cur };
   const KEYS = Object.keys(cur);
   let baseRad = 50, W = 1, H = 1, hovered = null, selected = null, panelOpen = false;
+  // giro automático: volta pouco depois de soltar o prédio, acelerando suavemente (sem tranco)
+  const SPIN_WAIT = 1200; let spinAmt = 0;
+  const spinStep = (on, dt) => { spinAmt = on ? Math.min(1, spinAmt + dt / 1.6) : 0; return spinAmt * spinAmt * (3 - 2 * spinAmt); };
   let lastTouch = 0, visible = true, raf = 0, prev = performance.now(), dirty = true, lastDraw = 0;
   // shaders compilados em paralelo antes do primeiro quadro: a abertura (letras SOBANSKI) não engasga
   // enquanto a GPU prepara o prédio, e o primeiro quadro já sai completo, sem "pop"
@@ -865,8 +868,8 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       const fading = stepApts(now);
       let quick = !!(flight || mixAnim || fading || drag || pinch), spinS = false, moving = quick;
       if (mode === 'studio' && !flight) {
-        spinS = !calm && !drag && !pinch && now - lastTouch > 3500 && now - lastActive < 30000;
-        if (spinS) goal.az += dt * 0.05; // a maquete gira devagar sozinha (para depois de 30 s sem ninguém)
+        spinS = !calm && !drag && !pinch && now - lastTouch > SPIN_WAIT;
+        if (spinS) goal.az += dt * 0.05 * spinStep(true, dt); else spinStep(false); // a maquete continua girando devagar sozinha
         goal.rad = studioBase * zoom;
         const ks = 1 - Math.exp(-dt * 6);
         if (Math.abs(goal.rad - cur.rad) > cur.rad * 0.004 || Math.abs(goal.pol - cur.pol) > 0.002 || Math.abs(goal.az - cur.az) > 0.02) quick = true;
@@ -878,12 +881,12 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
       frameDraw(now, quick);
       return;
     }
-    // giro automático só com o topo bem à vista, a página parada e alguém por perto (30 s sem
-    // interação: a GPU descansa); espera também o pré-carregamento em segundo plano terminar
-    const spinning = !calm && !drag && !selected && !preloading && now - lastTouch > 5000 && heroRatio >= 0.5 && now - lastScroll > 220 && now - lastActive < 30000;
+    // giro automático com o topo bem à vista e a página parada: depois de girar com o dedo/mouse,
+    // a maquete volta a girar devagar sozinha; espera o pré-carregamento em segundo plano terminar
+    const spinning = !calm && !drag && !selected && !preloading && now - lastTouch > SPIN_WAIT && heroRatio >= 0.5 && now - lastScroll > 220;
     // rolando a página: a maquete congela no último quadro (sem nenhum desenho WebGL) até a rolagem parar
     if (now - lastScroll < 220 && !dirty && !drag && !hl) { if (!spinning) goal.az = cur.az; return; }
-    if (spinning) goal.az += dt * 0.07;
+    if (spinning) goal.az += dt * 0.07 * spinStep(true, dt); else spinStep(false);
     let moving = dirty || hl || Math.abs(fade - (selected ? 1 : 0)) > 0.002;
     for (const p of KEYS) if (Math.abs(goal[p] - cur[p]) > 1e-4) moving = true;
     if (!moving) return;
@@ -1043,8 +1046,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     firstFrame();
   }
   // laço 3D só roda com a maquete na tela e a aba visível; o giro pausa ao rolar
-  let heroRatio = 1, lastScroll = 0, ioFirst = true, lastActive = performance.now(), preloading = false;
-  for (const ev of ['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(ev, () => { lastActive = performance.now(); }, { passive: true });
+  let heroRatio = 1, lastScroll = 0, ioFirst = true, preloading = false;
 
   const wake = () => { cancelAnimationFrame(raf); if (visible && !document.hidden) { prev = performance.now(); dirty = true; raf = requestAnimationFrame(tick); } };
   new IntersectionObserver(([e]) => {
@@ -1083,6 +1085,7 @@ export function createViewer(container, { onHover = () => {}, onSelect = () => {
     setPanel(open) { if (mode !== 'orbit') return; panelOpen = open; frame(); },
     rotate(d) { goal.az += d; touched(); },
     whenReady, preload, calibrate,
+    get az() { return cur.az; },
     // diagnóstico (com ?debug3d na URL fica em window.__viewer): chamadas de desenho por quadro,
     // triângulos, texturas e uma estimativa da memória de GPU ocupada
     stats() {
