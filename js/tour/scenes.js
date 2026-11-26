@@ -91,7 +91,7 @@ export const ENVS = {
       box(g, blackMetal(), 0.05, 0.05, D, 1.47, 1.08, 0, { cast: false });
       box(g, M(0xe8e5e0), 0.12, 0.08, D, 1.47, 0, 0, { cast: false });
       box(g, paint(0xdcd8d1), 0.2, 0.3, D + 0.2, 1.55, H - 0.3, 0, { cast: false });
-      plane(g, new THREE.MeshBasicMaterial({ map: TX.view('field'), color: new THREE.Color(1.05, 1.05, 1.05) }), 30, 12, 9, 3, 0, { ry: -Math.PI / 2 });
+      plane(g, new THREE.MeshBasicMaterial({ map: TX.openView(), color: new THREE.Color(0.95, 0.95, 0.95) }), 30, 12, 9, 3, 0, { ry: -Math.PI / 2 });
       const sunL = new THREE.RectAreaLight(0xfff1dc, 6, D, 1.6); sunL.position.set(1.45, 1.4, 0); sunL.lookAt(-3, 1.2, 0); g.add(sunL);
       // área de serviço: lavadora, gabinete cinza com tanque, prateleira e aéreos estilo shaker
       const zb = -0.95;
@@ -122,8 +122,8 @@ export const ENVS = {
       box(col, gr, 0.56, 0.08, 0.04, 0, 1.68, 0.25);
       box(col, gr, 0.08, 0.66, 0.04, -0.24, 1.02, 0.25);
       box(col, gr, 0.08, 0.66, 0.04, 0.24, 1.02, 0.25);
-      box(col, M(0xc9b39a, { roughness: 0.9 }), 0.4, 0.58, 0.005, 0, 1.02, 0.19, { cast: false });
-      for (const y of [1.18, 1.36]) { box(col, metal(0xcfd2d4, 0.3), 0.46, 0.012, 0.012, 0, y, 0.24, { cast: false }); for (const sx of [-0.1, 0.1]) sph(col, M(0x6b1d12), 0.016, sx, y + 0.006, 0.255, { cast: false }); }
+      box(col, M(0x3b3733, { roughness: 0.95 }), 0.4, 0.58, 0.004, 0, 1.02, 0.251, { cast: false }); // fundo da churrasqueira (escuro), à frente da face do pilar e dentro da moldura
+      for (const y of [1.18, 1.36]) { box(col, metal(0xcfd2d4, 0.3), 0.46, 0.012, 0.012, 0, y, 0.262, { cast: false }); for (const sx of [-0.1, 0.1]) sph(col, M(0x6b1d12), 0.016, sx, y + 0.006, 0.272, { cast: false }); }
       spots(g, [[-0.6, 0], [0.8, 0]], H);
       door(g, { x: 0.85, z: 0.94, ry: Math.PI });
     },
@@ -304,7 +304,7 @@ export const ENVS = {
       box(g, blackMetal(), 0.05, 0.05, D, 1.18, 1.06, 0, { cast: false });
       box(g, blackMetal(), 0.06, 0.04, D, 1.18, 0, 0, { cast: false });
       box(g, wall, 0.2, 0.3, D + 0.2, 1.25, H - 0.3, 0, { cast: false });
-      plane(g, new THREE.MeshBasicMaterial({ map: TX.view('field'), color: new THREE.Color(1.05, 1.05, 1.05) }), 30, 12, 9, 3, 0, { ry: -Math.PI / 2 });
+      plane(g, new THREE.MeshBasicMaterial({ map: TX.openView(), color: new THREE.Color(0.95, 0.95, 0.95) }), 30, 12, 9, 3, 0, { ry: -Math.PI / 2 });
       const sunL = new THREE.RectAreaLight(0xfff1dc, 6, D, 1.6); sunL.position.set(1.15, 1.4, 0); sunL.lookAt(-3, 1.2, 0); g.add(sunL);
       // poltrona de madeira com almofadas bege
       const pt = solid(grp(g, -0.7, 0, 0.2, Math.PI / 2)), wd = woodM('#5a3a26', 0.3, 1), cu = fabric(0xd9cdb9, 2);
@@ -312,12 +312,12 @@ export const ENVS = {
       rbox(pt, cu, 0.6, 0.12, 0.6, 0.04, 0, 0.3, 0.02);
       const bk = rbox(pt, cu, 0.6, 0.6, 0.12, 0.04, 0, 0.42, -0.3); bk.rotation.x = -0.25;
       spots(g, [[0, 0]], H);
-      door(g, { x: -1.19, z: 0.1, ry: Math.PI / 2 });
+      door(g, { x: -0.45, z: 0.94, ry: Math.PI }); // a porta do quarto fica atrás de quem entra; a poltrona encosta na parede, como na foto
     },
     pois: [
       { p: [0.05, 1.5, -0.88], t: 'Tijolo de vidro', d: 'Coluna de tijolos de vidro verde que deixa a luz passar.' },
       { p: [1.15, 1.2, 0], t: 'Guarda-corpo de vidro', d: 'Sacada privativa do quarto 01, com vista aberta.' },
-      { p: [-1.15, 1.6, 0.1], t: 'Voltar para o quarto 01', d: 'Quarto com painel de madeira.', go: 't02-quarto-01' },
+      { p: [-0.45, 1.6, 0.9], t: 'Voltar para o quarto 01', d: 'Quarto com painel de madeira.', go: 't02-quarto-01' },
     ],
   },
   't02-quarto1': {

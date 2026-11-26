@@ -199,6 +199,28 @@ export const TX = {
     }
     g.filter = 'none';
   }),
+  // vista aberta das sacadas (como na foto do Tipo 02): céu azul limpo, linha de árvores no horizonte
+  // e campo. O painel tem 30 m e só o miolo aparece pela sacada, por isso a resolução maior
+  openView: () => ctex('openView', 2048, 1024, (g, w, h) => {
+    const hz = h * 0.6, r = rng(11);
+    const s = g.createLinearGradient(0, 0, 0, hz);
+    s.addColorStop(0, '#5f7fb8'); s.addColorStop(0.6, '#93acd2'); s.addColorStop(1, '#d4dbe2');
+    g.fillStyle = s; g.fillRect(0, 0, w, hz);
+    g.filter = 'blur(10px)'; // nuvens altas, bem suaves
+    for (let i = 0; i < 14; i++) { g.fillStyle = `rgba(255,255,255,${0.12 + r() * 0.15})`; g.beginPath(); g.ellipse(r() * w, h * (0.08 + r() * 0.3), 60 + r() * 160, 8 + r() * 14, 0, 0, 7); g.fill(); }
+    g.filter = 'blur(1.5px)';
+    const f = g.createLinearGradient(0, hz, 0, h);
+    f.addColorStop(0, '#7d8160'); f.addColorStop(0.35, '#6f7a4c'); f.addColorStop(1, '#5d6a3e');
+    g.fillStyle = f; g.fillRect(0, hz, w, h - hz);
+    for (let x = 0; x < w;) { // capões de mata e árvores isoladas no horizonte
+      const tw = 6 + r() * (r() < 0.25 ? 120 : 24), th = 4 + r() * 16;
+      g.fillStyle = `hsl(${95 + r() * 25},${18 + r() * 12}%,${20 + r() * 10}%)`;
+      g.beginPath(); g.ellipse(x + tw / 2, hz, tw / 2, th, 0, Math.PI, 0); g.fill();
+      x += tw * (0.6 + r() * 1.6);
+    }
+    for (let i = 0; i < 400; i++) { g.fillStyle = `rgba(${40 + r() * 40},${50 + r() * 40},${20 + r() * 20},.18)`; g.fillRect(r() * w, hz + 3 + r() * (h - hz), 4 + r() * 30, 1 + r() * 2); }
+    g.filter = 'none';
+  }),
   // guarda-corpo de ferro com volutas (varanda do Tipo 01)
   railing: () => ctex('railing', 1024, 384, (g, w, h) => {
     g.clearRect(0, 0, w, h);

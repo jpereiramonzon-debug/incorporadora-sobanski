@@ -383,11 +383,12 @@ planView.addEventListener('click', (e) => {
   if (zoom) { planView.scrollLeft = fx * planImg.offsetWidth - innerWidth / 2; planView.scrollTop = fy * planImg.offsetHeight - innerHeight / 2; }
 });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && !planView.hidden) { e.stopImmediatePropagation(); closePlan(); } }, true);
-const selectFromBuilding = (k) => (k === 'T' ? openFloor('T') : enterUnit(k));
+const selectFromBuilding = (k) => { dismissIntro(); viewer?.highlight(null); showTip(null); return k === 'T' ? openFloor('T') : enterUnit(k); };
 
 $('floors').innerHTML = FLOORS.map((f) => `<button type="button" data-k="${f.k}" aria-pressed="false" aria-label="${f.name}"><b>${f.k}</b><span>${f.name}</span></button>`).join('');
 $('floors').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) selectFromBuilding(b.dataset.k === 'T' ? 'T' : `${b.dataset.k}01`); });
-$('floors').addEventListener('pointerover', (e) => viewer?.highlight(e.target.closest('button')?.dataset.k ?? null));
+// realce do andar só com mouse: no toque não existe "sair de cima", e o aviso (Térreo · Áreas sociais) ficava preso
+$('floors').addEventListener('pointerover', (e) => { if (e.pointerType === 'mouse') viewer?.highlight(e.target.closest('button')?.dataset.k ?? null); });
 $('floors').addEventListener('pointerleave', () => viewer?.highlight(null));
 // destaque dourado que desliza entre os andares (em vez de cada botão acender seco)
 {
@@ -410,6 +411,13 @@ $('floors').addEventListener('pointerleave', () => viewer?.highlight(null));
 
 /* ---------- Abertura: SOBANSKI / INCORPORADORA — APRESENTA, depois o edifício ---------- */
 const intro = $('intro'), introMsg = $('introMsg'), introTitle = $('introTitle');
+// some com o título e a mensagem da abertura na hora (menu, andar, tour...), mesmo antes do tempo deles
+let introCancelled = false;
+function dismissIntro() {
+  if (introCancelled) return; introCancelled = true;
+  for (const el of [$('introTitle'), $('introMsg')]) { el.classList.remove('on'); el.hidden = true; }
+  hero.classList.add('title-in');
+}
 let introState = 'off', introTimer = 0, introBuildingReady = false, introGo, holdUntil = 0, viewerReady = false, calibrated = false;
 // mede a GPU do aparelho durante a pausa da abertura (o prédio é desenhado por trás da tela preta):
 // assim a descida da câmera já começa na resolução que o aparelho sustenta sem perder quadros
@@ -460,11 +468,11 @@ function revealBuilding() {
   addEventListener('scroll', hideNow, { passive: true });
   if (wantContact) { titleIn(); setTimeout(() => window.SobanskiChat?.open(), 900); return; }
   const show = (el, delay, dur, next) => setTimeout(() => {
-    if (away()) return;
+    if (away() || introCancelled) return;
     el.hidden = false;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       el.classList.add('on');
-      setTimeout(() => { el.classList.remove('on'); setTimeout(() => { el.hidden = true; next?.(); }, 900); }, dur);
+      setTimeout(() => { el.classList.remove('on'); setTimeout(() => { el.hidden = true; if (!introCancelled) next?.(); }, 900); }, dur);
     }));
   }, delay);
   // SANTA ANA em destaque; quando ele sai, entra o título do topo e então a mensagem
@@ -589,6 +597,7 @@ document.querySelectorAll('.reveal').forEach((el, i) => { el.style.transitionDel
 /* ---------- Menu ---------- */
 const navMenu = $('navMenu'), navShade = $('navShade'), navToggle = $('navToggle');
 const setNav = (open) => {
+  if (open) dismissIntro();
   navMenu.hidden = navShade.hidden = !open;
   navToggle.setAttribute('aria-expanded', open);
   if (open) navMenu.querySelector('a')?.focus(); else navToggle.focus({ preventScroll: true });

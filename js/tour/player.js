@@ -73,6 +73,9 @@ const gtao = new GTAOPass(scene, camera, 1, 1);
 gtao.updateGtaoMaterial({ radius: 0.45, distanceExponent: 1.2, thickness: 1.2, scale: 1.1, samples: modest ? 8 : 12, distanceFallOff: 1 });
 gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: modest ? 8 : 12 });
 gtao.blendIntensity = 0.85;
+// o céu de fundo (sacadas) não entra no cálculo da oclusão: no passe de normais/profundidade ele era
+// desenhado por cima do piso e das paredes e virava uma mancha escura no meio da sacada
+{ const r0 = gtao.render.bind(gtao); gtao.render = (...a) => { const bg = scene.background; scene.background = null; try { r0(...a); } finally { scene.background = bg; } }; }
 composer.addPass(gtao);
 // conversão de cor + vinheta e grão sutis (como numa foto de interiores) num único passe
 const film = withFilm(new OutputPass(), { grain: 0.025, vignette: 0.22 });
@@ -587,6 +590,7 @@ function draw(now) {
 if (new URLSearchParams(location.search).has('debug3d')) window.__tour = {
   go(p, l) { pos.set(...p); const a = lookAngles(p, l); yaw = yawT = a.yaw; pitch = pitchT = a.pitch; tween = null; walkTo = null; hidePhoto(); dirty = true; },
   get q() { return qNow; }, get gtao() { return gtaoLevel; }, get ready() { return !!env && !busy; },
+  scene, sun, gtaoPass: gtao, redraw() { dirty = true; },
 };
 
 /* ---------------- início ---------------- */
@@ -597,11 +601,13 @@ goShot(known ? start : SHOTS[0].id, true);
 const welcome = $('welcome');
 if (!known) {
   welcome.hidden = false;
+  $('help').hidden = true; // a dica de controles só aparece depois da escolha (antes ela cobria o título)
   welcome.querySelector('button')?.focus();
   welcome.addEventListener('click', (e) => {
     const b = e.target.closest('[data-go]');
     if (!b) return;
     welcome.hidden = true;
+    $('help').hidden = false;
     goShot(b.dataset.go);
     canvas.focus();
   });
