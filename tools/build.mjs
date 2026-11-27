@@ -94,6 +94,15 @@ async function build() {
   });
   page('tour.html', { entry: tour, preloads: pre(tourPre) });
 
+  // ---------- cabeçalhos de cache para Cloudflare Pages (mesmas regras do vercel.json) ----------
+  writeFileSync(join(OUT, '_headers'), [
+    '/js/*', '  Cache-Control: public, max-age=31536000, immutable',
+    '/styles-*', '  Cache-Control: public, max-age=31536000, immutable',
+    '/tour-*', '  Cache-Control: public, max-age=31536000, immutable',
+    '/assets/*', '  Cache-Control: public, max-age=0, must-revalidate',
+    '/assets/fonts/*', '  ! Cache-Control', '  Cache-Control: public, max-age=31536000, immutable', '',
+  ].join('\n'));
+
   // ---------- relatório ----------
   const size = (o) => statSync(join(ROOT, o)).size;
   const br = (o) => brSize(readFileSync(join(ROOT, o)));
